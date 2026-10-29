@@ -1,0 +1,20 @@
+## .NET / Visual Studio
+bin/
+obj/
+*.user
+.vs/
+
+## Windows App SDK / MSIX
+AppPackages/
+BundleArtifacts/
+*.appx
+*.appxbundle
+*.msix
+
+## NotchWin runtime data (never commit local pricing overrides or settings)
+pricing.json
+settings.json
+
+## OS cruft
+.DS_Store
+Thumbs.db
