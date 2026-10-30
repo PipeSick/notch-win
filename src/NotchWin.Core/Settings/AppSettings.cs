@@ -38,6 +38,15 @@ public sealed class AppSettings
     /// </summary>
     public string? CalendarIcsPath { get; set; }
 
+    /// <summary>
+    /// Show synced lyrics under the player. Off by default because it sends the track's title and
+    /// artist to lrclib.net, the only thing NotchWin sends off the machine.
+    /// </summary>
+    public bool LyricsEnabled { get; set; }
+
+    /// <summary>Override for OpenCode's data dir; null uses $XDG_DATA_HOME/opencode or ~/.local/share/opencode.</summary>
+    public string? OpenCodeDataOverride { get; set; }
+
     /// <summary>Folder watched for in-progress browser downloads; null uses the user's Downloads folder.</summary>
     public string? DownloadsFolder { get; set; }
 }

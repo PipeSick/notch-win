@@ -29,7 +29,8 @@ public sealed class NotchSectionsTests
         Assert.False(result[0].Enabled);
         Assert.Equal(NotchSections.Music, result[1].Id);
         Assert.DoesNotContain(result, r => r.Id == "removed-in-a-later-version");
-        Assert.All(result.Skip(2), r => Assert.True(r.Enabled));
+        // Sections the saved layout lacked come in at their default: everything on except the camera.
+        Assert.All(result.Skip(2), r => Assert.Equal(r.Id != NotchSections.Camera, r.Enabled));
     }
 
     [Fact]

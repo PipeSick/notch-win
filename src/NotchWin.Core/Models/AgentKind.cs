@@ -6,4 +6,5 @@ public enum AgentKind
     ClaudeCode,
     Codex,
     Copilot,
+    OpenCode,
 }

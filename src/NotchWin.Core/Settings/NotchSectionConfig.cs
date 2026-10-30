@@ -17,12 +17,17 @@ public static class NotchSections
     public const string Calendar = "calendar";
     public const string Downloads = "downloads";
     public const string Notifications = "notifications";
+    public const string Shelf = "shelf";
+    public const string Camera = "camera";
 
     public static IReadOnlyList<string> AllIds { get; } =
-        [Music, Agents, Timer, Calendar, Downloads, Notifications];
+        [Music, Agents, Timer, Calendar, Downloads, Notifications, Shelf, Camera];
+
+    /// <summary>The camera stays off until the user turns it on, since it opens the webcam.</summary>
+    private static bool DefaultEnabled(string id) => id != Camera;
 
     public static List<NotchSectionConfig> Defaults() =>
-        AllIds.Select(id => new NotchSectionConfig { Id = id, Enabled = true }).ToList();
+        AllIds.Select(id => new NotchSectionConfig { Id = id, Enabled = DefaultEnabled(id) }).ToList();
 
     /// <summary>
     /// Keeps the saved order and on/off state, drops ids this build doesn't know (a section removed
@@ -44,7 +49,7 @@ public static class NotchSections
 
         foreach (var id in AllIds.Where(id => !seen.Contains(id)))
         {
-            result.Add(new NotchSectionConfig { Id = id, Enabled = true });
+            result.Add(new NotchSectionConfig { Id = id, Enabled = DefaultEnabled(id) });
         }
 
         return result;
