@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using NotchWin.App.Modules.Music;
 using NotchWin.Core.Models;
 using NotchWin.Core.Music;
 
@@ -8,7 +9,6 @@ namespace NotchWin.App.ViewModels;
 public sealed class NotchViewModel : ObservableObject
 {
     private NowPlayingInfo? _nowPlaying;
-    private bool _isExpanded;
 
     public NowPlayingInfo? NowPlaying
     {
@@ -16,11 +16,8 @@ public sealed class NotchViewModel : ObservableObject
         set => SetProperty(ref _nowPlaying, value);
     }
 
-    public bool IsExpanded
-    {
-        get => _isExpanded;
-        set => SetProperty(ref _isExpanded, value);
-    }
+    /// <summary>Set once the music module starts; null while it's disabled (the player shows no controls then).</summary>
+    public IMediaControls? MediaControls { get; set; }
 
     public ObservableCollection<AgentUsageSnapshot> AgentSnapshots { get; } = [];
 

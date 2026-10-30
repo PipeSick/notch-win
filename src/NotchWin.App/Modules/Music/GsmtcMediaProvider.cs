@@ -10,12 +10,27 @@ namespace NotchWin.App.Modules.Music;
 /// that registers a media session with the OS — no per-app integration (and no Spotify Web API
 /// OAuth flow) needed for the common case.
 /// </summary>
-public sealed class GsmtcMediaProvider : INowPlayingSource, IDisposable
+public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDisposable
 {
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _currentSession;
 
     public event EventHandler<NowPlayingInfo?>? Changed;
+
+    public async Task TogglePlayPauseAsync()
+    {
+        if (_currentSession is { } s) { await s.TryTogglePlayPauseAsync(); }
+    }
+
+    public async Task NextAsync()
+    {
+        if (_currentSession is { } s) { await s.TrySkipNextAsync(); }
+    }
+
+    public async Task PreviousAsync()
+    {
+        if (_currentSession is { } s) { await s.TrySkipPreviousAsync(); }
+    }
 
     public async Task InitializeAsync()
     {

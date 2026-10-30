@@ -68,6 +68,11 @@ public partial class App : Application
     private void StartMusicModule(DispatcherQueue dispatcherQueue)
     {
         _mediaProvider = new GsmtcMediaProvider();
+        if (_viewModel is not null)
+        {
+            _viewModel.MediaControls = _mediaProvider;
+        }
+
         _mediaProvider.Changed += (_, info) => dispatcherQueue.TryEnqueue(() =>
         {
             if (_viewModel is not null)
