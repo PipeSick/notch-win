@@ -119,6 +119,7 @@ public sealed partial class NotchWindow : Window
         else
         {
             _hoverTimer.Stop();
+            UpdateCamera(); // release the webcam the moment the notch closes
             ApplyLayout(animate: true, onCompleted: () =>
             {
                 if (!_expanded)
@@ -205,6 +206,16 @@ public sealed partial class NotchWindow : Window
         var trackChanged = hasTrack && (info!.Title != _lastTitle || info.Artist != _lastArtist);
         _lastTitle = hasTrack ? info!.Title : null;
         _lastArtist = hasTrack ? info!.Artist : null;
+
+        if (trackChanged)
+        {
+            _ = LoadLyricsAsync(info!);
+        }
+        else if (!hasTrack)
+        {
+            _lyrics = null;
+            LyricsBox.Visibility = Visibility.Collapsed;
+        }
         TitleText.Text = hasTrack ? info!.Title : "Nada en reproducción";
         ArtistText.Text = hasTrack ? info!.Artist : string.Empty;
         _sourceName = hasTrack ? FriendlySource(info!.SourceAppName) : null;
@@ -299,6 +310,10 @@ public sealed partial class NotchWindow : Window
             if (_expanded)
             {
                 UpdateProgress();
+                if (_active == Core.Settings.NotchSections.Music)
+                {
+                    UpdateLyrics();
+                }
             }
         }
     }
@@ -474,6 +489,7 @@ public sealed partial class NotchWindow : Window
             AgentKind.ClaudeCode => "Claude Code",
             AgentKind.Codex => "Codex",
             AgentKind.Copilot => "Copilot",
+            AgentKind.OpenCode => "OpenCode",
             _ => s.Kind.ToString(),
         };
         return s.AccountLabel is { Length: > 0 } label && label != "default" ? $"{baseName} · {label}" : baseName;
@@ -483,6 +499,7 @@ public sealed partial class NotchWindow : Window
     {
         AgentKind.ClaudeCode => Color.FromArgb(255, 0xD9, 0x77, 0x57),
         AgentKind.Codex => Color.FromArgb(255, 0x10, 0xA3, 0x7F),
+        AgentKind.OpenCode => Color.FromArgb(255, 0x3B, 0x9C, 0xFF),
         _ => Color.FromArgb(255, 0x8B, 0x5C, 0xF6),
     };
 

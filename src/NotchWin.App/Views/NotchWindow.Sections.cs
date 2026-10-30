@@ -1,4 +1,4 @@
-﻿using Microsoft.UI;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -23,12 +23,14 @@ public sealed partial class NotchWindow
 
     private static readonly Dictionary<string, (string Name, string Glyph)> SectionInfo = new()
     {
-        [NotchSections.Music] = ("MÃºsica", "î£–"),
-        [NotchSections.Agents] = ("Agentes de IA", "î¥ƒ"),
-        [NotchSections.Timer] = ("Temporizador", "î¤–"),
-        [NotchSections.Calendar] = ("Calendario", "îž‡"),
-        [NotchSections.Downloads] = ("Descargas", "î¢–"),
-        [NotchSections.Notifications] = ("Notificaciones", "îŸ§"),
+        [NotchSections.Music] = ("Música", ""),
+        [NotchSections.Agents] = ("Agentes de IA", ""),
+        [NotchSections.Timer] = ("Temporizador", ""),
+        [NotchSections.Calendar] = ("Calendario", ""),
+        [NotchSections.Downloads] = ("Descargas", ""),
+        [NotchSections.Shelf] = ("Estantería", ""),
+        [NotchSections.Camera] = ("Cámara", ""),
+        [NotchSections.Notifications] = ("Notificaciones", ""),
     };
 
     private void InitSections()
@@ -138,6 +140,8 @@ public sealed partial class NotchWindow
         CalendarPane.Visibility = Show(!_customizing && _active == NotchSections.Calendar && !empty);
         DownloadsPane.Visibility = Show(!_customizing && _active == NotchSections.Downloads && !empty);
         NotificationsPane.Visibility = Show(!_customizing && _active == NotchSections.Notifications && !empty);
+        ShelfPane.Visibility = Show(!_customizing && _active == NotchSections.Shelf && !empty);
+        CameraPane.Visibility = Show(!_customizing && _active == NotchSections.Camera && !empty);
         CustomizePane.Visibility = Show(_customizing || empty);
         if (CustomizePane.Visibility == Visibility.Visible)
         {
@@ -145,6 +149,7 @@ public sealed partial class NotchWindow
         }
 
         UpdateHeader();
+        UpdateCamera();
     }
 
     private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
@@ -254,21 +259,22 @@ public sealed partial class NotchWindow
         RebuildCalendar();
         RebuildDownloads();
         RebuildNotifications();
+        RebuildShelf();
     }
 
     private void RebuildCalendar()
     {
         CalendarList.Children.Clear();
-        CalendarHeader.Text = $"HOY Â· {DateTime.Now:dddd d}".ToUpperInvariant();
+        CalendarHeader.Text = $"HOY · {DateTime.Now:dddd d}".ToUpperInvariant();
 
         if (!_viewModel.CalendarConfigured)
         {
-            CalendarEmpty.Text = "Elige un archivo .ics en Ajustes para ver tus eventos aquÃ­.";
+            CalendarEmpty.Text = "Elige un archivo .ics en Ajustes para ver tus eventos aquí.";
             CalendarEmpty.Visibility = Visibility.Visible;
             return;
         }
 
-        CalendarEmpty.Text = "Nada mÃ¡s por hoy";
+        CalendarEmpty.Text = "Nada más por hoy";
         CalendarEmpty.Visibility = _viewModel.CalendarToday.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         var palette = new[] { 0xFF9F0A, 0x0A84FF, 0x30D158, 0xBF5AF2, 0xFF375F };
@@ -287,7 +293,7 @@ public sealed partial class NotchWindow
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             text.Children.Add(Label(ev.Title, 13, Colors.White, bold: true, trim: true));
-            text.Children.Add(Label(ev.AllDay ? "Todo el dÃ­a" : $"{ev.Start:HH:mm} â€“ {ev.End:HH:mm}", 11, Dim));
+            text.Children.Add(Label(ev.AllDay ? "Todo el día" : $"{ev.Start:HH:mm} – {ev.End:HH:mm}", 11, Dim));
             Grid.SetColumn(text, 1);
             row.Children.Add(text);
 
@@ -398,12 +404,12 @@ public sealed partial class NotchWindow
             name.VerticalAlignment = VerticalAlignment.Center;
             row.Children.Add(name);
 
-            var up = SmallButton("îœŽ", () => MoveSection(index, -1));
+            var up = SmallButton("", () => MoveSection(index, -1));
             up.IsEnabled = index > 0;
             Grid.SetColumn(up, 1);
             row.Children.Add(up);
 
-            var down = SmallButton("îœ", () => MoveSection(index, 1));
+            var down = SmallButton("", () => MoveSection(index, 1));
             down.IsEnabled = index < sections.Count - 1;
             Grid.SetColumn(down, 2);
             row.Children.Add(down);
@@ -487,6 +493,7 @@ public sealed partial class NotchWindow
         "Copilot" => Color.FromArgb(255, 0x8B, 0x5C, 0xF6),
         "Temporizador" => Color.FromArgb(255, 0xFF, 0xD6, 0x0A),
         "Descargas" => Color.FromArgb(255, 0x0A, 0x84, 0xFF),
+        "OpenCode" => Color.FromArgb(255, 0x3B, 0x9C, 0xFF),
         _ => Color.FromArgb(255, 0xE5, 0xE5, 0xEA),
     };
 

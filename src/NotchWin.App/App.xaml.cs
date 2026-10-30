@@ -10,6 +10,8 @@ using NotchWin.Core.AiAgents;
 using NotchWin.Core.AiAgents.ClaudeCode;
 using NotchWin.Core.AiAgents.Codex;
 using NotchWin.Core.AiAgents.Copilot;
+using NotchWin.Core.AiAgents.OpenCode;
+using NotchWin.Core.Lyrics;
 using NotchWin.Core.Calendar;
 using NotchWin.Core.Downloads;
 using NotchWin.Core.Models;
@@ -106,6 +108,7 @@ public partial class App : Application
             new ClaudeCodeUsageProvider(_settings.ClaudeHomeOverride, pricing),
             new CodexUsageProvider(_settings.AdditionalCodexHomes, pricing),
             new CopilotUsageProvider(_settings.CopilotHomeOverride),
+            new OpenCodeUsageProvider(_settings.OpenCodeDataOverride),
         };
 
         _agentPolling = new AgentPollingService(providers, dispatcherQueue, TimeSpan.FromSeconds(_settings.PollIntervalSeconds));
@@ -130,6 +133,7 @@ public partial class App : Application
         AgentKind.ClaudeCode => "Claude Code",
         AgentKind.Codex => "Codex",
         AgentKind.Copilot => "Copilot",
+        AgentKind.OpenCode => "OpenCode",
         _ => kind.ToString(),
     };
 
@@ -165,11 +169,23 @@ public partial class App : Application
 
     private void ReloadBackgroundSources()
     {
+        if (_viewModel is not null)
+        {
+            _viewModel.Lyrics = _settings.LyricsEnabled ? CreateLyricsClient() : null;
+        }
+
         var folder = string.IsNullOrWhiteSpace(_settings.DownloadsFolder)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads")
             : _settings.DownloadsFolder;
         _downloads = new DownloadTracker(folder);
         ReloadCalendar();
+    }
+
+    private static LrclibClient CreateLyricsClient()
+    {
+        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("NotchWin/0.1 (https://github.com/pipesick/notch-win)");
+        return new LrclibClient(http);
     }
 
     private void PollDownloads()

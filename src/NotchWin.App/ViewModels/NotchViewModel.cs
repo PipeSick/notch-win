@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using NotchWin.App.Modules.Music;
 using NotchWin.Core.Calendar;
 using NotchWin.Core.Downloads;
+using NotchWin.Core.Lyrics;
 using NotchWin.Core.Models;
 using NotchWin.Core.Notifications;
 using NotchWin.Core.Settings;
@@ -22,6 +23,12 @@ public sealed class NotchViewModel : ObservableObject
     }
 
     public CountdownTimer Timer { get; } = new();
+
+    /// <summary>Files on the shelf (full paths). Kept for the session only; the originals are never copied or moved.</summary>
+    public List<string> ShelfFiles { get; } = [];
+
+    /// <summary>Null unless the user turned lyrics on in Settings.</summary>
+    public LrclibClient? Lyrics { get; set; }
 
     public NotificationLog Notifications { get; } = new();
 

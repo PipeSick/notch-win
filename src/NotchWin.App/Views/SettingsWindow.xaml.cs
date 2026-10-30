@@ -26,6 +26,8 @@ public sealed partial class SettingsWindow : Window
         CopilotHomeBox.Text = settings.CopilotHomeOverride ?? string.Empty;
         CodexHomesBox.Text = string.Join(Environment.NewLine, settings.AdditionalCodexHomes);
         AnthropicAdminKeyBox.Password = settings.AnthropicAdminApiKey ?? string.Empty;
+        LyricsCheckBox.IsChecked = settings.LyricsEnabled;
+        OpenCodeBox.Text = settings.OpenCodeDataOverride ?? string.Empty;
         CalendarIcsBox.Text = settings.CalendarIcsPath ?? string.Empty;
         DownloadsFolderBox.Text = settings.DownloadsFolder ?? string.Empty;
     }
@@ -44,6 +46,8 @@ public sealed partial class SettingsWindow : Window
             .Split([Environment.NewLine, "\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
         settings.AnthropicAdminApiKey = string.IsNullOrWhiteSpace(AnthropicAdminKeyBox.Password) ? null : AnthropicAdminKeyBox.Password;
+        settings.LyricsEnabled = LyricsCheckBox.IsChecked ?? false;
+        settings.OpenCodeDataOverride = string.IsNullOrWhiteSpace(OpenCodeBox.Text) ? null : OpenCodeBox.Text.Trim();
         settings.CalendarIcsPath = string.IsNullOrWhiteSpace(CalendarIcsBox.Text) ? null : CalendarIcsBox.Text.Trim();
         settings.DownloadsFolder = string.IsNullOrWhiteSpace(DownloadsFolderBox.Text) ? null : DownloadsFolderBox.Text.Trim();
 
