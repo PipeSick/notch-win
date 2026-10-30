@@ -1,0 +1,76 @@
+name: release
+
+# Push a tag like v0.1.0 to build a release. If the SignPath variables below are configured, the
+# binaries are signed (a maintainer approves each request in SignPath); otherwise the release is
+# published unsigned. Setup: docs/CODE_SIGNING.md.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  actions: read # lets SignPath download the unsigned artifact
+
+jobs:
+  build:
+    name: Build (Windows)
+    runs-on: windows-latest
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: microsoft/setup-msbuild@v2
+      - name: Core tests
+        run: dotnet test tests/NotchWin.Core.Tests --configuration Release
+      - name: Publish (self-contained, x64)
+        run: >
+          msbuild src/NotchWin.App/NotchWin.App.csproj /restore /t:Publish
+          /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
+          /p:SelfContained=true /p:PublishDir=${{ github.workspace }}\publish\
+      - id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: NotchWin-unsigned
+          path: publish/
+
+  sign:
+    name: Sign with SignPath
+    needs: build
+    if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ needs.build.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NotchWin-signed
+          path: signed/
+
+  release:
+    name: Publish release
+    needs: [build, sign]
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.sign.result == 'success' || needs.sign.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.sign.result == 'success' && 'NotchWin-signed' || 'NotchWin-unsigned' }}
+          path: app
+      - name: Zip
+        run: cd app && zip -r "../NotchWin-${{ github.ref_name }}-win-x64.zip" .
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          gh release create "${{ github.ref_name }}" "NotchWin-${{ github.ref_name }}-win-x64.zip"
+          --repo "${{ github.repository }}" --title "${{ github.ref_name }}" --generate-notes

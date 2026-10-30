@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration for NotchWin releases. Upload this in the SignPath project
+  ("Artifact configurations") once the project is approved; SignPath's editor validates the syntax.
+  The zip is the published folder from release.yml. Only our own binaries are signed: the Windows
+  App SDK and .NET files in the same folder are already signed by Microsoft.
+  If SignPath requires file-metadata restrictions, add the product name "NotchWin" and the release
+  version here (the projects set Product/Version, see src/*/*.csproj).
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="NotchWin.App.exe">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="NotchWin.App.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="NotchWin.Core.dll">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

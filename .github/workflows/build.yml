@@ -24,4 +24,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      - run: dotnet build src/NotchWin.App/NotchWin.App.csproj --configuration Release -p:Platform=x64
+      # MSBuild from Visual Studio, not `dotnet build`: PRI generation needs Visual Studio's MSBuild tasks.
+      - uses: microsoft/setup-msbuild@v2
+      - run: msbuild src/NotchWin.App/NotchWin.App.csproj /restore /p:Configuration=Release /p:Platform=x64

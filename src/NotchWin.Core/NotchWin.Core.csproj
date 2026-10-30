@@ -5,6 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>NotchWin.Core</RootNamespace>
+    <Product>NotchWin</Product>
+    <Version>0.1.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Authors>NotchWin contributors</Authors>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
