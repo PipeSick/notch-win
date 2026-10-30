@@ -8,15 +8,38 @@
 
         <!-- Collapsed pill: mini cover on the left, equalizer on the right (only while playing). -->
         <Grid x:Name="CollapsedBar" Height="32" VerticalAlignment="Top" Background="Transparent"
-              Padding="14,0" Tapped="OnBarTapped">
+              Padding="14,0" ColumnSpacing="8" Tapped="OnBarTapped">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
             <Border x:Name="MiniArt" Width="20" Height="20" CornerRadius="6" HorizontalAlignment="Left"
                     VerticalAlignment="Center" Background="#1C1C1E" Visibility="Collapsed" />
-            <StackPanel x:Name="EqPanel" Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right"
+            <TextBlock x:Name="MiniTitle" Grid.Column="1" Foreground="White" FontSize="12" FontWeight="SemiBold"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" />
+            <StackPanel x:Name="EqPanel" Grid.Column="2" Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right"
                         VerticalAlignment="Center" Height="16" Visibility="Collapsed">
                 <Rectangle x:Name="Eq0" Width="3" Height="5" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
                 <Rectangle x:Name="Eq1" Width="3" Height="9" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
                 <Rectangle x:Name="Eq2" Width="3" Height="12" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
                 <Rectangle x:Name="Eq3" Width="3" Height="7" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Brief "now playing" banner shown in the collapsed pill when the track changes. -->
+        <Grid x:Name="ToastBar" Height="32" VerticalAlignment="Top" Padding="14,0" ColumnSpacing="8"
+              Visibility="Collapsed" IsHitTestVisible="False">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="ToastArt" Width="20" Height="20" CornerRadius="6" Background="#1C1C1E" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <TextBlock x:Name="ToastTitle" Foreground="White" FontSize="12" FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis" MaxLines="1" MaxWidth="150" />
+                <TextBlock x:Name="ToastArtist" Foreground="#98989D" FontSize="12"
+                           TextTrimming="CharacterEllipsis" MaxLines="1" MaxWidth="100" />
             </StackPanel>
         </Grid>
 

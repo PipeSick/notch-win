@@ -24,7 +24,9 @@ public sealed partial class NotchWindow : Window
     private const int ExpandedWidth = 440;
     private const int CollapsedHeight = 32;
     private const int CollapsedIdleWidth = 180;
-    private const int CollapsedPlayingWidth = 260;
+    private const int CollapsedTrackWidth = 300;
+    private const int ToastWidth = 340;
+    private const int ToastMs = 3200;
 
     private static readonly Random Rng = new();
 
@@ -37,6 +39,11 @@ public sealed partial class NotchWindow : Window
     private NowPlayingInfo? _info;
     private DateTime _infoAtUtc;
     private bool _expanded;
+    private bool _hasTrack;
+    private bool _toasting;
+    private string? _lastTitle;
+    private string? _lastArtist;
+    private readonly DispatcherQueueTimer _toastTimer;
 
     public NotchWindow(NotchViewModel viewModel)
     {
@@ -51,6 +58,11 @@ public sealed partial class NotchWindow : Window
         _uiTimer.Interval = TimeSpan.FromMilliseconds(130);
         _uiTimer.Tick += (_, _) => OnUiTick();
         _uiTimer.Start();
+
+        _toastTimer = DispatcherQueue.CreateTimer();
+        _toastTimer.Interval = TimeSpan.FromMilliseconds(ToastMs);
+        _toastTimer.IsRepeating = false;
+        _toastTimer.Tick += (_, _) => EndToast();
 
         _hoverTimer = DispatcherQueue.CreateTimer();
         _hoverTimer.Interval = TimeSpan.FromMilliseconds(1100);
@@ -94,6 +106,9 @@ public sealed partial class NotchWindow : Window
         _expanded = expanded;
         if (expanded)
         {
+            _toastTimer.Stop();
+            _toasting = false;
+            ToastBar.Visibility = Visibility.Collapsed;
             CollapsedBar.Visibility = Visibility.Collapsed;
             ExpandedPanel.Visibility = Visibility.Visible;
             ApplyLayout(animate: true);
@@ -129,7 +144,7 @@ public sealed partial class NotchWindow : Window
         }
         else
         {
-            width = _info is { IsPlaying: true } ? CollapsedPlayingWidth : CollapsedIdleWidth;
+            width = _toasting ? ToastWidth : _hasTrack ? CollapsedTrackWidth : CollapsedIdleWidth;
             height = CollapsedHeight;
         }
 
@@ -176,11 +191,17 @@ public sealed partial class NotchWindow : Window
 
     private async Task UpdateNowPlayingUiAsync(NowPlayingInfo? info)
     {
-        var wasPlaying = _info is { IsPlaying: true };
         _info = info;
         _infoAtUtc = DateTime.UtcNow;
 
         var hasTrack = info is not null && !string.IsNullOrEmpty(info.Title);
+        _hasTrack = hasTrack;
+        MiniTitle.Text = hasTrack ? info!.Title : string.Empty;
+
+        // GSMTC re-raises Changed for position/playback updates too, so only a new title/artist is a track change.
+        var trackChanged = hasTrack && (info!.Title != _lastTitle || info.Artist != _lastArtist);
+        _lastTitle = hasTrack ? info!.Title : null;
+        _lastArtist = hasTrack ? info!.Artist : null;
         TitleText.Text = hasTrack ? info!.Title : "Nada en reproducción";
         ArtistText.Text = hasTrack ? info!.Artist : string.Empty;
         SourceText.Text = hasTrack ? FriendlySource(info!.SourceAppName) : "NotchWin";
@@ -201,9 +222,44 @@ public sealed partial class NotchWindow : Window
 
         SetArt(ArtBorder, art, ArtPlaceholder);
         SetArt(MiniArt, art, null);
+        SetArt(ToastArt, art, null);
 
-        if (wasPlaying != playing || _expanded)
+        if (trackChanged && !_expanded)
         {
+            ShowTrackToast(info!);
+        }
+        else
+        {
+            ApplyLayout(animate: true);
+        }
+    }
+
+    private void ShowTrackToast(NowPlayingInfo info)
+    {
+        ToastTitle.Text = info.Title;
+        ToastArtist.Text = info.Artist;
+        _toasting = true;
+        CollapsedBar.Visibility = Visibility.Collapsed;
+        ToastBar.Visibility = Visibility.Visible;
+        ApplyLayout(animate: true);
+
+        _toastTimer.Stop();
+        _toastTimer.Start();
+    }
+
+    private void EndToast()
+    {
+        _toastTimer.Stop();
+        if (!_toasting)
+        {
+            return;
+        }
+
+        _toasting = false;
+        ToastBar.Visibility = Visibility.Collapsed;
+        if (!_expanded)
+        {
+            CollapsedBar.Visibility = Visibility.Visible;
             ApplyLayout(animate: true);
         }
     }
