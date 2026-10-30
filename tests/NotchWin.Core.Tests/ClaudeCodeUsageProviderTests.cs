@@ -95,7 +95,9 @@ public sealed class ClaudeCodeUsageProviderTests : IDisposable
 
         // Backdate the file itself well past the live-work threshold, independently of the
         // in-content timestamp (which stays "today" so it's still counted toward TokensToday).
-        var oldTime = now.AddHours(-1).UtcDateTime;
+        // 3 min is past the 2 min threshold but doesn't cross local midnight (an hour did, which
+        // made this test fail whenever it ran between 00:00 and 01:00).
+        var oldTime = now.AddMinutes(-3).UtcDateTime;
         File.SetLastWriteTimeUtc(sessionFile, oldTime);
 
         var provider = new ClaudeCodeUsageProvider(_claudeHome);

@@ -28,6 +28,18 @@ public sealed class AppSettings
     public string? AnthropicAdminApiKey { get; set; }
 
     public NotchPosition NotchPosition { get; set; } = NotchPosition.TopCenter;
+
+    /// <summary>Order and visibility of the notch's tabs; pass through <see cref="NotchSections.Normalize"/> before use.</summary>
+    public List<NotchSectionConfig> NotchSections { get; set; } = Settings.NotchSections.Defaults();
+
+    /// <summary>
+    /// Path to an .ics file the calendar tab reads. Windows' own calendar store needs an app package
+    /// identity this unpackaged app doesn't have, so a local .ics (e.g. synced from Google/Outlook) is the source.
+    /// </summary>
+    public string? CalendarIcsPath { get; set; }
+
+    /// <summary>Folder watched for in-progress browser downloads; null uses the user's Downloads folder.</summary>
+    public string? DownloadsFolder { get; set; }
 }
 
 public enum NotchPosition
