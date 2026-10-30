@@ -1,4 +1,5 @@
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using NotchWin.App.Modules.Music;
 using NotchWin.App.Modules.Notch;
@@ -20,8 +21,7 @@ public partial class App : Application
     private readonly SettingsStore _settingsStore = new(SettingsStore.DefaultPath());
     private AppSettings _settings = new();
 
-    private NotchWindow? _notchWindow;
-    private NotchWindowController? _notchController;
+    private readonly List<NotchWindow> _notchWindows = [];
     private NotchViewModel? _viewModel;
     private GsmtcMediaProvider? _mediaProvider;
     private AgentPollingService? _agentPolling;
@@ -38,12 +38,17 @@ public partial class App : Application
         _settings = _settingsStore.Load();
 
         _viewModel = new NotchViewModel();
-        _notchWindow = new NotchWindow(_viewModel);
-        _notchController = new NotchWindowController(_notchWindow, _settings.NotchPosition);
-        _notchWindow.AttachController(_notchController);
-        _notchWindow.Activate();
+        // One notch per monitor, all sharing the same view model.
+        var displays = DisplayArea.FindAll();
+        for (var i = 0; i < displays.Count; i++)
+        {
+            var window = new NotchWindow(_viewModel);
+            window.AttachController(new NotchWindowController(window, _settings.NotchPosition, displays[i]));
+            window.Activate();
+            _notchWindows.Add(window);
+        }
 
-        var dispatcherQueue = _notchWindow.DispatcherQueue;
+        var dispatcherQueue = _notchWindows[0].DispatcherQueue;
 
         _trayIcon = new TrayIconService("NotchWin");
         _trayIcon.SettingsRequested += () => dispatcherQueue.TryEnqueue(OpenSettingsWindow);

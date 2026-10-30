@@ -26,12 +26,14 @@ public sealed class NotchWindowController
     private readonly IntPtr _hwnd;
     private readonly AppWindow _appWindow;
     private readonly NotchPosition _position;
+    private readonly DisplayArea _displayArea;
 
     public bool IsExpanded { get; private set; }
 
-    public NotchWindowController(Window window, NotchPosition position)
+    public NotchWindowController(Window window, NotchPosition position, DisplayArea displayArea)
     {
         _position = position;
+        _displayArea = displayArea;
         _hwnd = WindowNative.GetWindowHandle(window);
         var windowId = Win32Interop.GetWindowIdFromWindow(_hwnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
@@ -65,14 +67,15 @@ public sealed class NotchWindowController
 
     private void Resize(int widthDip, int heightDip)
     {
+        // OuterBounds, not WorkArea: a notch hugs the physical screen edge even when another
+        // app-bar (or the taskbar at the top) reserves space there.
+        var workArea = _displayArea.OuterBounds;
+
+        // Park the window on the target monitor first so GetDpiForWindow reports that monitor's DPI.
+        _appWindow.Move(new PointInt32(workArea.X, workArea.Y));
         var scale = NativeMethods.GetDpiForWindow(_hwnd) / 96.0;
         var width = (int)(widthDip * scale);
         var height = (int)(heightDip * scale);
-
-        var displayArea = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Primary);
-        // OuterBounds, not WorkArea: a notch hugs the physical screen edge even when another
-        // app-bar (or the taskbar at the top) reserves space there.
-        var workArea = displayArea.OuterBounds;
 
         var x = _position switch
         {

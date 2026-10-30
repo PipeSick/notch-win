@@ -30,25 +30,26 @@ public sealed partial class NotchWindow : Window
     /// </summary>
     public void AttachController(NotchWindowController controller) => _controller = controller;
 
-    private void OnBarTapped(object sender, TappedRoutedEventArgs e) => _viewModel.IsExpanded = !_viewModel.IsExpanded;
+    // Expansion is per window (one notch per monitor), so it lives here rather than on the shared view model.
+    private void OnBarTapped(object sender, TappedRoutedEventArgs e)
+    {
+        var expand = ExpandedPanel.Visibility != Visibility.Visible;
+        ExpandedPanel.Visibility = expand ? Visibility.Visible : Visibility.Collapsed;
+        if (expand)
+        {
+            _controller?.Expand();
+        }
+        else
+        {
+            _controller?.Collapse();
+        }
+    }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(NotchViewModel.NowPlaying))
         {
             _ = UpdateNowPlayingUiAsync(_viewModel.NowPlaying);
-        }
-        else if (e.PropertyName is nameof(NotchViewModel.IsExpanded))
-        {
-            ExpandedPanel.Visibility = _viewModel.IsExpanded ? Visibility.Visible : Visibility.Collapsed;
-            if (_viewModel.IsExpanded)
-            {
-                _controller?.Expand();
-            }
-            else
-            {
-                _controller?.Collapse();
-            }
         }
     }
 
