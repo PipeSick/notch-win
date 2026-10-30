@@ -1,3 +1,4 @@
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using NotchWin.App.Interop;
@@ -44,7 +45,7 @@ public sealed class NotchWindowController
             presenter.SetBorderAndTitleBar(hasBorder: false, hasTitleBar: false);
         }
 
-        _appWindow.IsShownInSwitcher = false;
+        _appWindow.IsShownInSwitchers = false;
         Win32Window.MakeOverlay(_hwnd);
 
         Collapse();
@@ -69,7 +70,9 @@ public sealed class NotchWindowController
         var height = (int)(heightDip * scale);
 
         var displayArea = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Primary);
-        var workArea = displayArea.WorkArea;
+        // OuterBounds, not WorkArea: a notch hugs the physical screen edge even when another
+        // app-bar (or the taskbar at the top) reserves space there.
+        var workArea = displayArea.OuterBounds;
 
         var x = _position switch
         {

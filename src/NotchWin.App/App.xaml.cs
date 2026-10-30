@@ -47,7 +47,7 @@ public partial class App : Application
 
         _trayIcon = new TrayIconService("NotchWin");
         _trayIcon.SettingsRequested += () => dispatcherQueue.TryEnqueue(OpenSettingsWindow);
-        _trayIcon.ExitRequested += () => dispatcherQueue.TryEnqueue(Exit);
+        _trayIcon.ExitRequested += () => dispatcherQueue.TryEnqueue(ExitApp);
 
         if (_settings.MusicModuleEnabled)
         {
@@ -121,7 +121,7 @@ public partial class App : Application
         _settingsWindow.Activate();
     }
 
-    private void Exit()
+    private void ExitApp()
     {
         _agentPolling?.Dispose();
         _mediaProvider?.Dispose();
