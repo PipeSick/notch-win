@@ -26,23 +26,26 @@ public sealed partial class SettingsWindow : Window
         CopilotHomeBox.Text = settings.CopilotHomeOverride ?? string.Empty;
         CodexHomesBox.Text = string.Join(Environment.NewLine, settings.AdditionalCodexHomes);
         AnthropicAdminKeyBox.Password = settings.AnthropicAdminApiKey ?? string.Empty;
+        CalendarIcsBox.Text = settings.CalendarIcsPath ?? string.Empty;
+        DownloadsFolderBox.Text = settings.DownloadsFolder ?? string.Empty;
     }
 
     private void OnSaveClicked(object sender, RoutedEventArgs e)
     {
-        var settings = new AppSettings
-        {
-            NotchModuleEnabled = NotchModuleCheckBox.IsChecked ?? true,
-            MusicModuleEnabled = MusicModuleCheckBox.IsChecked ?? true,
-            AiAgentsModuleEnabled = AiAgentsModuleCheckBox.IsChecked ?? true,
-            PollIntervalSeconds = double.IsNaN(PollIntervalBox.Value) ? 30 : (int)PollIntervalBox.Value,
-            ClaudeHomeOverride = string.IsNullOrWhiteSpace(ClaudeHomeBox.Text) ? null : ClaudeHomeBox.Text,
-            CopilotHomeOverride = string.IsNullOrWhiteSpace(CopilotHomeBox.Text) ? null : CopilotHomeBox.Text,
-            AdditionalCodexHomes = CodexHomesBox.Text
-                .Split([Environment.NewLine, "\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .ToList(),
-            AnthropicAdminApiKey = string.IsNullOrWhiteSpace(AnthropicAdminKeyBox.Password) ? null : AnthropicAdminKeyBox.Password,
-        };
+        // Start from what's on disk so fields this window doesn't edit (tab order, position) survive a save.
+        var settings = _store.Load();
+        settings.NotchModuleEnabled = NotchModuleCheckBox.IsChecked ?? true;
+        settings.MusicModuleEnabled = MusicModuleCheckBox.IsChecked ?? true;
+        settings.AiAgentsModuleEnabled = AiAgentsModuleCheckBox.IsChecked ?? true;
+        settings.PollIntervalSeconds = double.IsNaN(PollIntervalBox.Value) ? 30 : (int)PollIntervalBox.Value;
+        settings.ClaudeHomeOverride = string.IsNullOrWhiteSpace(ClaudeHomeBox.Text) ? null : ClaudeHomeBox.Text;
+        settings.CopilotHomeOverride = string.IsNullOrWhiteSpace(CopilotHomeBox.Text) ? null : CopilotHomeBox.Text;
+        settings.AdditionalCodexHomes = CodexHomesBox.Text
+            .Split([Environment.NewLine, "\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+        settings.AnthropicAdminApiKey = string.IsNullOrWhiteSpace(AnthropicAdminKeyBox.Password) ? null : AnthropicAdminKeyBox.Password;
+        settings.CalendarIcsPath = string.IsNullOrWhiteSpace(CalendarIcsBox.Text) ? null : CalendarIcsBox.Text.Trim();
+        settings.DownloadsFolder = string.IsNullOrWhiteSpace(DownloadsFolderBox.Text) ? null : DownloadsFolderBox.Text.Trim();
 
         _store.Save(settings);
         SettingsSaved?.Invoke(settings);

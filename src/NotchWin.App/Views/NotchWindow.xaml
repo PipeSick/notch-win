@@ -6,7 +6,7 @@
     <Grid x:Name="RootGrid" Background="Black"
           PointerEntered="OnPointerEntered" PointerExited="OnPointerExited">
 
-        <!-- Collapsed pill: mini cover on the left, equalizer on the right (only while playing). -->
+        <!-- Collapsed pill: mini cover + title on the left; running timer and equalizer on the right. -->
         <Grid x:Name="CollapsedBar" Height="32" VerticalAlignment="Top" Background="Transparent"
               Padding="14,0" ColumnSpacing="8" Tapped="OnBarTapped">
             <Grid.ColumnDefinitions>
@@ -18,16 +18,21 @@
                     VerticalAlignment="Center" Background="#1C1C1E" Visibility="Collapsed" />
             <TextBlock x:Name="MiniTitle" Grid.Column="1" Foreground="White" FontSize="12" FontWeight="SemiBold"
                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" />
-            <StackPanel x:Name="EqPanel" Grid.Column="2" Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right"
-                        VerticalAlignment="Center" Height="16" Visibility="Collapsed">
-                <Rectangle x:Name="Eq0" Width="3" Height="5" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
-                <Rectangle x:Name="Eq1" Width="3" Height="9" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
-                <Rectangle x:Name="Eq2" Width="3" Height="12" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
-                <Rectangle x:Name="Eq3" Width="3" Height="7" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right"
+                        VerticalAlignment="Center">
+                <TextBlock x:Name="TimerText" Foreground="#FFD60A" FontSize="12" VerticalAlignment="Center"
+                           Visibility="Collapsed" />
+                <StackPanel x:Name="EqPanel" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
+                            Height="16" Visibility="Collapsed">
+                    <Rectangle x:Name="Eq0" Width="3" Height="5" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
+                    <Rectangle x:Name="Eq1" Width="3" Height="9" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
+                    <Rectangle x:Name="Eq2" Width="3" Height="12" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
+                    <Rectangle x:Name="Eq3" Width="3" Height="7" RadiusX="1.5" RadiusY="1.5" Fill="White" VerticalAlignment="Center" />
+                </StackPanel>
             </StackPanel>
         </Grid>
 
-        <!-- Brief "now playing" banner shown in the collapsed pill when the track changes. -->
+        <!-- Brief banner shown in the collapsed pill: new track, finished agent task, timer, download. -->
         <Grid x:Name="ToastBar" Height="32" VerticalAlignment="Top" Padding="14,0" ColumnSpacing="8"
               Visibility="Collapsed" IsHitTestVisible="False">
             <Grid.ColumnDefinitions>
@@ -37,7 +42,7 @@
             <Border x:Name="ToastArt" Width="20" Height="20" CornerRadius="6" Background="#1C1C1E" VerticalAlignment="Center" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <TextBlock x:Name="ToastTitle" Foreground="White" FontSize="12" FontWeight="SemiBold"
-                           TextTrimming="CharacterEllipsis" MaxLines="1" MaxWidth="150" />
+                           TextTrimming="CharacterEllipsis" MaxLines="1" MaxWidth="170" />
                 <TextBlock x:Name="ToastArtist" Foreground="#98989D" FontSize="12"
                            TextTrimming="CharacterEllipsis" MaxLines="1" MaxWidth="100" />
             </StackPanel>
@@ -45,71 +50,154 @@
 
         <!-- Expanded island. Fixed 440 DIP wide and centered, so the growing window reveals it symmetrically. -->
         <StackPanel x:Name="ExpandedPanel" Width="440" HorizontalAlignment="Center" VerticalAlignment="Top"
-                    Padding="24,6,24,20" Spacing="14" Visibility="Collapsed">
+                    Padding="22,6,22,20" Spacing="12" Visibility="Collapsed">
 
-            <Grid x:Name="HeaderBar" Height="26" Background="Transparent" Tapped="OnBarTapped">
-                <TextBlock x:Name="SourceText" Foreground="#8E8E93" FontSize="11" VerticalAlignment="Center" />
-                <FontIcon Glyph="&#xE70E;" FontSize="10" Foreground="#636366" HorizontalAlignment="Right"
-                          VerticalAlignment="Center" />
-            </Grid>
-
-            <Grid ColumnSpacing="16">
+            <Grid x:Name="HeaderBar" Height="26">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
-                <Border x:Name="ArtBorder" Width="92" Height="92" CornerRadius="16" Background="#1C1C1E">
-                    <FontIcon x:Name="ArtPlaceholder" Glyph="&#xE8D6;" FontSize="32" Foreground="#48484A" />
-                </Border>
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                    <TextBlock x:Name="TitleText" Foreground="White" FontSize="17" FontWeight="SemiBold"
-                               TextTrimming="CharacterEllipsis" MaxLines="1" Text="Nada en reproducción" />
-                    <TextBlock x:Name="ArtistText" Foreground="#98989D" FontSize="13"
-                               TextTrimming="CharacterEllipsis" MaxLines="1" />
-
-                    <Grid x:Name="ProgressRow" Margin="0,8,0,0" ColumnSpacing="8" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ElapsedText" Foreground="#8E8E93" FontSize="10" VerticalAlignment="Center" Text="0:00" />
-                        <Grid Grid.Column="1" Height="4" VerticalAlignment="Center">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition x:Name="ProgressDone" Width="0*" />
-                                <ColumnDefinition x:Name="ProgressRest" Width="1*" />
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.ColumnSpan="2" Background="#3A3A3C" CornerRadius="2" />
-                            <Border Background="White" CornerRadius="2" />
-                        </Grid>
-                        <TextBlock x:Name="DurationText" Grid.Column="2" Foreground="#8E8E93" FontSize="10"
-                                   VerticalAlignment="Center" Text="0:00" />
-                    </Grid>
-
-                    <StackPanel x:Name="ControlsRow" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="14"
-                                Margin="0,4,0,0" Visibility="Collapsed">
-                        <Button Click="OnPreviousClicked" Background="Transparent" BorderThickness="0" Padding="10" CornerRadius="20">
-                            <FontIcon Glyph="&#xE892;" FontSize="16" Foreground="White" />
-                        </Button>
-                        <Button Click="OnPlayPauseClicked" Background="White" BorderThickness="0" Padding="0"
-                                Width="40" Height="40" CornerRadius="20">
-                            <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE768;" FontSize="16" Foreground="Black" />
-                        </Button>
-                        <Button Click="OnNextClicked" Background="Transparent" BorderThickness="0" Padding="10" CornerRadius="20">
-                            <FontIcon Glyph="&#xE893;" FontSize="16" Foreground="White" />
-                        </Button>
-                    </StackPanel>
+                <Grid Background="Transparent" Tapped="OnBarTapped">
+                    <TextBlock x:Name="SourceText" Foreground="#8E8E93" FontSize="11" VerticalAlignment="Center" />
+                </Grid>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                    <Button Click="OnGearClicked" Background="Transparent" BorderThickness="0" Padding="0" Width="26" Height="26"
+                            CornerRadius="8" ToolTipService.ToolTip="Personalizar secciones">
+                        <FontIcon Glyph="&#xE713;" FontSize="13" Foreground="#8E8E93" />
+                    </Button>
+                    <Button Click="OnCollapseClicked" Background="Transparent" BorderThickness="0" Padding="0" Width="26" Height="26"
+                            CornerRadius="8" ToolTipService.ToolTip="Cerrar">
+                        <FontIcon Glyph="&#xE70E;" FontSize="10" Foreground="#8E8E93" />
+                    </Button>
                 </StackPanel>
             </Grid>
 
-            <StackPanel x:Name="AgentsSection" Spacing="10" Visibility="Collapsed">
-                <Rectangle Height="1" Fill="#2C2C2E" />
-                <TextBlock Text="AGENTES DE IA" Foreground="#636366" FontSize="10" FontWeight="SemiBold"
-                           CharacterSpacing="80" />
-                <StackPanel x:Name="AgentsList" Spacing="12" />
-            </StackPanel>
+            <Grid x:Name="TabBar" Background="#111113" CornerRadius="12" Padding="3" ColumnSpacing="2" />
+
+            <Grid x:Name="PaneHost" MinHeight="168">
+
+                <!-- Music -->
+                <Grid x:Name="MusicPane" ColumnSpacing="16" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="ArtBorder" Width="92" Height="92" CornerRadius="16" Background="#1C1C1E" VerticalAlignment="Top">
+                        <FontIcon x:Name="ArtPlaceholder" Glyph="&#xE8D6;" FontSize="32" Foreground="#48484A" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                        <TextBlock x:Name="TitleText" Foreground="White" FontSize="17" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" MaxLines="1" Text="Nada en reproducción" />
+                        <TextBlock x:Name="ArtistText" Foreground="#98989D" FontSize="13"
+                                   TextTrimming="CharacterEllipsis" MaxLines="1" />
+
+                        <Grid x:Name="ProgressRow" Margin="0,8,0,0" ColumnSpacing="8" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ElapsedText" Foreground="#8E8E93" FontSize="10" VerticalAlignment="Center" Text="0:00" />
+                            <Grid Grid.Column="1" Height="4" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition x:Name="ProgressDone" Width="0*" />
+                                    <ColumnDefinition x:Name="ProgressRest" Width="1*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.ColumnSpan="2" Background="#3A3A3C" CornerRadius="2" />
+                                <Border Background="White" CornerRadius="2" />
+                            </Grid>
+                            <TextBlock x:Name="DurationText" Grid.Column="2" Foreground="#8E8E93" FontSize="10"
+                                       VerticalAlignment="Center" Text="0:00" />
+                        </Grid>
+
+                        <StackPanel x:Name="ControlsRow" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="14"
+                                    Margin="0,4,0,0" Visibility="Collapsed">
+                            <Button Click="OnPreviousClicked" Background="Transparent" BorderThickness="0" Padding="10" CornerRadius="20">
+                                <FontIcon Glyph="&#xE892;" FontSize="16" Foreground="White" />
+                            </Button>
+                            <Button Click="OnPlayPauseClicked" Background="White" BorderThickness="0" Padding="0"
+                                    Width="40" Height="40" CornerRadius="20">
+                                <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE768;" FontSize="16" Foreground="Black" />
+                            </Button>
+                            <Button Click="OnNextClicked" Background="Transparent" BorderThickness="0" Padding="10" CornerRadius="20">
+                                <FontIcon Glyph="&#xE893;" FontSize="16" Foreground="White" />
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- AI agents -->
+                <StackPanel x:Name="AgentsPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top">
+                    <TextBlock Text="AGENTES DE IA" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
+                    <TextBlock x:Name="AgentsEmpty" Foreground="#636366" FontSize="12" HorizontalAlignment="Center" Margin="0,38,0,0"
+                               Text="Todavía no hay actividad de agentes hoy" />
+                    <ScrollViewer MaxHeight="214" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="AgentsList" Spacing="12" />
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- Timer -->
+                <StackPanel x:Name="TimerPane" Spacing="10" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top">
+                    <Grid Width="112" Height="112" HorizontalAlignment="Center">
+                        <ProgressRing x:Name="TimerRing" Width="112" Height="112" IsIndeterminate="False" Minimum="0" Maximum="100"
+                                      Value="100" Foreground="#FFD60A" Background="#3A3A3C" />
+                        <TextBlock x:Name="TimerBig" Foreground="White" FontSize="26" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Text="25:00" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <Button Content="5 min" Tag="5" Click="OnPresetClicked" CornerRadius="14" Padding="12,5" />
+                        <Button Content="15 min" Tag="15" Click="OnPresetClicked" CornerRadius="14" Padding="12,5" />
+                        <Button Content="25 min" Tag="25" Click="OnPresetClicked" CornerRadius="14" Padding="12,5" />
+                        <Button Content="50 min" Tag="50" Click="OnPresetClicked" CornerRadius="14" Padding="12,5" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <Button x:Name="TimerStartButton" Content="Iniciar" Click="OnTimerStartClicked" Background="#FFD60A"
+                                Foreground="Black" CornerRadius="14" Padding="18,5" />
+                        <Button Content="Reiniciar" Click="OnTimerResetClicked" CornerRadius="14" Padding="14,5" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Calendar -->
+                <StackPanel x:Name="CalendarPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
+                    <TextBlock x:Name="CalendarHeader" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
+                    <TextBlock x:Name="CalendarEmpty" Foreground="#636366" FontSize="12" HorizontalAlignment="Center"
+                               TextAlignment="Center" TextWrapping="Wrap" Margin="0,34,0,0" />
+                    <ScrollViewer MaxHeight="190" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="CalendarList" Spacing="8" />
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- Downloads -->
+                <StackPanel x:Name="DownloadsPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
+                    <TextBlock Text="DESCARGAS" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
+                    <TextBlock x:Name="DownloadsEmpty" Foreground="#636366" FontSize="12" HorizontalAlignment="Center"
+                               Margin="0,38,0,0" Text="Sin descargas en curso" />
+                    <StackPanel x:Name="DownloadsList" Spacing="8" />
+                </StackPanel>
+
+                <!-- Notifications -->
+                <StackPanel x:Name="NotificationsPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
+                    <Grid>
+                        <TextBlock Text="NOTIFICACIONES" Foreground="#636366" FontSize="10" FontWeight="SemiBold"
+                                   CharacterSpacing="80" VerticalAlignment="Center" />
+                        <Button Content="Limpiar" Click="OnClearNotificationsClicked" HorizontalAlignment="Right"
+                                CornerRadius="12" Padding="10,3" FontSize="11" />
+                    </Grid>
+                    <TextBlock x:Name="NotificationsEmpty" Foreground="#636366" FontSize="12" HorizontalAlignment="Center"
+                               Margin="0,38,0,0" Text="Sin notificaciones" />
+                    <ScrollViewer MaxHeight="184" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="NotificationsList" Spacing="8" />
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- Customize sections -->
+                <StackPanel x:Name="CustomizePane" Spacing="6" Visibility="Collapsed" VerticalAlignment="Top">
+                    <TextBlock Text="SECCIONES" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
+                    <StackPanel x:Name="CustomizeList" Spacing="6" />
+                </StackPanel>
+            </Grid>
         </StackPanel>
     </Grid>
 </Window>

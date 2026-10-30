@@ -76,6 +76,7 @@ public sealed partial class NotchWindow : Window
         };
 
         RebuildAgents();
+        InitSections();
         _ = UpdateNowPlayingUiAsync(_viewModel.NowPlaying);
     }
 
@@ -111,6 +112,8 @@ public sealed partial class NotchWindow : Window
             ToastBar.Visibility = Visibility.Collapsed;
             CollapsedBar.Visibility = Visibility.Collapsed;
             ExpandedPanel.Visibility = Visibility.Visible;
+            _customizing = false;
+            ShowActivePane();
             ApplyLayout(animate: true);
         }
         else
@@ -144,7 +147,7 @@ public sealed partial class NotchWindow : Window
         }
         else
         {
-            width = _toasting ? ToastWidth : _hasTrack ? CollapsedTrackWidth : CollapsedIdleWidth;
+            width = _toasting ? ToastWidth : _hasTrack || _viewModel.Timer.IsRunning ? CollapsedTrackWidth : CollapsedIdleWidth;
             height = CollapsedHeight;
         }
 
@@ -204,7 +207,8 @@ public sealed partial class NotchWindow : Window
         _lastArtist = hasTrack ? info!.Artist : null;
         TitleText.Text = hasTrack ? info!.Title : "Nada en reproducción";
         ArtistText.Text = hasTrack ? info!.Artist : string.Empty;
-        SourceText.Text = hasTrack ? FriendlySource(info!.SourceAppName) : "NotchWin";
+        _sourceName = hasTrack ? FriendlySource(info!.SourceAppName) : null;
+        UpdateHeader();
         ProgressRow.Visibility = hasTrack && info!.Duration is not null ? Visibility.Visible : Visibility.Collapsed;
         ControlsRow.Visibility = hasTrack && _viewModel.MediaControls is not null ? Visibility.Visible : Visibility.Collapsed;
         PlayPauseIcon.Glyph = info is { IsPlaying: true } ? "" : "";
@@ -234,10 +238,18 @@ public sealed partial class NotchWindow : Window
         }
     }
 
-    private void ShowTrackToast(NowPlayingInfo info)
+    private void ShowTrackToast(NowPlayingInfo info) => ShowToast(info.Title, info.Artist);
+
+    /// <summary>Widens the collapsed pill for a few seconds; <paramref name="art"/> keeps the current cover when null.</summary>
+    private void ShowToast(string title, string subtitle, Brush? art = null)
     {
-        ToastTitle.Text = info.Title;
-        ToastArtist.Text = info.Artist;
+        ToastTitle.Text = title;
+        ToastArtist.Text = subtitle;
+        if (art is not null)
+        {
+            ToastArt.Background = art;
+        }
+
         _toasting = true;
         CollapsedBar.Visibility = Visibility.Collapsed;
         ToastBar.Visibility = Visibility.Visible;
@@ -349,7 +361,7 @@ public sealed partial class NotchWindow : Window
     {
         AgentsList.Children.Clear();
         var visible = _viewModel.AgentSnapshots.Where(s => s.Error is null).ToList();
-        AgentsSection.Visibility = visible.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        AgentsEmpty.Visibility = visible.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         foreach (var snapshot in visible)
         {

@@ -40,6 +40,16 @@
                 <PasswordBox x:Name="AnthropicAdminKeyBox" PlaceholderText="sk-ant-admin-..." />
             </StackPanel>
 
+            <StackPanel Spacing="4">
+                <TextBlock Text="Calendario: archivo .ics (opcional)" />
+                <TextBox x:Name="CalendarIcsBox" PlaceholderText="C:\Users\tu-usuario\calendario.ics" />
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Carpeta de descargas a vigilar (opcional, por defecto Descargas)" />
+                <TextBox x:Name="DownloadsFolderBox" PlaceholderText="C:\Users\tu-usuario\Downloads" />
+            </StackPanel>
+
             <Button x:Name="SaveButton" Content="Guardar" Click="OnSaveClicked" HorizontalAlignment="Left" />
         </StackPanel>
     </ScrollViewer>
