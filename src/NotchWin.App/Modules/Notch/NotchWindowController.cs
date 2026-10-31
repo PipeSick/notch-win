@@ -97,12 +97,25 @@ public sealed class NotchWindowController
         }
     }
 
+    /// <summary>
+    /// The target monitor's scale factor, read from the monitor itself. (An earlier version parked the window at the
+    /// monitor's corner before asking the window for its DPI; doing that on every resize made the notch jump.)
+    /// </summary>
     private double Scale()
     {
-        // Park on the target monitor first so GetDpiForWindow reports that monitor's DPI.
         var bounds = _displayArea.OuterBounds;
-        _appWindow.Move(new PointInt32(bounds.X, bounds.Y));
-        return NativeMethods.GetDpiForWindow(_hwnd) / 96.0;
+        var center = new NativeMethods.POINT { X = bounds.X + bounds.Width / 2, Y = bounds.Y + bounds.Height / 2 };
+        var monitor = NativeMethods.MonitorFromPoint(center, NativeMethods.MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero && NativeMethods.GetDpiForMonitor(monitor, 0, out var dpiX, out _) == 0 && dpiX > 0)
+        {
+            _scale = dpiX / 96.0;
+        }
+        else if (_scale <= 0)
+        {
+            _scale = NativeMethods.GetDpiForWindow(_hwnd) / 96.0;
+        }
+
+        return _scale;
     }
 
     private void ApplyFrame()
@@ -113,7 +126,7 @@ public sealed class NotchWindowController
         // OuterBounds, not WorkArea: a notch hugs the physical screen edge even when another
         // app-bar (or the taskbar at the top) reserves space there.
         var bounds = _displayArea.OuterBounds;
-        var margin = (int)(16 * (NativeMethods.GetDpiForWindow(_hwnd) / 96.0));
+        var margin = (int)(16 * _scale);
 
         var x = _position switch
         {
@@ -122,9 +135,19 @@ public sealed class NotchWindowController
             _ => bounds.X + (bounds.Width - width) / 2,
         };
 
-        _appWindow.MoveAndResize(new RectInt32(x, bounds.Y, width, height));
+        var rect = new RectInt32(x, bounds.Y, width, height);
+        if (rect.X == _lastRect.X && rect.Y == _lastRect.Y && rect.Width == _lastRect.Width && rect.Height == _lastRect.Height)
+        {
+            return; // nothing moved: skip the move and the region reset, which each force a repaint
+        }
 
-        var radius = (int)(CornerRadiusDip * (NativeMethods.GetDpiForWindow(_hwnd) / 96.0));
+        _lastRect = rect;
+        _appWindow.MoveAndResize(rect);
+
+        var radius = (int)(CornerRadiusDip * _scale);
         Win32Window.ApplyNotchShape(_hwnd, width, height, radius);
     }
+
+    private double _scale;
+    private RectInt32 _lastRect;
 }
