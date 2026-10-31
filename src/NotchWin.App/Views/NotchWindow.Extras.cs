@@ -208,6 +208,44 @@ public sealed partial class NotchWindow
 
     // ---------- lyrics ----------
 
+    /// <summary>
+    /// Sets the collapsed notch's text: the song title, or (opt-in) the current lyric line once lyrics are loaded
+    /// and the song is playing. The wider lyric layout is kept for the whole song so the notch doesn't resize per line.
+    /// </summary>
+    private void UpdatePillText()
+    {
+        var wantLyrics = _viewModel.LyricsInPill && _viewModel.Lyrics is not null && _info is { IsPlaying: true };
+        if (wantLyrics)
+        {
+            RetryLyricsIfNeeded(); // lyrics may have been switched on mid-song, or the lookup failed earlier
+        }
+
+        var lyricMode = wantLyrics && _lyrics is { Count: > 0 };
+        var text = _hasTrack ? _info!.Title : string.Empty;
+        if (lyricMode)
+        {
+            var position = _info!.Position + (_info.IsPlaying ? DateTime.UtcNow - _infoAtUtc : TimeSpan.Zero);
+            var i = LrcParser.IndexAt(_lyrics!, position);
+            text = i >= 0 && _lyrics![i].Text.Length > 0 ? _lyrics[i].Text : "♪";
+        }
+
+        if (MiniTitle.Text != text)
+        {
+            MiniTitle.Text = text;
+        }
+
+        MiniTitle.MaxWidth = lyricMode ? 300 : 190;
+        if (lyricMode != _pillLyrics)
+        {
+            _pillLyrics = lyricMode;
+            if (!_expanded && !_toasting)
+            {
+                ApplyLayout(animate: true);
+            }
+        }
+    }
+
+    private bool _pillLyrics;
     private bool _lyricsLoading;
     private DateTime _lyricsTriedUtc;
     private LyricsStatus? _lyricsStatus;
@@ -235,6 +273,7 @@ public sealed partial class NotchWindow
         _lyrics = lines;
         _lyricsStatus = status;
         UpdateLyrics();
+        UpdatePillText();
         if (_expanded)
         {
             ApplyLayout(animate: true);

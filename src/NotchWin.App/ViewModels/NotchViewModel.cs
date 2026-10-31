@@ -44,6 +44,9 @@ public sealed class NotchViewModel : ObservableObject
     /// <summary>Called after the user reorders/toggles tabs so the host can write settings to disk.</summary>
     public Action? PersistSections { get; set; }
 
+    /// <summary>When true and lyrics are loaded, the collapsed notch shows the current lyric line instead of the title.</summary>
+    public bool LyricsInPill { get; set; }
+
     /// <summary>Name of the chosen music player, shown on the "Abrir …" button when nothing is playing.</summary>
     public string PlayerName { get; set; } = "Spotify";
 

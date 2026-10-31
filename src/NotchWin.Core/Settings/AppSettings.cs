@@ -46,6 +46,9 @@ public sealed class AppSettings
     /// </summary>
     public bool LyricsEnabled { get; set; }
 
+    /// <summary>Show the current lyric line in the collapsed notch instead of the song title (needs <see cref="LyricsEnabled"/>).</summary>
+    public bool LyricsInPill { get; set; }
+
     /// <summary>Override for OpenCode's data dir; null uses $XDG_DATA_HOME/opencode or ~/.local/share/opencode.</summary>
     public string? OpenCodeDataOverride { get; set; }
 

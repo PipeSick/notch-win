@@ -14,6 +14,7 @@
                 <CheckBox x:Name="MusicModuleCheckBox" Content="Módulo de música" />
                 <CheckBox x:Name="AiAgentsModuleCheckBox" Content="Monitor de agentes de IA" />
                 <CheckBox x:Name="LyricsCheckBox" Content="Letras sincronizadas (envía título y artista a NetEase Music)" />
+                <CheckBox x:Name="LyricsInPillCheckBox" Content="Mostrar la letra en el notch cerrado, en vez del título" Margin="28,0,0,0" />
             </StackPanel>
 
             <StackPanel Spacing="4">

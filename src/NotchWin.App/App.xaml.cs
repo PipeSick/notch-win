@@ -226,6 +226,7 @@ public partial class App : Application
         if (_viewModel is not null)
         {
             _viewModel.Lyrics = _settings.LyricsEnabled ? CreateLyricsClient() : null;
+            _viewModel.LyricsInPill = _settings.LyricsEnabled && _settings.LyricsInPill;
         }
 
         var folder = string.IsNullOrWhiteSpace(_settings.DownloadsFolder)

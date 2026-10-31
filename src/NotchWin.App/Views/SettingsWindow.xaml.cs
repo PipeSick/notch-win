@@ -30,6 +30,7 @@ public sealed partial class SettingsWindow : Window
         CodexHomesBox.Text = string.Join(Environment.NewLine, settings.AdditionalCodexHomes);
         AnthropicAdminKeyBox.Password = settings.AnthropicAdminApiKey ?? string.Empty;
         LyricsCheckBox.IsChecked = settings.LyricsEnabled;
+        LyricsInPillCheckBox.IsChecked = settings.LyricsInPill;
         OpenCodeBox.Text = settings.OpenCodeDataOverride ?? string.Empty;
         CalendarIcsBox.Text = settings.CalendarIcsPath ?? string.Empty;
         DownloadsFolderBox.Text = settings.DownloadsFolder ?? string.Empty;
@@ -52,6 +53,7 @@ public sealed partial class SettingsWindow : Window
             .ToList();
         settings.AnthropicAdminApiKey = string.IsNullOrWhiteSpace(AnthropicAdminKeyBox.Password) ? null : AnthropicAdminKeyBox.Password;
         settings.LyricsEnabled = LyricsCheckBox.IsChecked ?? false;
+        settings.LyricsInPill = LyricsInPillCheckBox.IsChecked ?? false;
         settings.OpenCodeDataOverride = string.IsNullOrWhiteSpace(OpenCodeBox.Text) ? null : OpenCodeBox.Text.Trim();
         settings.CalendarIcsPath = string.IsNullOrWhiteSpace(CalendarIcsBox.Text) ? null : CalendarIcsBox.Text.Trim();
         settings.DownloadsFolder = string.IsNullOrWhiteSpace(DownloadsFolderBox.Text) ? null : DownloadsFolderBox.Text.Trim();

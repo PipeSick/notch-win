@@ -25,6 +25,7 @@ public sealed partial class NotchWindow : Window
     private const int CollapsedHeight = 32;
     private const int CollapsedIdleWidth = 180;
     private const int CollapsedTrackWidth = 300;
+    private const int LyricPillWidth = 420;
     private const int ToastWidth = 340;
     private const int ToastMs = 3200;
 
@@ -200,7 +201,9 @@ public sealed partial class NotchWindow : Window
         }
         else
         {
-            width = _toasting ? ToastWidth : _hasTrack || _viewModel.Timer.IsRunning ? CollapsedTrackWidth : CollapsedIdleWidth;
+            width = _toasting ? ToastWidth
+                : _pillLyrics ? LyricPillWidth
+                : _hasTrack || _viewModel.Timer.IsRunning ? CollapsedTrackWidth : CollapsedIdleWidth;
             height = CollapsedHeight;
         }
 
@@ -252,7 +255,6 @@ public sealed partial class NotchWindow : Window
 
         var hasTrack = info is not null && !string.IsNullOrEmpty(info.Title);
         _hasTrack = hasTrack;
-        MiniTitle.Text = hasTrack ? info!.Title : string.Empty;
 
         // GSMTC re-raises Changed for position/playback updates too, so only a new title/artist is a track change.
         var trackChanged = hasTrack && (info!.Title != _lastTitle || info.Artist != _lastArtist);
@@ -268,6 +270,9 @@ public sealed partial class NotchWindow : Window
             _lyrics = null;
             LyricsBox.Visibility = Visibility.Collapsed;
         }
+
+        // After the lyrics were reset for a new track, so the previous song's lines never show under the new title.
+        UpdatePillText();
         TitleText.Text = hasTrack ? info!.Title : "Nada en reproducción";
         ArtistText.Text = hasTrack ? info!.Artist : string.Empty;
         _sourceName = hasTrack ? FriendlySource(info!.SourceAppName) : null;
@@ -360,6 +365,8 @@ public sealed partial class NotchWindow : Window
             {
                 bar.Height = 4 + Rng.Next(0, 12);
             }
+
+            UpdatePillText();
 
             if (_expanded)
             {
