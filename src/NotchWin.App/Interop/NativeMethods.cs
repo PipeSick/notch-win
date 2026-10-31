@@ -10,6 +10,18 @@ namespace NotchWin.App.Interop;
 /// </summary>
 internal static class NativeMethods
 {
+    public const int GWL_STYLE = -16;
+    public const uint WS_POPUP = 0x80000000;
+    public const uint SWP_NOSIZE = 0x0001;
+    public const uint SWP_NOMOVE = 0x0002;
+    public const uint SWP_NOZORDER = 0x0004;
+    public const uint SWP_NOACTIVATE = 0x0010;
+    public const uint SWP_FRAMECHANGED = 0x0020;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
+
     public const int GWL_EXSTYLE = -20;
     public const uint WS_EX_NOACTIVATE = 0x08000000;
     public const uint WS_EX_TOOLWINDOW = 0x00000080;

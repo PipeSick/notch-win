@@ -49,6 +49,8 @@ public partial class App : Application
         {
             Sections = NotchSections.Normalize(_settings.NotchSections),
             PersistSections = PersistSections,
+            GlassLevel = _settings.GlassLevel,
+            PersistGlass = PersistGlass,
         };
         // One notch per monitor, all sharing the same view model.
         var displays = DisplayArea.FindAll();
@@ -140,6 +142,12 @@ public partial class App : Application
     private void PersistSections()
     {
         _settings.NotchSections = _viewModel?.Sections ?? NotchSections.Defaults();
+        _settingsStore.Save(_settings);
+    }
+
+    private void PersistGlass()
+    {
+        _settings.GlassLevel = _viewModel?.GlassLevel ?? _settings.GlassLevel;
         _settingsStore.Save(_settings);
     }
 

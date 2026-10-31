@@ -44,6 +44,26 @@ public sealed class NotchViewModel : ObservableObject
     /// <summary>Called after the user reorders/toggles tabs so the host can write settings to disk.</summary>
     public Action? PersistSections { get; set; }
 
+    private int _glassLevel = 60;
+
+    /// <summary>Glass opacity 0–100 shared by every notch window; setting it re-tints them live.</summary>
+    public int GlassLevel
+    {
+        get => _glassLevel;
+        set
+        {
+            if (SetProperty(ref _glassLevel, Math.Clamp(value, 0, 100)))
+            {
+                GlassChanged?.Invoke();
+            }
+        }
+    }
+
+    /// <summary>Called after the user moves the glass slider so the host can write settings to disk.</summary>
+    public Action? PersistGlass { get; set; }
+
+    public event Action? GlassChanged;
+
     /// <summary>Fires once a second from the app's single clock (timer countdown, progress).</summary>
     public event Action? Ticked;
 

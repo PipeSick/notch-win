@@ -35,6 +35,8 @@ public sealed partial class NotchWindow : Window
     private readonly DispatcherQueueTimer _hoverTimer;
     private readonly Rectangle[] _eqBars;
 
+    private readonly GlassBackdrop _glass;
+    private readonly DispatcherQueueTimer _glassSaveTimer;
     private NotchWindowController? _controller;
     private NowPlayingInfo? _info;
     private DateTime _infoAtUtc;
@@ -50,6 +52,25 @@ public sealed partial class NotchWindow : Window
         _viewModel = viewModel;
         InitializeComponent();
         _eqBars = [Eq0, Eq1, Eq2, Eq3];
+
+        _glass = new GlassBackdrop { Level = _viewModel.GlassLevel / 100.0 };
+        SystemBackdrop = _glass;
+        GlassSlider.Value = _viewModel.GlassLevel;
+        _glassSaveTimer = DispatcherQueue.CreateTimer();
+        _glassSaveTimer.Interval = TimeSpan.FromMilliseconds(400);
+        _glassSaveTimer.IsRepeating = false;
+        _glassSaveTimer.Tick += (_, _) => _viewModel.PersistGlass?.Invoke();
+        GlassSlider.ValueChanged += (_, e) =>
+        {
+            _viewModel.GlassLevel = (int)Math.Round(e.NewValue);
+            _glassSaveTimer.Stop();
+            _glassSaveTimer.Start();
+        };
+        _viewModel.GlassChanged += () =>
+        {
+            _glass.Level = _viewModel.GlassLevel / 100.0;
+            GlassSlider.Value = _viewModel.GlassLevel;
+        };
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel.AgentSnapshots.CollectionChanged += OnAgentsChanged;

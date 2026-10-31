@@ -20,6 +20,13 @@ internal static class Win32Window
         var updated = current | NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_NOACTIVATE;
         NativeMethods.SetWindowLongPtrW(hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(updated));
 
+        // Plain popup: no caption, border or resize frame. Otherwise Windows keeps a thin non-client
+        // strip around the content that shows up as a white outline.
+        NativeMethods.SetWindowLongPtrW(hwnd, NativeMethods.GWL_STYLE, new IntPtr(unchecked((int)NativeMethods.WS_POPUP)));
+        NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOZORDER |
+            NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_FRAMECHANGED);
+
         var corner = DwmCornerDoNotRound;
         NativeMethods.DwmSetWindowAttribute(hwnd, DwmaWindowCornerPreference, ref corner, sizeof(int));
         var border = DwmColorNone;

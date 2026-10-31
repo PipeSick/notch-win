@@ -49,6 +49,9 @@ public sealed class AppSettings
 
     /// <summary>Folder watched for in-progress browser downloads; null uses the user's Downloads folder.</summary>
     public string? DownloadsFolder { get; set; }
+
+    /// <summary>How opaque the notch's glass is, 0 (clear) to 100 (solid black like a hardware notch).</summary>
+    public int GlassLevel { get; set; } = 60;
 }
 
 public enum NotchPosition
