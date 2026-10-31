@@ -124,6 +124,7 @@ public sealed partial class NotchWindow : Window
     {
         _controller = controller;
         ApplyLayout(animate: false);
+
     }
 
     private void OnBarTapped(object sender, TappedRoutedEventArgs e) => SetExpanded(!_expanded);

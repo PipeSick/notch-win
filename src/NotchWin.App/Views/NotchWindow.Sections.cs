@@ -129,7 +129,10 @@ public sealed partial class NotchWindow
             TabBar.Children.Add(tab);
         }
 
-        TabBar.Visibility = _customizing || enabled.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        // The tabs stay put while customizing so the notch never looks like its icons vanished;
+        // none is highlighted then, and the gear lights up instead. Clicking a tab leaves customize mode.
+        TabBar.Visibility = enabled.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        GearIcon.Foreground = new SolidColorBrush(_customizing ? Colors.White : Dim);
     }
 
     private void ShowActivePane()

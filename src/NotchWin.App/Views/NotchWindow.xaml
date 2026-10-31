@@ -66,7 +66,7 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
                     <Button Click="OnGearClicked" Background="Transparent" BorderThickness="0" Padding="0" Width="26" Height="26"
                             CornerRadius="8" ToolTipService.ToolTip="Personalizar secciones">
-                        <FontIcon Glyph="&#xE713;" FontSize="13" Foreground="#8E8E93" />
+                        <FontIcon x:Name="GearIcon" Glyph="&#xE713;" FontSize="13" Foreground="#8E8E93" />
                     </Button>
                     <Button Click="OnCollapseClicked" Background="Transparent" BorderThickness="0" Padding="0" Width="26" Height="26"
                             CornerRadius="8" ToolTipService.ToolTip="Cerrar">
