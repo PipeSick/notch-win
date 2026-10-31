@@ -179,7 +179,11 @@ public sealed partial class NotchWindow : Window
         }
     }
 
-    private void OnPointerEntered(object sender, PointerRoutedEventArgs e) => _hoverTimer.Stop();
+    private void OnPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        _hoverTimer.Stop();
+        _controller?.BringToFront(); // never let another always-on-top window (e.g. WinMac's bar) cover the notch while it is being used
+    }
 
     private void OnPointerExited(object sender, PointerRoutedEventArgs e)
     {
@@ -194,6 +198,7 @@ public sealed partial class NotchWindow : Window
         _expanded = expanded;
         if (expanded)
         {
+            _controller?.BringToFront();
             _toastTimer.Stop();
             _toasting = false;
             ToastBar.Visibility = Visibility.Collapsed;

@@ -96,6 +96,14 @@ public sealed class NotchWindowController : IDisposable
     /// The monitor's bounds changed (resolution, arrangement): dock to the new bounds at the current size.
     /// A running animation keeps going, and its completion callback still fires.
     /// </summary>
+    /// <summary>
+    /// Re-asserts the notch's place at the front of the always-on-top windows. Another topmost window (WinMac's top bar when running inside it) can end up above the notch;
+    /// this puts it back without moving, resizing or activating anything (the DPI and position rules of this controller stay untouched).
+    /// </summary>
+    public void BringToFront() =>
+        NativeMethods.SetWindowPos(_hwnd, new IntPtr(-1) /* HWND_TOPMOST */, 0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+
     public void UpdateDisplay(DisplayArea area)
     {
         if (_disposed)
