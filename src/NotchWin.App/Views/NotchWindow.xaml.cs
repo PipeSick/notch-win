@@ -25,7 +25,6 @@ public sealed partial class NotchWindow : Window
     private const int CollapsedHeight = 32;
     private const int CollapsedIdleWidth = 180;
     private const int CollapsedTrackWidth = 300;
-    private const int LyricPillWidth = 420;
     private const int ToastWidth = 340;
     private const int ToastMs = 3200;
 
@@ -202,7 +201,7 @@ public sealed partial class NotchWindow : Window
         else
         {
             width = _toasting ? ToastWidth
-                : _pillLyrics ? LyricPillWidth
+                : _pillLyrics ? _pillWidth
                 : _hasTrack || _viewModel.Timer.IsRunning ? CollapsedTrackWidth : CollapsedIdleWidth;
             height = CollapsedHeight;
         }

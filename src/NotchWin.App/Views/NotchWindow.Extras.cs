@@ -6,6 +6,7 @@ using NotchWin.Core.Lyrics;
 using NotchWin.Core.Music;
 using NotchWin.Core.Settings;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Foundation;
 using Windows.Media.Playback;
 using Windows.Storage;
 using Windows.UI;
@@ -234,16 +235,37 @@ public sealed partial class NotchWindow
             MiniTitle.Text = text;
         }
 
-        MiniTitle.MaxWidth = lyricMode ? 300 : 190;
-        if (lyricMode != _pillLyrics)
+        // Default size when the line fits; otherwise just wide enough for it (rounded up so tiny differences
+        // between lines don't make the notch twitch), up to a cap where it finally truncates with "…".
+        var width = CollapsedTrackWidth;
+        if (lyricMode)
+        {
+            _pillMeasurer.Text = text;
+            _pillMeasurer.Measure(new Size(double.PositiveInfinity, CollapsedHeight));
+            var wanted = (int)Math.Ceiling(_pillMeasurer.DesiredSize.Width) + PillTextChrome;
+            width = Math.Clamp((wanted + 19) / 20 * 20, CollapsedTrackWidth, MaxLyricPillWidth);
+        }
+
+        MiniTitle.MaxWidth = lyricMode ? width - PillTextChrome : 190;
+        if (lyricMode != _pillLyrics || width != _pillWidth)
         {
             _pillLyrics = lyricMode;
+            _pillWidth = width;
             if (!_expanded && !_toasting)
             {
                 ApplyLayout(animate: true);
             }
         }
     }
+
+    /// <summary>Space the pill needs around the text: padding plus the cover on the left and the wave/timer on the right.</summary>
+    private const int PillTextChrome = 116;
+
+    private const int MaxLyricPillWidth = 720;
+
+    private int _pillWidth = CollapsedTrackWidth;
+
+    private readonly TextBlock _pillMeasurer = new() { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
 
     private bool _pillLyrics;
     private bool _lyricsLoading;
