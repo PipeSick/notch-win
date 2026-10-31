@@ -208,22 +208,32 @@ public sealed partial class NotchWindow
 
     // ---------- lyrics ----------
 
+    private bool _lyricsLoading;
+    private DateTime _lyricsTriedUtc;
+    private LyricsStatus? _lyricsStatus;
+
     private async Task LoadLyricsAsync(NowPlayingInfo info)
     {
         _lyrics = null;
+        _lyricsStatus = null;
         LyricsBox.Visibility = Visibility.Collapsed;
         if (_viewModel.Lyrics is not { } client)
         {
             return;
         }
 
-        var lines = await client.GetSyncedAsync(info.Title, info.Artist, info.Duration);
+        _lyricsLoading = true;
+        UpdateLyrics();
+        var (lines, status) = await client.LookupAsync(info.Title, info.Artist, info.Duration);
+        _lyricsLoading = false;
+        _lyricsTriedUtc = DateTime.UtcNow;
         if (_info?.Title != info.Title || _info?.Artist != info.Artist)
         {
             return; // the track changed while the lookup was in flight
         }
 
         _lyrics = lines;
+        _lyricsStatus = status;
         UpdateLyrics();
         if (_expanded)
         {
@@ -231,11 +241,40 @@ public sealed partial class NotchWindow
         }
     }
 
+    /// <summary>
+    /// Lyrics are looked up when a track starts, which misses the case where they were switched on mid-track
+    /// or the service was down. Opening the notch tries again, at most every 15 s and never for "not found".
+    /// </summary>
+    private void RetryLyricsIfNeeded()
+    {
+        if (_viewModel.Lyrics is null || _info is null || !_hasTrack || _lyricsLoading || _lyrics is not null
+            || _lyricsStatus == LyricsStatus.NotFound
+            || DateTime.UtcNow - _lyricsTriedUtc < TimeSpan.FromSeconds(15))
+        {
+            return;
+        }
+
+        _ = LoadLyricsAsync(_info);
+    }
+
     private void UpdateLyrics()
     {
         if (_lyrics is not { Count: > 0 } lines || _info is null)
         {
-            LyricsBox.Visibility = Visibility.Collapsed;
+            var message = _viewModel.Lyrics is null || !_hasTrack
+                ? null
+                : _lyricsLoading ? "Buscando letra…"
+                : _lyricsStatus switch
+                {
+                    LyricsStatus.NotFound => "Sin letra sincronizada para esta canción",
+                    LyricsStatus.Unavailable => "Letras no disponibles ahora (lrclib.net no responde)",
+                    _ => null,
+                };
+
+            LyricPrev.Text = " ";
+            LyricCur.Text = message ?? " ";
+            LyricNext.Text = " ";
+            LyricsBox.Visibility = message is null ? Visibility.Collapsed : Visibility.Visible;
             return;
         }
 

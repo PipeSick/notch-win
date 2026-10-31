@@ -60,11 +60,24 @@ public sealed partial class NotchWindow : Window
         _glassSaveTimer.Interval = TimeSpan.FromMilliseconds(400);
         _glassSaveTimer.IsRepeating = false;
         _glassSaveTimer.Tick += (_, _) => _viewModel.PersistGlass?.Invoke();
-        GlassSlider.ValueChanged += (_, e) =>
+        // Hook the slider up only once it has loaded: its first layout can report a spurious value
+        // (the minimum), which would otherwise overwrite the saved glass level.
+        var glassHooked = false;
+        GlassSlider.Loaded += (_, _) =>
         {
-            _viewModel.GlassLevel = (int)Math.Round(e.NewValue);
-            _glassSaveTimer.Stop();
-            _glassSaveTimer.Start();
+            if (glassHooked)
+            {
+                return;
+            }
+
+            glassHooked = true;
+            GlassSlider.Value = _viewModel.GlassLevel;
+            GlassSlider.ValueChanged += (_, e) =>
+            {
+                _viewModel.GlassLevel = (int)Math.Round(e.NewValue);
+                _glassSaveTimer.Stop();
+                _glassSaveTimer.Start();
+            };
         };
         _viewModel.GlassChanged += () =>
         {
@@ -135,6 +148,7 @@ public sealed partial class NotchWindow : Window
             ExpandedPanel.Visibility = Visibility.Visible;
             _customizing = false;
             ShowActivePane();
+            RetryLyricsIfNeeded();
             ApplyLayout(animate: true);
         }
         else
