@@ -55,7 +55,9 @@ internal sealed class GlassBackdrop : SystemBackdrop
 
         _controller.TintColor = Colors.Black;
         _controller.FallbackColor = Colors.Black;
-        _controller.TintOpacity = (float)_level;
-        _controller.LuminosityOpacity = (float)(0.15 + 0.85 * _level);
+        // Never fully clear: at the low end the blurred wallpaper (or a white window) washes out the white
+        // icons and text, so the glass keeps a dark floor and the slider only moves it from there.
+        _controller.TintOpacity = (float)(0.45 + 0.55 * _level);
+        _controller.LuminosityOpacity = (float)(0.4 + 0.6 * _level);
     }
 }
