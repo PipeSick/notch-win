@@ -270,6 +270,12 @@ public sealed partial class NotchWindow : Window
             _lyrics = null;
             LyricsBox.Visibility = Visibility.Collapsed;
         }
+        else if (LyricsDurationChanged(info!))
+        {
+            // The player often reports the new song's length a moment after its title. A lookup made with the
+            // wrong length finds nothing (the matching version is rejected), so look again with the real one.
+            _ = LoadLyricsAsync(info!);
+        }
 
         // After the lyrics were reset for a new track, so the previous song's lines never show under the new title.
         UpdatePillText();

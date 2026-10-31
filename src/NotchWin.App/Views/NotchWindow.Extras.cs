@@ -250,10 +250,19 @@ public sealed partial class NotchWindow
     private DateTime _lyricsTriedUtc;
     private LyricsStatus? _lyricsStatus;
 
+    private TimeSpan? _lyricsLookupDuration;
+
+    private bool LyricsDurationChanged(NowPlayingInfo info) =>
+        _viewModel.Lyrics is not null && !_lyricsLoading && _lyrics is null
+        && _lyricsStatus is LyricsStatus.NotFound or LyricsStatus.Unavailable
+        && info.Duration is { } now
+        && (_lyricsLookupDuration is not { } before || (now - before).Duration() > TimeSpan.FromSeconds(3));
+
     private async Task LoadLyricsAsync(NowPlayingInfo info)
     {
         _lyrics = null;
         _lyricsStatus = null;
+        _lyricsLookupDuration = info.Duration;
         LyricsBox.Visibility = Visibility.Collapsed;
         if (_viewModel.Lyrics is not { } client)
         {
