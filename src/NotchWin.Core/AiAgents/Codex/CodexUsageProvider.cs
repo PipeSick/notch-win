@@ -124,6 +124,7 @@ public sealed class CodexUsageProvider : IAgentUsageProvider
             TokensActiveSession = activeUsage,
             EstimatedCostUsdToday = cost,
             PlanLimits = mostRecentSummary?.PlanLimits ?? [],
+            PlanName = mostRecentSummary?.PlanName,
             ActiveProject = mostRecentSummary is null ? null : Path.GetFileName(mostRecentSummary.Cwd?.TrimEnd('/', '\\')),
             IsEstimate = false,
             Source = $"local rollout JSONL under {sessionsDir}",
@@ -182,6 +183,10 @@ public sealed class CodexUsageProvider : IAgentUsageProvider
                 if (payload.TryGetProperty("rate_limits", out var rateLimits) && rateLimits.ValueKind == JsonValueKind.Object)
                 {
                     summary.PlanLimits = ExtractPlanLimits(rateLimits);
+                    if (TryGetString(rateLimits, "plan_type", out var planType) && planType.Length > 0)
+                    {
+                        summary.PlanName = char.ToUpperInvariant(planType[0]) + planType[1..].ToLowerInvariant();
+                    }
                 }
             }
         }
@@ -306,5 +311,6 @@ public sealed class CodexUsageProvider : IAgentUsageProvider
         public string? Model { get; set; }
         public TokenUsage? LatestUsage { get; set; }
         public IReadOnlyList<PlanLimitInfo> PlanLimits { get; set; } = [];
+        public string? PlanName { get; set; }
     }
 }

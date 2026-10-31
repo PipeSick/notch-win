@@ -19,9 +19,11 @@ public static class NotchSections
     public const string Notifications = "notifications";
     public const string Shelf = "shelf";
     public const string Camera = "camera";
+    public const string Resources = "system";
+    public const string Clipboard = "clipboard";
 
     public static IReadOnlyList<string> AllIds { get; } =
-        [Music, Agents, Timer, Calendar, Downloads, Notifications, Shelf, Camera];
+        [Music, Agents, Timer, Calendar, Downloads, Notifications, Shelf, Camera, Resources, Clipboard];
 
     /// <summary>The camera stays off until the user turns it on, since it opens the webcam.</summary>
     private static bool DefaultEnabled(string id) => id != Camera;

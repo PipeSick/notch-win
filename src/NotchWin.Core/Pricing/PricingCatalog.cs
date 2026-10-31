@@ -89,6 +89,18 @@ public sealed class PricingCatalog
     private static readonly IReadOnlyDictionary<string, ModelPrice> DefaultPrices = new Dictionary<string, ModelPrice>(StringComparer.OrdinalIgnoreCase)
     {
         // Indicative only — edit pricing.json instead of trusting these long-term.
+        // From Anthropic's published pricing table (5-minute cache writes). Longest prefix wins, so each
+        // dated or point release below overrides the broader "claude-opus-4" entry.
+        ["claude-fable-5-1"] = new ModelPrice(InputPerMillion: 10, OutputPerMillion: 50, CacheWritePerMillion: 12.5, CacheReadPerMillion: 0.25),
+        ["claude-fable-5"] = new ModelPrice(InputPerMillion: 10, OutputPerMillion: 50, CacheWritePerMillion: 12.5, CacheReadPerMillion: 1),
+        ["claude-opus-5-5"] = new ModelPrice(InputPerMillion: 4, OutputPerMillion: 20, CacheWritePerMillion: 5, CacheReadPerMillion: 0.2),
+        ["claude-opus-5"] = new ModelPrice(InputPerMillion: 5, OutputPerMillion: 25, CacheWritePerMillion: 6.25, CacheReadPerMillion: 0.5),
+        ["claude-opus-4-8"] = new ModelPrice(InputPerMillion: 5, OutputPerMillion: 25, CacheWritePerMillion: 6.25, CacheReadPerMillion: 0.5),
+        ["claude-opus-4-7"] = new ModelPrice(InputPerMillion: 5, OutputPerMillion: 25, CacheWritePerMillion: 6.25, CacheReadPerMillion: 0.5),
+        ["claude-opus-4-6"] = new ModelPrice(InputPerMillion: 5, OutputPerMillion: 25, CacheWritePerMillion: 6.25, CacheReadPerMillion: 0.5),
+        ["claude-opus-4-5"] = new ModelPrice(InputPerMillion: 5, OutputPerMillion: 25, CacheWritePerMillion: 6.25, CacheReadPerMillion: 0.5),
+        ["claude-sonnet-5-5"] = new ModelPrice(InputPerMillion: 2, OutputPerMillion: 10, CacheWritePerMillion: 2.5, CacheReadPerMillion: 0.1),
+        ["claude-sonnet-5"] = new ModelPrice(InputPerMillion: 2, OutputPerMillion: 10, CacheWritePerMillion: 2.5, CacheReadPerMillion: 0.2),
         ["claude-opus-4"] = new ModelPrice(InputPerMillion: 15, OutputPerMillion: 75, CacheWritePerMillion: 18.75, CacheReadPerMillion: 1.5),
         ["claude-sonnet-4"] = new ModelPrice(InputPerMillion: 3, OutputPerMillion: 15, CacheWritePerMillion: 3.75, CacheReadPerMillion: 0.3),
         ["claude-3-5-haiku"] = new ModelPrice(InputPerMillion: 0.8, OutputPerMillion: 4, CacheWritePerMillion: 1, CacheReadPerMillion: 0.08),

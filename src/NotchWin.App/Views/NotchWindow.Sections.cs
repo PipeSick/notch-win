@@ -31,6 +31,8 @@ public sealed partial class NotchWindow
         [NotchSections.Shelf] = ("Estantería", ""),
         [NotchSections.Camera] = ("Cámara", ""),
         [NotchSections.Notifications] = ("Notificaciones", ""),
+        [NotchSections.Resources] = ("Recursos del sistema", "\uE950"),
+        [NotchSections.Clipboard] = ("Portapapeles", "\uE77F"),
     };
 
     private void InitSections()
@@ -45,6 +47,9 @@ public sealed partial class NotchWindow
             RelayoutIfExpanded();
         });
         _viewModel.Notifications.Added += n => DispatcherQueue.TryEnqueue(() => ShowNotificationToast(n));
+
+        BuildSystemCards();
+        InitClipboard();
 
         RebuildTabs();
         RefreshPanes();
@@ -146,7 +151,19 @@ public sealed partial class NotchWindow
         NotificationsPane.Visibility = Show(!_customizing && _active == NotchSections.Notifications && !empty);
         ShelfPane.Visibility = Show(!_customizing && _active == NotchSections.Shelf && !empty);
         CameraPane.Visibility = Show(!_customizing && _active == NotchSections.Camera && !empty);
+        SystemPane.Visibility = Show(!_customizing && _active == NotchSections.Resources && !empty);
+        ClipboardPane.Visibility = Show(!_customizing && _active == NotchSections.Clipboard && !empty);
         CustomizePane.Visibility = Show(_customizing || empty);
+        if (SystemPane.Visibility == Visibility.Visible)
+        {
+            _sampler.Reset();
+            _systemSamples = 0;
+        }
+
+        if (ClipboardPane.Visibility == Visibility.Visible)
+        {
+            RebuildClipboard();
+        }
         if (CustomizePane.Visibility == Visibility.Visible)
         {
             RebuildCustomize();
@@ -196,6 +213,7 @@ public sealed partial class NotchWindow
         }
 
         UpdateTimerUi();
+        UpdateSystemCards();
     }
 
     private void OnDataChanged()

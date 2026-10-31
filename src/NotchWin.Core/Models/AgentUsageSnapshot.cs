@@ -8,6 +8,12 @@ public sealed record AgentUsageSnapshot
 {
     public required AgentKind Kind { get; init; }
 
+    /// <summary>Account e-mail shown on the card, when the agent's local config names one (never a token).</summary>
+    public string? AccountEmail { get; init; }
+
+    /// <summary>Subscription plan badge such as "Pro", "Max" or "Plus", when known.</summary>
+    public string? PlanName { get; init; }
+
     /// <summary>Human-readable account/profile label, e.g. "default" or a CODEX_HOME path leaf.</summary>
     public required string AccountLabel { get; init; }
 

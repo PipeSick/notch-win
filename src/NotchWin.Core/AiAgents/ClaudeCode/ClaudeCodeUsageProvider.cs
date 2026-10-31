@@ -178,10 +178,13 @@ public sealed class ClaudeCodeUsageProvider : IAgentUsageProvider
             estimatedCost = anyKnown ? total : null;
         }
 
+        var account = ClaudeAccountInfo.TryRead(_claudeHome);
         var snapshot = new AgentUsageSnapshot
         {
             Kind = AgentKind.ClaudeCode,
             AccountLabel = "default",
+            AccountEmail = account?.Email,
+            PlanName = account?.Plan,
             IsLiveWorking = isLive,
             LastActivityUtc = mostRecentFile is null ? null : mostRecentFileTime,
             Models = models,

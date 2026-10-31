@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using NotchWin.App.Modules.Clipboard;
 using NotchWin.App.Modules.Music;
 using NotchWin.App.Modules.Notch;
 using NotchWin.App.Services;
@@ -20,6 +21,7 @@ using NotchWin.Core.Models;
 using NotchWin.Core.Music;
 using NotchWin.Core.Pricing;
 using NotchWin.Core.Settings;
+using NotchWin.Core.Usage;
 
 namespace NotchWin.App;
 
@@ -31,6 +33,7 @@ public partial class App : Application
     private readonly List<NotchWindow> _notchWindows = [];
     private NotchViewModel? _viewModel;
     private GsmtcMediaProvider? _mediaProvider;
+    private ClipboardWatcher? _clipboardWatcher;
     private AgentPollingService? _agentPolling;
     private TrayIconService? _trayIcon;
     private SettingsWindow? _settingsWindow;
@@ -56,6 +59,7 @@ public partial class App : Application
             PersistGlass = PersistGlass,
             PlayerName = MusicPlayerLauncher.DisplayName(_settings.MusicPlayer, _settings.CustomPlayerPath),
             OpenPlayer = OpenPlayer,
+            History = new UsageHistory(Path.Combine(Path.GetDirectoryName(_settingsStore.FilePath) ?? ".", "usage-history.json")),
         };
         // One notch per monitor, all sharing the same view model.
         var displays = DisplayArea.FindAll();
@@ -70,6 +74,7 @@ public partial class App : Application
         var dispatcherQueue = _notchWindows[0].DispatcherQueue;
 
         StartClock(dispatcherQueue);
+        ApplyClipboardSetting();
 
         _trayIcon = new TrayIconService("NotchWin");
         _trayIcon.SettingsRequested += () => dispatcherQueue.TryEnqueue(OpenSettingsWindow);
@@ -124,6 +129,9 @@ public partial class App : Application
         _agentPolling = new AgentPollingService(providers, dispatcherQueue, TimeSpan.FromSeconds(_settings.PollIntervalSeconds));
         _agentPolling.SnapshotsUpdated += snapshots =>
         {
+            // Record today's spend first so the trend chart drawn by the snapshot update already includes it.
+            _viewModel?.History?.Record(
+                DateOnly.FromDateTime(DateTime.Now), snapshots.Where(s => s.Error is null).Sum(s => s.EstimatedCostUsdToday ?? 0));
             _viewModel?.ReplaceAgentSnapshots(snapshots);
             foreach (var done in _completion.Observe(snapshots))
             {
@@ -151,6 +159,26 @@ public partial class App : Application
     {
         _settings.NotchSections = _viewModel?.Sections ?? NotchSections.Defaults();
         _settingsStore.Save(_settings);
+        ApplyClipboardSetting();
+    }
+
+    /// <summary>The clipboard is only watched while its tab is enabled; turning the tab off stops recording at once.</summary>
+    private void ApplyClipboardSetting()
+    {
+        if (_viewModel is null || _notchWindows.Count == 0)
+        {
+            return;
+        }
+
+        var enabled = _viewModel.Sections.Any(s => s.Id == NotchSections.Clipboard && s.Enabled);
+        if (!enabled)
+        {
+            _clipboardWatcher?.Stop();
+            return;
+        }
+
+        _clipboardWatcher ??= new ClipboardWatcher(_viewModel.Clipboard, _notchWindows[0].DispatcherQueue);
+        _clipboardWatcher.Start();
     }
 
     /// <summary>Starts the player chosen in Settings. Returns a message to show when it can't be started, else null.</summary>

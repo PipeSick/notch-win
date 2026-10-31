@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using NotchWin.App.Modules.Music;
 using NotchWin.Core.Calendar;
+using NotchWin.Core.Clipboard;
+using NotchWin.Core.Usage;
 using NotchWin.Core.Downloads;
 using NotchWin.Core.Lyrics;
 using NotchWin.Core.Models;
@@ -43,6 +45,12 @@ public sealed class NotchViewModel : ObservableObject
 
     /// <summary>Called after the user reorders/toggles tabs so the host can write settings to disk.</summary>
     public Action? PersistSections { get; set; }
+
+    /// <summary>Daily spend for the agents tab's trend chart; null until the app wires it up.</summary>
+    public UsageHistory? History { get; set; }
+
+    /// <summary>Clipboard history shown in the clipboard tab. It only fills while that section is enabled.</summary>
+    public ClipboardHistory Clipboard { get; } = new();
 
     /// <summary>When true and lyrics are loaded, the collapsed notch shows the current lyric line instead of the title.</summary>
     public bool LyricsInPill { get; set; }

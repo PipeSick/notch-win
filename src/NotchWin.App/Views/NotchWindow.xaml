@@ -167,11 +167,11 @@
 
                 <!-- AI agents -->
                 <StackPanel x:Name="AgentsPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top">
-                    <TextBlock Text="AGENTES DE IA" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
+                    <TextBlock x:Name="AgentsPeriod" Text="Hoy" Foreground="White" FontSize="15" FontWeight="SemiBold" />
                     <TextBlock x:Name="AgentsEmpty" Foreground="#636366" FontSize="12" HorizontalAlignment="Center" Margin="0,38,0,0"
                                Text="Todavía no hay actividad de agentes hoy" />
-                    <ScrollViewer MaxHeight="214" VerticalScrollBarVisibility="Hidden">
-                        <StackPanel x:Name="AgentsList" Spacing="12" />
+                    <ScrollViewer MaxHeight="340" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="AgentsList" Spacing="10" />
                     </ScrollViewer>
                 </StackPanel>
 
@@ -260,6 +260,34 @@
                     </Border>
                     <ToggleButton x:Name="MirrorButton" Content="Espejo" IsChecked="True" HorizontalAlignment="Center"
                                   Click="OnMirrorClicked" CornerRadius="14" Padding="14,5" />
+                </StackPanel>
+
+                <!-- System resources -->
+                <StackPanel x:Name="SystemPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
+                    <Grid x:Name="SystemGrid" RowSpacing="8" ColumnSpacing="8" />
+                </StackPanel>
+
+                <!-- Clipboard history -->
+                <StackPanel x:Name="ClipboardPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ClipSearch" PlaceholderText="Buscar en el portapapeles" TextChanged="OnClipSearchChanged"
+                                 CornerRadius="10" />
+                        <Button Grid.Column="1" Click="OnClipClearClicked" Background="Transparent" BorderThickness="0"
+                                Padding="0" Width="32" Height="32" CornerRadius="10"
+                                ToolTipService.ToolTip="Borrar todo (menos lo fijado)">
+                            <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="#8E8E93" />
+                        </Button>
+                    </Grid>
+                    <TextBlock x:Name="ClipboardEmpty" Foreground="#636366" FontSize="12" HorizontalAlignment="Center"
+                               TextAlignment="Center" TextWrapping="Wrap" Margin="0,30,0,0"
+                               Text="Aquí aparecerá lo que copies mientras NotchWin esté abierto" />
+                    <ScrollViewer MaxHeight="290" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="ClipboardList" Spacing="8" />
+                    </ScrollViewer>
                 </StackPanel>
 
                 <!-- Customize sections -->
