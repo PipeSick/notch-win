@@ -22,13 +22,6 @@ public sealed class AppSettings
     /// </summary>
     public List<string> AdditionalCodexHomes { get; set; } = [];
 
-    /// <summary>
-    /// Optional Anthropic Admin API key (sk-ant-admin...), used only to fetch organization-level
-    /// Claude Code usage/rate-limit data. This is NOT the key for a personal Claude.ai Pro/Max plan —
-    /// those don't expose a personal usage API, see docs/AI_AGENT_SOURCES.md. Stored locally only.
-    /// </summary>
-    public string? AnthropicAdminApiKey { get; set; }
-
     public NotchPosition NotchPosition { get; set; } = NotchPosition.TopCenter;
 
     /// <summary>Order and visibility of the notch's tabs; pass through <see cref="NotchSections.Normalize"/> before use.</summary>

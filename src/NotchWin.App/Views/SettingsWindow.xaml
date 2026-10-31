@@ -9,7 +9,10 @@
         <StackPanel Spacing="16" MaxWidth="480">
             <TextBlock Text="NotchWin — Ajustes" FontSize="20" FontWeight="SemiBold" />
 
-            <StackPanel Spacing="8">
+            <TextBlock x:Name="HostedNote" Visibility="Collapsed" TextWrapping="Wrap"
+                       Text="Dentro de WinMac, las opciones del notch (módulos, reproductor, letras, intervalo, vidrio, pestañas) se cambian en «Ajustes de WinMac». Aquí solo quedan las rutas y los datos locales." />
+
+            <StackPanel x:Name="CentralModulesPanel" Spacing="8">
                 <CheckBox x:Name="NotchModuleCheckBox" Content="Notch overlay" />
                 <CheckBox x:Name="MusicModuleCheckBox" Content="Módulo de música" />
                 <CheckBox x:Name="AiAgentsModuleCheckBox" Content="Monitor de agentes de IA" />
@@ -17,7 +20,7 @@
                 <CheckBox x:Name="LyricsInPillCheckBox" Content="Mostrar la letra en el notch cerrado, en vez del título" Margin="28,0,0,0" />
             </StackPanel>
 
-            <StackPanel Spacing="4">
+            <StackPanel x:Name="CentralPlayerPanel" Spacing="4">
                 <TextBlock Text="Reproductor de música (el que abre el botón «Abrir…» y el que se prefiere si suenan varios)" TextWrapping="Wrap" />
                 <ComboBox x:Name="PlayerCombo" HorizontalAlignment="Stretch">
                     <ComboBoxItem Content="Spotify" />
@@ -27,7 +30,7 @@
                 <TextBox x:Name="PlayerPathBox" PlaceholderText="Ruta del .exe: para «Otro», o si Feishin no está en su carpeta habitual" />
             </StackPanel>
 
-            <StackPanel Spacing="4">
+            <StackPanel x:Name="CentralPollPanel" Spacing="4">
                 <TextBlock Text="Intervalo de sondeo (segundos)" />
                 <NumberBox x:Name="PollIntervalBox" Minimum="5" Maximum="600" SpinButtonPlacementMode="Inline" />
             </StackPanel>
@@ -50,11 +53,6 @@
             <StackPanel Spacing="4">
                 <TextBlock Text="Cuentas Codex adicionales (una ruta CODEX_HOME por línea)" />
                 <TextBox x:Name="CodexHomesBox" AcceptsReturn="True" Height="80" TextWrapping="Wrap" />
-            </StackPanel>
-
-            <StackPanel Spacing="4">
-                <TextBlock Text="Anthropic Admin API key (opcional, solo para uso de organización)" />
-                <PasswordBox x:Name="AnthropicAdminKeyBox" PlaceholderText="sk-ant-admin-..." />
             </StackPanel>
 
             <StackPanel Spacing="4">

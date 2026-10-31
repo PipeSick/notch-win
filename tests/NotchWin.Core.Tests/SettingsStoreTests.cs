@@ -38,7 +38,6 @@ public sealed class SettingsStoreTests : IDisposable
             PollIntervalSeconds = 45,
             ClaudeHomeOverride = "/custom/claude",
             AdditionalCodexHomes = ["/codex/account-b"],
-            AnthropicAdminApiKey = "sk-ant-admin-fake",
             NotchPosition = NotchPosition.TopLeft,
         };
 
@@ -49,7 +48,6 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(45, loaded.PollIntervalSeconds);
         Assert.Equal("/custom/claude", loaded.ClaudeHomeOverride);
         Assert.Equal(["/codex/account-b"], loaded.AdditionalCodexHomes);
-        Assert.Equal("sk-ant-admin-fake", loaded.AnthropicAdminApiKey);
         Assert.Equal(NotchPosition.TopLeft, loaded.NotchPosition);
     }
 
@@ -63,5 +61,43 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.True(File.Exists(nestedPath));
         Directory.Delete(Path.GetDirectoryName(nestedPath)!, recursive: true);
+    }
+
+    [Fact]
+    public void RemoveLegacySecrets_StripsTheOldAnthropicKeyFromDiskAndKeepsTheRest()
+    {
+        File.WriteAllText(_filePath, "{\"PollIntervalSeconds\":45,\"AnthropicAdminApiKey\":\"sk-ant-admin-SECRETO\",\"ClaudeHomeOverride\":\"D:\\\\c\"}");
+        var store = new SettingsStore(_filePath);
+
+        Assert.True(store.RemoveLegacySecrets());
+
+        var text = File.ReadAllText(_filePath);
+        Assert.DoesNotContain("SECRETO", text);
+        Assert.DoesNotContain("AnthropicAdminApiKey", text);
+        var loaded = store.Load();
+        Assert.Equal(45, loaded.PollIntervalSeconds);
+        Assert.Equal("D:\\c", loaded.ClaudeHomeOverride);
+        Assert.False(File.Exists(_filePath + ".tmp"));
+        Assert.False(store.RemoveLegacySecrets()); // idempotent: nothing left to remove
+    }
+
+    [Fact]
+    public void RemoveLegacySecrets_LeavesMissingOrCorruptFilesAlone()
+    {
+        var store = new SettingsStore(_filePath);
+        Assert.False(store.RemoveLegacySecrets());
+        File.WriteAllText(_filePath, "{ esto no es json");
+        Assert.False(store.RemoveLegacySecrets());
+        Assert.Equal("{ esto no es json", File.ReadAllText(_filePath));
+    }
+
+    [Fact]
+    public void SavedSettingsNeverContainAnySecretField()
+    {
+        var store = new SettingsStore(_filePath);
+        store.Save(new AppSettings());
+        var text = File.ReadAllText(_filePath);
+        Assert.DoesNotContain("ApiKey", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Token", text, StringComparison.OrdinalIgnoreCase);
     }
 }

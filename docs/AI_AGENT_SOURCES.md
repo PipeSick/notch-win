@@ -25,9 +25,9 @@ API, solo logs locales.
   único público y documentado es la **Admin API** de Anthropic
   (`/v1/organizations/usage_report/claude_code`, `/v1/organizations/usage_report/messages`,
   `/v1/organizations/cost_report`), que requiere una API key de administrador y es para uso a
-  nivel organización — no es la cuota de un plan personal Pro/Max. `AppSettings.AnthropicAdminApiKey`
-  queda como hook para quien tenga ese caso de uso, pero no es el camino para un usuario
-  individual.
+  nivel organización — no es la cuota de un plan personal Pro/Max. NotchWin **no guarda ninguna
+  clave de Anthropic**: el campo `AnthropicAdminApiKey` se eliminó (no lo usaba ningún proveedor) y
+  `SettingsStore.RemoveLegacySecrets` lo borra del `settings.json` de versiones anteriores.
 
 ## Codex CLI
 

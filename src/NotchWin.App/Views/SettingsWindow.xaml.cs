@@ -7,13 +7,24 @@ namespace NotchWin.App.Views;
 public sealed partial class SettingsWindow : Window
 {
     private readonly SettingsStore _store;
+    private readonly bool _hosted;
 
     public event Action<AppSettings>? SettingsSaved;
 
-    public SettingsWindow(SettingsStore store)
+    /// <param name="hosted">Inside WinMac the central options live in WinMac's single settings window; this window then edits only the local data (folders, calendar file).</param>
+    public SettingsWindow(SettingsStore store, bool hosted = false)
     {
         _store = store;
+        _hosted = hosted;
         InitializeComponent();
+        if (_hosted)
+        {
+            CentralModulesPanel.Visibility = Visibility.Collapsed;
+            CentralPlayerPanel.Visibility = Visibility.Collapsed;
+            CentralPollPanel.Visibility = Visibility.Collapsed;
+            HostedNote.Visibility = Visibility.Visible;
+        }
+
         LoadIntoControls(_store.Load());
     }
 
@@ -28,7 +39,6 @@ public sealed partial class SettingsWindow : Window
         ClaudeHomeBox.Text = settings.ClaudeHomeOverride ?? string.Empty;
         CopilotHomeBox.Text = settings.CopilotHomeOverride ?? string.Empty;
         CodexHomesBox.Text = string.Join(Environment.NewLine, settings.AdditionalCodexHomes);
-        AnthropicAdminKeyBox.Password = settings.AnthropicAdminApiKey ?? string.Empty;
         LyricsCheckBox.IsChecked = settings.LyricsEnabled;
         LyricsInPillCheckBox.IsChecked = settings.LyricsInPill;
         OpenCodeBox.Text = settings.OpenCodeDataOverride ?? string.Empty;
@@ -40,20 +50,27 @@ public sealed partial class SettingsWindow : Window
     {
         // Start from what's on disk so fields this window doesn't edit (tab order, position) survive a save.
         var settings = _store.Load();
-        settings.NotchModuleEnabled = NotchModuleCheckBox.IsChecked ?? true;
-        settings.MusicModuleEnabled = MusicModuleCheckBox.IsChecked ?? true;
-        settings.AiAgentsModuleEnabled = AiAgentsModuleCheckBox.IsChecked ?? true;
-        settings.MusicPlayer = (MusicPlayerKind)Math.Max(0, PlayerCombo.SelectedIndex);
-        settings.CustomPlayerPath = string.IsNullOrWhiteSpace(PlayerPathBox.Text) ? null : PlayerPathBox.Text.Trim().Trim('"');
-        settings.PollIntervalSeconds = double.IsNaN(PollIntervalBox.Value) ? 30 : (int)PollIntervalBox.Value;
+        if (!_hosted)
+        {
+            settings.NotchModuleEnabled = NotchModuleCheckBox.IsChecked ?? true;
+            settings.MusicModuleEnabled = MusicModuleCheckBox.IsChecked ?? true;
+            settings.AiAgentsModuleEnabled = AiAgentsModuleCheckBox.IsChecked ?? true;
+            settings.MusicPlayer = (MusicPlayerKind)Math.Max(0, PlayerCombo.SelectedIndex);
+            settings.CustomPlayerPath = string.IsNullOrWhiteSpace(PlayerPathBox.Text) ? null : PlayerPathBox.Text.Trim().Trim('"');
+            settings.PollIntervalSeconds = double.IsNaN(PollIntervalBox.Value) ? 30 : (int)PollIntervalBox.Value;
+        }
+
         settings.ClaudeHomeOverride = string.IsNullOrWhiteSpace(ClaudeHomeBox.Text) ? null : ClaudeHomeBox.Text;
         settings.CopilotHomeOverride = string.IsNullOrWhiteSpace(CopilotHomeBox.Text) ? null : CopilotHomeBox.Text;
         settings.AdditionalCodexHomes = CodexHomesBox.Text
             .Split([Environment.NewLine, "\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
-        settings.AnthropicAdminApiKey = string.IsNullOrWhiteSpace(AnthropicAdminKeyBox.Password) ? null : AnthropicAdminKeyBox.Password;
-        settings.LyricsEnabled = LyricsCheckBox.IsChecked ?? false;
-        settings.LyricsInPill = LyricsInPillCheckBox.IsChecked ?? false;
+        if (!_hosted)
+        {
+            settings.LyricsEnabled = LyricsCheckBox.IsChecked ?? false;
+            settings.LyricsInPill = LyricsInPillCheckBox.IsChecked ?? false;
+        }
+
         settings.OpenCodeDataOverride = string.IsNullOrWhiteSpace(OpenCodeBox.Text) ? null : OpenCodeBox.Text.Trim();
         settings.CalendarIcsPath = string.IsNullOrWhiteSpace(CalendarIcsBox.Text) ? null : CalendarIcsBox.Text.Trim();
         settings.DownloadsFolder = string.IsNullOrWhiteSpace(DownloadsFolderBox.Text) ? null : DownloadsFolderBox.Text.Trim();
