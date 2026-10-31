@@ -40,7 +40,7 @@ public sealed class AppSettings
 
     /// <summary>
     /// Show synced lyrics under the player. Off by default because it sends the track's title and
-    /// artist to lrclib.net, the only thing NotchWin sends off the machine.
+    /// artist to NetEase Music, the only thing NotchWin sends off the machine.
     /// </summary>
     public bool LyricsEnabled { get; set; }
 

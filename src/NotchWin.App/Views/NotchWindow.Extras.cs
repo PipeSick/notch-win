@@ -267,7 +267,7 @@ public sealed partial class NotchWindow
                 : _lyricsStatus switch
                 {
                     LyricsStatus.NotFound => "Sin letra sincronizada para esta canción",
-                    LyricsStatus.Unavailable => "Letras no disponibles ahora (lrclib.net no responde)",
+                    LyricsStatus.Unavailable => "Letras no disponibles ahora (el servicio no responde)",
                     _ => null,
                 };
 

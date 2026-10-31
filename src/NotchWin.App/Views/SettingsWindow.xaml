@@ -13,7 +13,7 @@
                 <CheckBox x:Name="NotchModuleCheckBox" Content="Notch overlay" />
                 <CheckBox x:Name="MusicModuleCheckBox" Content="Módulo de música" />
                 <CheckBox x:Name="AiAgentsModuleCheckBox" Content="Monitor de agentes de IA" />
-                <CheckBox x:Name="LyricsCheckBox" Content="Letras sincronizadas (envía título y artista a lrclib.net)" />
+                <CheckBox x:Name="LyricsCheckBox" Content="Letras sincronizadas (envía título y artista a NetEase Music)" />
             </StackPanel>
 
             <StackPanel Spacing="4">

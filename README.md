@@ -64,7 +64,7 @@ mensaje. La app queda en la bandeja del sistema; clic derecho en el ícono → *
 
 NotchWin lee archivos locales y no tiene telemetría. Lo único que envía fuera de tu equipo es la
 **búsqueda de letras**, y solo si la activas en Ajustes: manda el título y el artista de la canción
-a [lrclib.net](https://lrclib.net). Todo lo demás (agentes de IA, calendario, descargas) se lee de
+a NetEase Music (`music.163.com`). Todo lo demás (agentes de IA, calendario, descargas) se lee de
 archivos en tu disco.
 
 ## Firma del código

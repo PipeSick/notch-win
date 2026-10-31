@@ -3,15 +3,15 @@ using NotchWin.Core.Lyrics;
 
 namespace NotchWin.Core.Tests;
 
-public sealed class LyricsFallbackTests
+public sealed class NeteaseLyricsClientTests
 {
     private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
-        public List<string> Urls { get; } = [];
+        public int Calls { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Urls.Add(request.RequestUri!.ToString());
+            Calls++;
             return Task.FromResult(respond(request));
         }
     }
@@ -25,7 +25,7 @@ public sealed class LyricsFallbackTests
         ]}}
         """;
 
-    private static HttpResponseMessage NeteaseResponder(HttpRequestMessage request)
+    private static HttpResponseMessage Responder(HttpRequestMessage request)
     {
         var url = request.RequestUri!.ToString();
         if (url.Contains("/api/search/get"))
@@ -38,10 +38,9 @@ public sealed class LyricsFallbackTests
     }
 
     [Fact]
-    public async Task Netease_PicksMatchingArtist_AndDropsCreditLines()
+    public async Task PicksMatchingArtist_AndDropsCreditLines()
     {
-        var handler = new StubHandler(NeteaseResponder);
-        var client = new NeteaseLyricsClient(new HttpClient(handler));
+        var client = new NeteaseLyricsClient(new HttpClient(new StubHandler(Responder)));
 
         var (lines, status) = await client.LookupAsync("Duro", "Skrillex", TimeSpan.FromSeconds(173));
 
@@ -50,10 +49,9 @@ public sealed class LyricsFallbackTests
     }
 
     [Fact]
-    public async Task Netease_RejectsTracksWithVeryDifferentDuration()
+    public async Task RejectsTracksWithVeryDifferentDuration()
     {
-        var handler = new StubHandler(NeteaseResponder);
-        var client = new NeteaseLyricsClient(new HttpClient(handler));
+        var client = new NeteaseLyricsClient(new HttpClient(new StubHandler(Responder)));
 
         var (lines, status) = await client.LookupAsync("Duro", "Skrillex", TimeSpan.FromSeconds(60));
 
@@ -62,54 +60,30 @@ public sealed class LyricsFallbackTests
     }
 
     [Fact]
-    public async Task Provider_FallsBackToNetease_WhenLrclibIsDown()
+    public async Task NoResults_IsNotFound_AndIsCached()
     {
-        var lrclib = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway));
-        var netease = new StubHandler(NeteaseResponder);
-        var provider = new LyricsProvider(new LrclibClient(new HttpClient(lrclib)), new NeteaseLyricsClient(new HttpClient(netease)));
+        var handler = new StubHandler(_ => Json("{\"result\":{\"songCount\":0}}"));
+        var client = new NeteaseLyricsClient(new HttpClient(handler));
 
-        var (lines, status) = await provider.LookupAsync("Duro", "Skrillex", TimeSpan.FromSeconds(173));
+        var (_, first) = await client.LookupAsync("x", "y", null);
+        var (_, second) = await client.LookupAsync("x", "y", null);
 
-        Assert.Equal(LyricsStatus.Found, status);
-        Assert.Equal(2, lines!.Count);
+        Assert.Equal(LyricsStatus.NotFound, first);
+        Assert.Equal(LyricsStatus.NotFound, second);
+        Assert.Equal(1, handler.Calls);
     }
 
     [Fact]
-    public async Task Provider_ReportsUnavailable_WhenOneSourceIsDownAndTheOtherHasNothing()
+    public async Task ServerError_IsUnavailable_AndRetriesNextTime()
     {
-        var lrclib = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway));
-        var netease = new StubHandler(_ => Json("{\"result\":{\"songCount\":0}}"));
-        var provider = new LyricsProvider(new LrclibClient(new HttpClient(lrclib)), new NeteaseLyricsClient(new HttpClient(netease)));
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway));
+        var client = new NeteaseLyricsClient(new HttpClient(handler));
 
-        var (lines, status) = await provider.LookupAsync("x", "y", null);
+        var (lines, status) = await client.LookupAsync("x", "y", null);
+        await client.LookupAsync("x", "y", null);
 
         Assert.Null(lines);
         Assert.Equal(LyricsStatus.Unavailable, status);
-    }
-
-    [Fact]
-    public async Task Provider_ReportsNotFound_WhenBothSourcesAnswerWithNothing()
-    {
-        var lrclib = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
-        var netease = new StubHandler(_ => Json("{\"result\":{\"songCount\":0}}"));
-        var provider = new LyricsProvider(new LrclibClient(new HttpClient(lrclib)), new NeteaseLyricsClient(new HttpClient(netease)));
-
-        var (_, status) = await provider.LookupAsync("x", "y", null);
-
-        Assert.Equal(LyricsStatus.NotFound, status);
-    }
-
-    [Fact]
-    public async Task Provider_SkipsNetease_WhenLrclibHasTheLyrics()
-    {
-        var lrclib = new StubHandler(_ => Json("{\"syncedLyrics\":\"[00:01.00]hola\"}"));
-        var netease = new StubHandler(_ => throw new InvalidOperationException("should not be called"));
-        var provider = new LyricsProvider(new LrclibClient(new HttpClient(lrclib)), new NeteaseLyricsClient(new HttpClient(netease)));
-
-        var (lines, status) = await provider.LookupAsync("a", "b", null);
-
-        Assert.Equal(LyricsStatus.Found, status);
-        Assert.Equal("hola", lines![0].Text);
-        Assert.Empty(netease.Urls);
+        Assert.Equal(2, handler.Calls);
     }
 }

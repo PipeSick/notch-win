@@ -3,10 +3,20 @@ using System.Text.RegularExpressions;
 
 namespace NotchWin.Core.Lyrics;
 
+/// <summary>How a lyrics lookup ended: lyrics found, the track isn't in the database, or the service couldn't be reached.</summary>
+public enum LyricsStatus
+{
+    Found,
+    NotFound,
+    Unavailable,
+}
+
 /// <summary>
-/// Fallback lyrics source: NetEase Cloud Music's public web endpoints (no account or key). They aren't an
-/// official API, so this is best-effort and only runs when lrclib.net has nothing. Matches by title and
-/// artist, then by the closest duration; results, including "not found", are cached per track.
+/// Synced lyrics from NetEase Cloud Music's public web endpoints (no account or key). They aren't an
+/// official API, so this is best-effort. This is the only NotchWin feature that sends data off the
+/// machine (the track's title and artist), which is why it only runs when the user turns lyrics on.
+/// Matches by title and artist, then by the closest duration; results, including "not found", are
+/// cached per track for the life of the process.
 /// </summary>
 public sealed partial class NeteaseLyricsClient(HttpClient http)
 {

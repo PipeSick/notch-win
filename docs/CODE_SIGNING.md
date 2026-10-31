@@ -41,7 +41,7 @@ los mismos en todos los binarios de un release.
 ## Privacidad
 
 NotchWin no tiene telemetría. Solo envía datos fuera del equipo si activas las letras sincronizadas
-en Ajustes: el título y el artista de la canción van a [lrclib.net](https://lrclib.net). El resto
+en Ajustes: el título y el artista de la canción van a NetEase Music (`music.163.com`). El resto
 (agentes de IA, calendario, descargas, estantería) lee archivos de tu disco y no sale de él.
 
 ## Qué hace NotchWin en tu sistema
