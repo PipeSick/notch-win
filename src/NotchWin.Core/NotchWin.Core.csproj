@@ -12,4 +12,9 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Canal local con el host de WinMac (D9): UNA sola implementación del protocolo, fijada por el submódulo a un commit concreto. -->
+    <ProjectReference Include="..\..\external\winmac\src\WinMac.Ipc\WinMac.Ipc.csproj" />
+  </ItemGroup>
+
 </Project>

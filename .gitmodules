@@ -1,0 +1,3 @@
+[submodule "external/winmac"]
+	path = external/winmac
+	url = https://github.com/PipeSick/win11-macos
