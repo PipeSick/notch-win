@@ -28,7 +28,7 @@ public sealed class NotchViewModel : ObservableObject
     public List<string> ShelfFiles { get; } = [];
 
     /// <summary>Null unless the user turned lyrics on in Settings.</summary>
-    public LrclibClient? Lyrics { get; set; }
+    public LyricsProvider? Lyrics { get; set; }
 
     public NotificationLog Notifications { get; } = new();
 

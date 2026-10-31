@@ -189,11 +189,11 @@ public partial class App : Application
         ReloadCalendar();
     }
 
-    private static LrclibClient CreateLyricsClient()
+    private static LyricsProvider CreateLyricsClient()
     {
         var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("NotchWin/0.1 (https://github.com/pipesick/notch-win)");
-        return new LrclibClient(http);
+        return new LyricsProvider(new LrclibClient(http), new NeteaseLyricsClient(http));
     }
 
     private void PollDownloads()

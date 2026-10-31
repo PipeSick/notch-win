@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <RootNamespace>NotchWin.App</RootNamespace>
     <Product>NotchWin</Product>
@@ -17,7 +17,7 @@
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <EnableMsixTooling>false</EnableMsixTooling>
+    <EnableMsixTooling>true</EnableMsixTooling>
 
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

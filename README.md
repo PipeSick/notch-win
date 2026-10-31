@@ -45,20 +45,18 @@ dotnet test tests/NotchWin.Core.Tests
 
 ### App completa (solo Windows)
 
-Requiere Visual Studio 2022 (o sus Build Tools) con las cargas **.NET Desktop Development** y
-**Universal Windows Platform build tools**. **`dotnet build` no sirve para la app**: la generación
-de recursos (PRI) necesita tareas de MSBuild que solo vienen con Visual Studio. Usa MSBuild:
+Requiere el **SDK de .NET 10**. Con él basta `dotnet`; no hace falta Visual Studio (el proyecto trae
+las herramientas de recursos MSIX, `EnableMsixTooling`):
 
 ```powershell
-msbuild src\NotchWin.App\NotchWin.App.csproj /restore /p:Platform=x64
+dotnet build src\NotchWin.App\NotchWin.App.csproj -p:Platform=x64
 ```
 
 Para un ejecutable autocontenido (no necesita instalar .NET):
 
 ```powershell
-msbuild src\NotchWin.App\NotchWin.App.csproj /restore /t:Publish /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64 /p:SelfContained=true /p:PublishDir=publish\
+dotnet publish src\NotchWin.App\NotchWin.App.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o publish
 ```
-
 Evita rutas largas: con una ruta de proyecto de unos 190 caracteres, el compilador XAML falla sin
 mensaje. La app queda en la bandeja del sistema; clic derecho en el ícono → **Ajustes**.
 
