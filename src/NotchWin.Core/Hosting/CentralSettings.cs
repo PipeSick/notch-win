@@ -26,7 +26,7 @@ public enum CentralChanges
 /// </summary>
 public sealed class CentralSettings
 {
-    public const string Topic = "config.notch", SetTopic = "config.notch.set", CommandTopic = "notch.cmd";
+    public const string Topic = "config.notch", SetTopic = "config.notch.set", CommandTopic = "notch.cmd", RectsTopic = "notch.rects";
 
     public NotchPosition Position { get; set; } = NotchPosition.TopCenter;
     public int GlassLevel { get; set; } = 60;

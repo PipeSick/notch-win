@@ -62,6 +62,35 @@ public sealed class NotchWindowController : IDisposable
     /// <summary>The monitor's width in DIPs, so parts of the notch that grow on their own can stay proportionate on small screens.</summary>
     public double MonitorWidthDip => _displayArea.OuterBounds.Width / (_scale > 0 ? _scale : 1);
 
+    private RectInt32 _footprint;
+
+    /// <summary>Raised when <see cref="Footprint"/> changes (not on every animation frame).</summary>
+    public event Action? FootprintChanged;
+
+    /// <summary>
+    /// The screen space (pixels) this window occupies or is about to occupy: while it animates, the union of where it started and where it is going; at rest, its current rectangle.
+    /// WinMac's top bar uses it to leave that space free.
+    /// </summary>
+    public RectInt32 Footprint => _footprint;
+
+    private void UpdateFootprint(bool animating)
+    {
+        RectInt32 now = ComputeRect(Math.Max(1, (int)Math.Round(_curW)), Math.Max(1, (int)Math.Round(_curH)));
+        if (animating)
+        {
+            var a = ComputeRect(Math.Max(1, (int)Math.Round(_fromW)), Math.Max(1, (int)Math.Round(_fromH)));
+            var b = ComputeRect(Math.Max(1, (int)Math.Round(_toW)), Math.Max(1, (int)Math.Round(_toH)));
+            int x1 = Math.Min(a.X, b.X), y1 = Math.Min(a.Y, b.Y), x2 = Math.Max(a.X + a.Width, b.X + b.Width), y2 = Math.Max(a.Y + a.Height, b.Y + b.Height);
+            now = new RectInt32(x1, y1, x2 - x1, y2 - y1);
+        }
+
+        if (now.X != _footprint.X || now.Y != _footprint.Y || now.Width != _footprint.Width || now.Height != _footprint.Height)
+        {
+            _footprint = now;
+            FootprintChanged?.Invoke();
+        }
+    }
+
     public void Dispose()
     {
         _disposed = true;
@@ -77,6 +106,7 @@ public sealed class NotchWindowController : IDisposable
         _curW = _toW = widthDip * scale;
         _curH = _toH = heightDip * scale;
         ApplyFrame();
+        UpdateFootprint(animating: false);
     }
 
     /// <summary>Eases the window to a new size (in DIPs); <paramref name="completed"/> runs once it lands.</summary>
@@ -89,6 +119,7 @@ public sealed class NotchWindowController : IDisposable
         _toH = heightDip * scale;
         _startedUtc = DateTime.UtcNow;
         _onCompleted = completed;
+        UpdateFootprint(animating: true);
         _timer.Start();
     }
 
@@ -114,6 +145,7 @@ public sealed class NotchWindowController : IDisposable
         _displayArea = area;
         _lastRect = default; // force the move even if the numbers happen to match
         ApplyFrame();
+        UpdateFootprint(_timer.IsRunning);
     }
 
     private void OnTick()
@@ -128,6 +160,7 @@ public sealed class NotchWindowController : IDisposable
         if (t >= 1)
         {
             _timer.Stop();
+            UpdateFootprint(animating: false);
             var done = _onCompleted;
             _onCompleted = null;
             done?.Invoke();
@@ -155,11 +188,9 @@ public sealed class NotchWindowController : IDisposable
         return _scale;
     }
 
-    private void ApplyFrame()
+    /// <summary>Where the window sits for a given size: docked to the physical screen edge (OuterBounds, not WorkArea) at the chosen position.</summary>
+    private RectInt32 ComputeRect(int width, int height)
     {
-        var width = Math.Max(1, (int)Math.Round(_curW));
-        var height = Math.Max(1, (int)Math.Round(_curH));
-
         // OuterBounds, not WorkArea: a notch hugs the physical screen edge even when another
         // app-bar (or the taskbar at the top) reserves space there.
         var bounds = _displayArea.OuterBounds;
@@ -172,7 +203,15 @@ public sealed class NotchWindowController : IDisposable
             _ => bounds.X + (bounds.Width - width) / 2,
         };
 
-        var rect = new RectInt32(x, bounds.Y, width, height);
+        return new RectInt32(x, bounds.Y, width, height);
+    }
+
+    private void ApplyFrame()
+    {
+        var width = Math.Max(1, (int)Math.Round(_curW));
+        var height = Math.Max(1, (int)Math.Round(_curH));
+
+        var rect = ComputeRect(width, height);
         if (rect.X == _lastRect.X && rect.Y == _lastRect.Y && rect.Width == _lastRect.Width && rect.Height == _lastRect.Height)
         {
             return; // nothing moved: skip the move and the region reset, which each force a repaint

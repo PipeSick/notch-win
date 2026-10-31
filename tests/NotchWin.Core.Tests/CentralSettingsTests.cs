@@ -145,3 +145,39 @@ public class HostedSessionTests
         Assert.True(await Until(() => shutdown == 1));
     }
 }
+
+public class NotchRectsTests
+{
+    [Fact]
+    public async Task PublishedRectsReachAnotherModuleAsRetainedStateAndEmptyListsAreValid()
+    {
+        var pipe = "notchwin-rects-" + Guid.NewGuid().ToString("N");
+        await using var server = new IpcServer(new ServerOptions(pipe, "tok"));
+        server.Start();
+        Environment.SetEnvironmentVariable(ModuleHostLink.TokenEnvVar, "tok");
+        HostedSession session;
+        try { session = HostedSession.FromArgs(["--hosted", "--pipe", pipe], "1")!; }
+        finally { Environment.SetEnvironmentVariable(ModuleHostLink.TokenEnvVar, null); }
+        await using var _ = session;
+        session.Start();
+        var end = DateTime.UtcNow.AddSeconds(5);
+        while (!session.IsConnected && DateTime.UtcNow < end) { await Task.Delay(20); }
+        Assert.True(session.IsConnected);
+
+        // Zero-size rectangles (a window not laid out yet) are dropped; the others go out in pixels.
+        session.PublishRects([(1020, 0, 520, 220), (0, 0, 0, 0)]);
+        await Task.Delay(300);
+
+        var bar = new IpcClient(new ClientOptions(pipe, "tok", "bar") { MaxBackoff = TimeSpan.FromMilliseconds(200) });
+        var got = new TaskCompletionSource<string>();
+        bar.Subscribe(CentralSettings.RectsTopic, d => got.TrySetResult(d!.Value.GetRawText()));
+        bar.Start();
+        Assert.Equal("{\"rects\":[{\"x\":1020,\"y\":0,\"w\":520,\"h\":220}]}", await got.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+
+        var released = new TaskCompletionSource<string>();
+        bar.Subscribe(CentralSettings.RectsTopic, d => { if (d!.Value.GetRawText() == "{\"rects\":[]}") released.TrySetResult("vacío"); });
+        session.PublishRects([]);
+        Assert.Equal("vacío", await released.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        await bar.DisposeAsync();
+    }
+}

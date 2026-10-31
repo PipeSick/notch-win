@@ -118,6 +118,7 @@ public partial class App : Application
 
         var window = new NotchWindow(_viewModel);
         var controller = new NotchWindowController(window, _settings.NotchPosition, area);
+        controller.FootprintChanged += PublishFootprints; // inside WinMac, its top bar leaves this space free
         window.AttachController(controller);
         window.Activate();
         _notches[id] = (window, controller);
@@ -127,8 +128,16 @@ public partial class App : Application
     {
         if (_notches.Remove(displayId, out var notch))
         {
+            notch.Controller.FootprintChanged -= PublishFootprints;
             notch.Window.Close(); // its Closed handler drops every subscription and timer
+            PublishFootprints();
         }
+    }
+
+    /// <summary>Tells WinMac how much screen space the notch windows take (pixels), so its top bar does not cover them or take their clicks. No-op when running standalone.</summary>
+    private void PublishFootprints()
+    {
+        _hosted?.PublishRects(_notches.Values.Select(n => n.Controller.Footprint).Select(r => (r.X, r.Y, r.Width, r.Height)));
     }
 
     private void WatchDisplays()

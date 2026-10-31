@@ -45,6 +45,13 @@ public sealed class HostedSession : IAsyncDisposable
     /// <summary>Ask the host to change settings; send only the fields that changed. The host validates, saves and echoes the new state back.</summary>
     public void SendPatch(object patch) => _link.Event(CentralSettings.SetTopic, patch);
 
+    /// <summary>
+    /// Publishes the screen space (pixels) the notch windows occupy, including what an animation is about to cover. WinMac's top bar cuts that space out of its own window so it never
+    /// covers the notch or takes its clicks, whatever the window order. An empty list releases it.
+    /// </summary>
+    public void PublishRects(IEnumerable<(int X, int Y, int Width, int Height)> rects) =>
+        _link.Publish(CentralSettings.RectsTopic, new { rects = rects.Where(r => r.Width > 0 && r.Height > 0).Select(r => new { x = r.X, y = r.Y, w = r.Width, h = r.Height }).ToArray() });
+
     /// <summary>Tell the host this exit is deliberate (it must not restart us).</summary>
     public Task ByeAsync(TimeSpan timeout) => _link.ByeAsync(timeout);
 
