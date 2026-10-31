@@ -197,6 +197,7 @@ public sealed partial class NotchWindow
 
     private void OnDataChanged()
     {
+        UpdateOpenPlayerButton();
         RefreshPanes();
         RelayoutIfExpanded();
     }

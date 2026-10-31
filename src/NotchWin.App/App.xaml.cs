@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -15,6 +17,7 @@ using NotchWin.Core.Lyrics;
 using NotchWin.Core.Calendar;
 using NotchWin.Core.Downloads;
 using NotchWin.Core.Models;
+using NotchWin.Core.Music;
 using NotchWin.Core.Pricing;
 using NotchWin.Core.Settings;
 
@@ -51,6 +54,8 @@ public partial class App : Application
             PersistSections = PersistSections,
             GlassLevel = _settings.GlassLevel,
             PersistGlass = PersistGlass,
+            PlayerName = MusicPlayerLauncher.DisplayName(_settings.MusicPlayer, _settings.CustomPlayerPath),
+            OpenPlayer = OpenPlayer,
         };
         // One notch per monitor, all sharing the same view model.
         var displays = DisplayArea.FindAll();
@@ -83,7 +88,10 @@ public partial class App : Application
 
     private void StartMusicModule(DispatcherQueue dispatcherQueue)
     {
-        _mediaProvider = new GsmtcMediaProvider();
+        _mediaProvider = new GsmtcMediaProvider
+        {
+            PreferredAppToken = MusicPlayerLauncher.SessionToken(_settings.MusicPlayer, _settings.CustomPlayerPath),
+        };
         if (_viewModel is not null)
         {
             _viewModel.MediaControls = _mediaProvider;
@@ -143,6 +151,44 @@ public partial class App : Application
     {
         _settings.NotchSections = _viewModel?.Sections ?? NotchSections.Defaults();
         _settingsStore.Save(_settings);
+    }
+
+    /// <summary>Starts the player chosen in Settings. Returns a message to show when it can't be started, else null.</summary>
+    private string? OpenPlayer()
+    {
+        var name = MusicPlayerLauncher.DisplayName(_settings.MusicPlayer, _settings.CustomPlayerPath);
+        var target = MusicPlayerLauncher.Resolve(
+            _settings.MusicPlayer, _settings.CustomPlayerPath, File.Exists, Environment.GetEnvironmentVariable);
+        if (target is null)
+        {
+            return $"No encontré {name}. Indica su ruta en Ajustes.";
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(target.FileName) { UseShellExecute = true });
+            return null;
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            return $"No se pudo abrir {name}.";
+        }
+    }
+
+    private void ApplyPlayerSettings()
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        _viewModel.PlayerName = MusicPlayerLauncher.DisplayName(_settings.MusicPlayer, _settings.CustomPlayerPath);
+        if (_mediaProvider is not null)
+        {
+            _mediaProvider.PreferredAppToken = MusicPlayerLauncher.SessionToken(_settings.MusicPlayer, _settings.CustomPlayerPath);
+        }
+
+        _viewModel.RaiseDataChanged();
     }
 
     private void PersistGlass()
@@ -274,6 +320,7 @@ public partial class App : Application
         {
             _settings = saved;
             ReloadBackgroundSources();
+            ApplyPlayerSettings();
         };
         _settingsWindow.Activate();
     }

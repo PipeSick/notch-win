@@ -44,6 +44,12 @@ public sealed class NotchViewModel : ObservableObject
     /// <summary>Called after the user reorders/toggles tabs so the host can write settings to disk.</summary>
     public Action? PersistSections { get; set; }
 
+    /// <summary>Name of the chosen music player, shown on the "Abrir …" button when nothing is playing.</summary>
+    public string PlayerName { get; set; } = "Spotify";
+
+    /// <summary>Starts the chosen player; returns an error message to show, or null on success.</summary>
+    public Func<string?>? OpenPlayer { get; set; }
+
     private int _glassLevel = 60;
 
     /// <summary>Glass opacity 0–100 shared by every notch window; setting it re-tints them live.</summary>

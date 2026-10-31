@@ -17,6 +17,16 @@
             </StackPanel>
 
             <StackPanel Spacing="4">
+                <TextBlock Text="Reproductor de música (el que abre el botón «Abrir…» y el que se prefiere si suenan varios)" TextWrapping="Wrap" />
+                <ComboBox x:Name="PlayerCombo" HorizontalAlignment="Stretch">
+                    <ComboBoxItem Content="Spotify" />
+                    <ComboBoxItem Content="Feishin (Navidrome)" />
+                    <ComboBoxItem Content="Otro (ruta al .exe)" />
+                </ComboBox>
+                <TextBox x:Name="PlayerPathBox" PlaceholderText="Ruta del .exe: para «Otro», o si Feishin no está en su carpeta habitual" />
+            </StackPanel>
+
+            <StackPanel Spacing="4">
                 <TextBlock Text="Intervalo de sondeo (segundos)" />
                 <NumberBox x:Name="PollIntervalBox" Minimum="5" Maximum="600" SpinButtonPlacementMode="Inline" />
             </StackPanel>

@@ -128,6 +128,20 @@ public sealed partial class NotchWindow : Window
 
     private void OnBarTapped(object sender, TappedRoutedEventArgs e) => SetExpanded(!_expanded);
 
+    private void UpdateOpenPlayerButton()
+    {
+        OpenPlayerButton.Content = $"Abrir {_viewModel.PlayerName}";
+        OpenPlayerButton.Visibility = _hasTrack ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void OnOpenPlayerClicked(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.OpenPlayer?.Invoke() is { } error)
+        {
+            ArtistText.Text = error;
+        }
+    }
+
     private void OnPointerEntered(object sender, PointerRoutedEventArgs e) => _hoverTimer.Stop();
 
     private void OnPointerExited(object sender, PointerRoutedEventArgs e)
@@ -263,6 +277,7 @@ public sealed partial class NotchWindow : Window
 
         var playing = info is { IsPlaying: true };
         MiniArt.Visibility = hasTrack ? Visibility.Visible : Visibility.Collapsed;
+        UpdateOpenPlayerButton();
         EqPanel.Visibility = playing ? Visibility.Visible : Visibility.Collapsed;
         MusicEq.Visibility = playing ? Visibility.Visible : Visibility.Collapsed;
         UpdateProgress();

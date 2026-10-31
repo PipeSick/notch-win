@@ -1,3 +1,5 @@
+using NotchWin.Core.Music;
+
 namespace NotchWin.Core.Settings;
 
 public sealed class AppSettings
@@ -49,6 +51,12 @@ public sealed class AppSettings
 
     /// <summary>Folder watched for in-progress browser downloads; null uses the user's Downloads folder.</summary>
     public string? DownloadsFolder { get; set; }
+
+    /// <summary>Player opened by the notch's "Abrir …" button when nothing is playing; also preferred when several apps play.</summary>
+    public MusicPlayerKind MusicPlayer { get; set; } = MusicPlayerKind.Spotify;
+
+    /// <summary>Path to the player's .exe (or shortcut) when <see cref="MusicPlayer"/> is Custom; also used if Feishin isn't in a standard place.</summary>
+    public string? CustomPlayerPath { get; set; }
 
     /// <summary>How opaque the notch's glass is, 0 (clear) to 100 (solid black like a hardware notch).</summary>
     public int GlassLevel { get; set; } = 60;

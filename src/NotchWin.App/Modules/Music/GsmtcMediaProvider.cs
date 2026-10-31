@@ -17,6 +17,46 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
 
     public event EventHandler<NowPlayingInfo?>? Changed;
 
+    /// <summary>
+    /// Lowercase text identifying the player the user prefers (see <see cref="MusicPlayerLauncher.SessionToken"/>).
+    /// While that app is playing its session is shown, even if Windows considers another app (a browser tab) current.
+    /// </summary>
+    public string? PreferredAppToken
+    {
+        get => _preferredToken;
+        set
+        {
+            _preferredToken = value;
+            if (_manager is not null)
+            {
+                AttachToCurrentSession();
+            }
+        }
+    }
+
+    private string? _preferredToken;
+
+    private GlobalSystemMediaTransportControlsSession? PickSession()
+    {
+        var current = _manager?.GetCurrentSession();
+        if (_manager is null || string.IsNullOrEmpty(_preferredToken))
+        {
+            return current;
+        }
+
+        bool IsPreferred(GlobalSystemMediaTransportControlsSession s) =>
+            s.SourceAppUserModelId?.Contains(_preferredToken, StringComparison.OrdinalIgnoreCase) == true;
+
+        if (current is not null && IsPreferred(current))
+        {
+            return current;
+        }
+
+        var playing = _manager.GetSessions().FirstOrDefault(s =>
+            IsPreferred(s) && s.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing);
+        return playing ?? current;
+    }
+
     public async Task TogglePlayPauseAsync()
     {
         if (_currentSession is { } s) { await s.TryTogglePlayPauseAsync(); }
@@ -36,8 +76,12 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
     {
         _manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
         _manager.CurrentSessionChanged += OnCurrentSessionChanged;
+        _manager.SessionsChanged += OnSessionsChanged;
         AttachToCurrentSession();
     }
+
+    private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args) =>
+        AttachToCurrentSession();
 
     public async Task<NowPlayingInfo?> GetCurrentAsync(CancellationToken cancellationToken = default)
     {
@@ -55,7 +99,7 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
     private void AttachToCurrentSession()
     {
         DetachFromCurrentSession();
-        _currentSession = _manager?.GetCurrentSession();
+        _currentSession = PickSession();
 
         if (_currentSession is null)
         {
@@ -143,6 +187,7 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
         if (_manager is not null)
         {
             _manager.CurrentSessionChanged -= OnCurrentSessionChanged;
+            _manager.SessionsChanged -= OnSessionsChanged;
         }
     }
 }
