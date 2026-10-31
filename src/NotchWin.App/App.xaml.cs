@@ -20,6 +20,7 @@ using NotchWin.Core.Downloads;
 using NotchWin.Core.Models;
 using NotchWin.Core.Music;
 using NotchWin.Core.Pricing;
+using NotchWin.Core.Hosting;
 using NotchWin.Core.Settings;
 using NotchWin.Core.Usage;
 
@@ -44,6 +45,12 @@ public partial class App : Application
     private DispatcherQueueTimer? _clock;
     private int _clockTicks;
 
+    // Hosted mode (started by WinMac): the host's settings are the single source of truth; this process never writes the central fields to disk.
+    private HostedSession? _hosted;
+    private CentralSettings? _central;
+    private CentralSettings? _firstCentral;
+    private readonly ManualResetEventSlim _firstCentralArrived = new();
+
     public App()
     {
         InitializeComponent();
@@ -51,7 +58,10 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        _uiQueue = DispatcherQueue.GetForCurrentThread();
+        _settingsStore.RemoveLegacySecrets(); // an old plaintext Anthropic key must not stay on disk
         _settings = _settingsStore.Load();
+        StartHostedLink();
 
         _viewModel = new NotchViewModel
         {
@@ -77,9 +87,13 @@ public partial class App : Application
         StartClock(dispatcherQueue);
         ApplyClipboardSetting();
 
-        _trayIcon = new TrayIconService("NotchWin");
-        _trayIcon.SettingsRequested += () => dispatcherQueue.TryEnqueue(OpenSettingsWindow);
-        _trayIcon.ExitRequested += () => dispatcherQueue.TryEnqueue(ExitApp);
+        if (_hosted is null)
+        {
+            // Standalone: NotchWin has its own tray icon. Inside WinMac the tray belongs to WinMac, so there is none here.
+            _trayIcon = new TrayIconService("NotchWin");
+            _trayIcon.SettingsRequested += () => dispatcherQueue.TryEnqueue(OpenSettingsWindow);
+            _trayIcon.ExitRequested += () => dispatcherQueue.TryEnqueue(ExitApp);
+        }
 
         if (_settings.MusicModuleEnabled)
         {
@@ -199,7 +213,21 @@ public partial class App : Application
     private void PersistSections()
     {
         _settings.NotchSections = _viewModel?.Sections ?? NotchSections.Defaults();
-        _settingsStore.Save(_settings);
+        if (_hosted is not null)
+        {
+            // Hosted: WinMac owns this. Remember it locally first so the host's echo is not seen as a change, then ask the host to save it.
+            if (_central is not null)
+            {
+                _central.Sections = NotchSections.Normalize(_settings.NotchSections);
+            }
+
+            _hosted.SendPatch(CentralSettings.SectionsPatch(_settings.NotchSections));
+        }
+        else
+        {
+            _settingsStore.Save(_settings);
+        }
+
         ApplyClipboardSetting();
     }
 
@@ -263,7 +291,19 @@ public partial class App : Application
     private void PersistGlass()
     {
         _settings.GlassLevel = _viewModel?.GlassLevel ?? _settings.GlassLevel;
-        _settingsStore.Save(_settings);
+        if (_hosted is not null)
+        {
+            if (_central is not null)
+            {
+                _central.GlassLevel = _settings.GlassLevel;
+            }
+
+            _hosted.SendPatch(CentralSettings.GlassPatch(_settings.GlassLevel));
+        }
+        else
+        {
+            _settingsStore.Save(_settings);
+        }
     }
 
     /// <summary>One shared 1 s clock for every notch window: timer countdown, download scan, calendar refresh.</summary>
@@ -376,6 +416,148 @@ public partial class App : Application
         return "NotchWin — " + string.Join(" · ", parts);
     }
 
+    // ---------- hosted by WinMac ----------
+
+    /// <summary>
+    /// Connects to WinMac when this process was started by it. Waits briefly for the first settings so the notch is built with the right ones instead of flashing the old
+    /// local values; if the host is slow or absent the notch starts with what it has and applies the settings whenever they arrive.
+    /// </summary>
+    private void StartHostedLink()
+    {
+        _hosted = Program.Hosted;
+        if (_hosted is null)
+        {
+            return;
+        }
+
+        _hosted.HealthCheck = UiThreadIsAlive;
+        _hosted.ShutdownRequested += () => _uiQueue?.TryEnqueue(ExitApp);
+        _hosted.OpenLocalSettingsRequested += () => _uiQueue?.TryEnqueue(OpenSettingsWindow);
+        _hosted.CentralReceived += central =>
+        {
+            _firstCentral ??= central;
+            _firstCentralArrived.Set();
+            _uiQueue?.TryEnqueue(() => ApplyCentral(central));
+        };
+        _hosted.Start();
+
+        if (_firstCentralArrived.Wait(TimeSpan.FromSeconds(1.5)) && _firstCentral is { } first)
+        {
+            first.ApplyTo(_settings);
+        }
+
+        _central = CentralSettings.From(_settings);
+    }
+
+    /// <summary>Answers WinMac's heartbeat only while the UI thread is actually processing messages, so a hung notch gets restarted.</summary>
+    private bool UiThreadIsAlive()
+    {
+        if (_uiQueue is null)
+        {
+            return true;
+        }
+
+        using var done = new ManualResetEventSlim();
+        return _uiQueue.TryEnqueue(() => done.Set()) && done.Wait(TimeSpan.FromSeconds(2));
+    }
+
+    /// <summary>Applies new central settings from WinMac live, touching only what changed. Runs on the UI thread.</summary>
+    private void ApplyCentral(CentralSettings next)
+    {
+        if (_viewModel is null || _uiQueue is null)
+        {
+            return;
+        }
+
+        var changes = CentralSettings.Diff(_central ?? CentralSettings.From(_settings), next);
+        _central = next;
+        if (changes == CentralChanges.None)
+        {
+            return;
+        }
+
+        next.ApplyTo(_settings);
+
+        if (changes.HasFlag(CentralChanges.Sections))
+        {
+            _viewModel.Sections = NotchSections.Normalize(_settings.NotchSections);
+            _viewModel.RaiseSectionsChanged();
+            ApplyClipboardSetting();
+        }
+
+        if (changes.HasFlag(CentralChanges.Glass))
+        {
+            _viewModel.GlassLevel = _settings.GlassLevel;
+        }
+
+        if (changes.HasFlag(CentralChanges.Player))
+        {
+            ApplyPlayerSettings();
+        }
+
+        if (changes.HasFlag(CentralChanges.Lyrics))
+        {
+            _viewModel.Lyrics = _settings.LyricsEnabled ? CreateLyricsClient() : null;
+            _viewModel.LyricsInPill = _settings.LyricsEnabled && _settings.LyricsInPill;
+            _viewModel.RaiseDataChanged();
+        }
+
+        if (changes.HasFlag(CentralChanges.MusicModule))
+        {
+            StopMusicModule();
+            if (_settings.MusicModuleEnabled)
+            {
+                StartMusicModule(_uiQueue);
+            }
+        }
+
+        if (changes.HasFlag(CentralChanges.AgentsModule) || changes.HasFlag(CentralChanges.Poll))
+        {
+            StopAgentPolling();
+            if (_settings.AiAgentsModuleEnabled)
+            {
+                StartAgentPolling(_uiQueue);
+            }
+        }
+
+        if (changes.HasFlag(CentralChanges.Position))
+        {
+            RecreateNotches(); // the position is fixed per window; rebuilding them keeps the resize/DPI rules in NotchWindowController untouched
+        }
+    }
+
+    private void StopMusicModule()
+    {
+        _mediaProvider?.Dispose();
+        _mediaProvider = null;
+        if (_viewModel is not null)
+        {
+            _viewModel.MediaControls = null;
+            _viewModel.NowPlaying = null;
+            _viewModel.RaiseDataChanged();
+        }
+    }
+
+    private void StopAgentPolling()
+    {
+        _agentPolling?.Dispose();
+        _agentPolling = null;
+    }
+
+    private void RecreateNotches()
+    {
+        foreach (var id in _notches.Keys.ToList())
+        {
+            RemoveNotch(id);
+        }
+
+        var displays = DisplayArea.FindAll();
+        for (var i = 0; i < displays.Count; i++)
+        {
+            AddNotch(displays[i]);
+        }
+    }
+
     private void OpenSettingsWindow()
     {
         if (_settingsWindow is not null)
@@ -384,11 +566,12 @@ public partial class App : Application
             return;
         }
 
-        _settingsWindow = new SettingsWindow(_settingsStore);
+        _settingsWindow = new SettingsWindow(_settingsStore, hosted: _hosted is not null);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.SettingsSaved += saved =>
         {
             _settings = saved;
+            _central?.ApplyTo(_settings); // hosted: the file's central fields are stale; the host's values win
             ReloadBackgroundSources();
             ApplyPlayerSettings();
         };
@@ -397,6 +580,13 @@ public partial class App : Application
 
     private void ExitApp()
     {
+        if (_hosted is not null)
+        {
+            // Tell WinMac this exit is deliberate, then drop the link. Bounded wait: never hold the UI thread hostage.
+            try { Task.Run(() => _hosted.ByeAsync(TimeSpan.FromSeconds(1))).Wait(TimeSpan.FromSeconds(1.5)); } catch (Exception) { /* exiting anyway */ }
+            _ = _hosted.DisposeAsync();
+        }
+
         _displayWatcher?.Stop();
         _agentPolling?.Dispose();
         _mediaProvider?.Dispose();
