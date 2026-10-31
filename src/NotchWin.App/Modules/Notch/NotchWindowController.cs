@@ -15,7 +15,7 @@ namespace NotchWin.App.Modules.Notch;
 /// The OS window *is* the notch silhouette (clipped with a window region), and <see cref="AnimateTo"/>
 /// eases its size frame by frame so it grows out of the screen edge like a Dynamic Island.
 /// </summary>
-public sealed class NotchWindowController
+public sealed class NotchWindowController : IDisposable
 {
     private const int CornerRadiusDip = 20;
     private const int AnimationMs = 260;
@@ -23,12 +23,16 @@ public sealed class NotchWindowController
     private readonly IntPtr _hwnd;
     private readonly AppWindow _appWindow;
     private readonly NotchPosition _position;
-    private readonly DisplayArea _displayArea;
     private readonly DispatcherQueueTimer _timer;
+    private DisplayArea _displayArea;
 
     private double _fromW, _fromH, _toW, _toH, _curW, _curH;
     private DateTime _startedUtc;
     private Action? _onCompleted;
+
+    private double _scale;
+    private RectInt32 _lastRect;
+    private bool _disposed;
 
     public NotchWindowController(Window window, NotchPosition position, DisplayArea displayArea)
     {
@@ -55,6 +59,15 @@ public sealed class NotchWindowController
         _timer.Tick += (_, _) => OnTick();
     }
 
+    /// <summary>The monitor's width in DIPs, so parts of the notch that grow on their own can stay proportionate on small screens.</summary>
+    public double MonitorWidthDip => _displayArea.OuterBounds.Width / (_scale > 0 ? _scale : 1);
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _timer.Stop();
+    }
+
     /// <summary>Jumps to a size with no animation (first show, or when animations don't make sense).</summary>
     public void SnapTo(int widthDip, int heightDip)
     {
@@ -77,6 +90,22 @@ public sealed class NotchWindowController
         _startedUtc = DateTime.UtcNow;
         _onCompleted = completed;
         _timer.Start();
+    }
+
+    /// <summary>
+    /// The monitor's bounds changed (resolution, arrangement): dock to the new bounds at the current size.
+    /// A running animation keeps going, and its completion callback still fires.
+    /// </summary>
+    public void UpdateDisplay(DisplayArea area)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _displayArea = area;
+        _lastRect = default; // force the move even if the numbers happen to match
+        ApplyFrame();
     }
 
     private void OnTick()
@@ -147,7 +176,4 @@ public sealed class NotchWindowController
         var radius = (int)(CornerRadiusDip * _scale);
         Win32Window.ApplyNotchShape(_hwnd, width, height, radius);
     }
-
-    private double _scale;
-    private RectInt32 _lastRect;
 }

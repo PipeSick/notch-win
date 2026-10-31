@@ -243,7 +243,9 @@ public sealed partial class NotchWindow
             _pillMeasurer.Text = text;
             _pillMeasurer.Measure(new Size(double.PositiveInfinity, CollapsedHeight));
             var wanted = (int)Math.Ceiling(_pillMeasurer.DesiredSize.Width) + PillTextChrome;
-            width = Math.Clamp((wanted + 19) / 20 * 20, CollapsedTrackWidth, MaxLyricPillWidth);
+            // On a small screen the pill may not take more than 40% of its width, so it never looks oversized.
+            var cap = Math.Clamp((int)((_controller?.MonitorWidthDip ?? 1920) * 0.4), CollapsedTrackWidth, MaxLyricPillWidth);
+            width = Math.Clamp((wanted + 19) / 20 * 20, CollapsedTrackWidth, cap);
         }
 
         MiniTitle.MaxWidth = lyricMode ? width - PillTextChrome : 190;

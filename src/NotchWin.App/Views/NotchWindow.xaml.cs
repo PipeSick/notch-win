@@ -81,11 +81,7 @@ public sealed partial class NotchWindow : Window
                 _glassSaveTimer.Start();
             };
         };
-        _viewModel.GlassChanged += () =>
-        {
-            _glass.Level = _viewModel.GlassLevel / 100.0;
-            GlassSlider.Value = _viewModel.GlassLevel;
-        };
+        _viewModel.GlassChanged += OnGlassChanged;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel.AgentSnapshots.CollectionChanged += OnAgentsChanged;
@@ -114,6 +110,46 @@ public sealed partial class NotchWindow : Window
         RebuildAgents();
         InitSections();
         _ = UpdateNowPlayingUiAsync(_viewModel.NowPlaying);
+
+        Closed += (_, _) => Detach();
+    }
+
+    private bool _closed;
+
+    private void OnGlassChanged()
+    {
+        if (_closed)
+        {
+            return;
+        }
+
+        _glass.Level = _viewModel.GlassLevel / 100.0;
+        GlassSlider.Value = _viewModel.GlassLevel;
+    }
+
+    /// <summary>
+    /// Called when this window closes (its monitor was unplugged): the view model outlives it, so every
+    /// subscription must be dropped and every timer stopped, or the dead window keeps being called.
+    /// </summary>
+    private void Detach()
+    {
+        _closed = true;
+        _viewModel.GlassChanged -= OnGlassChanged;
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.AgentSnapshots.CollectionChanged -= OnAgentsChanged;
+        _viewModel.Ticked -= OnTicked;
+        _viewModel.DataChanged -= OnDataChanged;
+        _viewModel.SectionsChanged -= OnSectionsChanged;
+        _viewModel.Notifications.Changed -= OnNotificationsChanged;
+        _viewModel.Notifications.Added -= OnNotificationAdded;
+        _viewModel.Clipboard.Changed -= OnClipboardChanged;
+
+        _uiTimer.Stop();
+        _toastTimer.Stop();
+        _hoverTimer.Stop();
+        _glassSaveTimer.Stop();
+        StopCamera();
+        _controller?.Dispose();
     }
 
     /// <summary>

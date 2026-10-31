@@ -40,13 +40,8 @@ public sealed partial class NotchWindow
         _viewModel.Ticked += OnTicked;
         _viewModel.DataChanged += OnDataChanged;
         _viewModel.SectionsChanged += OnSectionsChanged;
-        _viewModel.Notifications.Changed += () => DispatcherQueue.TryEnqueue(() =>
-        {
-            RebuildTabs();
-            RefreshPanes();
-            RelayoutIfExpanded();
-        });
-        _viewModel.Notifications.Added += n => DispatcherQueue.TryEnqueue(() => ShowNotificationToast(n));
+        _viewModel.Notifications.Changed += OnNotificationsChanged;
+        _viewModel.Notifications.Added += OnNotificationAdded;
 
         BuildSystemCards();
         InitClipboard();
@@ -55,6 +50,26 @@ public sealed partial class NotchWindow
         RefreshPanes();
         UpdateTimerUi();
     }
+
+    private void OnNotificationsChanged() => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (_closed)
+        {
+            return;
+        }
+
+        RebuildTabs();
+        RefreshPanes();
+        RelayoutIfExpanded();
+    });
+
+    private void OnNotificationAdded(NotchNotification n) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (!_closed)
+        {
+            ShowNotificationToast(n);
+        }
+    });
 
     private List<NotchSectionConfig> EnabledSections() =>
         _viewModel.Sections.Where(s => s.Enabled).ToList();

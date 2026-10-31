@@ -19,16 +19,23 @@ public sealed partial class NotchWindow
 
     private void InitClipboard()
     {
-        _viewModel.Clipboard.Changed += () => DispatcherQueue.TryEnqueue(() =>
-        {
-            _clipboardDirty = true;
-            if (_expanded && !_customizing && _active == Core.Settings.NotchSections.Clipboard)
-            {
-                RebuildClipboard();
-                RelayoutIfExpanded();
-            }
-        });
+        _viewModel.Clipboard.Changed += OnClipboardChanged;
     }
+
+    private void OnClipboardChanged() => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (_closed)
+        {
+            return;
+        }
+
+        _clipboardDirty = true;
+        if (_expanded && !_customizing && _active == Core.Settings.NotchSections.Clipboard)
+        {
+            RebuildClipboard();
+            RelayoutIfExpanded();
+        }
+    });
 
     private void RebuildClipboard()
     {

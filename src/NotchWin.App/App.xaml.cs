@@ -30,8 +30,10 @@ public partial class App : Application
     private readonly SettingsStore _settingsStore = new(SettingsStore.DefaultPath());
     private AppSettings _settings = new();
 
-    private readonly List<NotchWindow> _notchWindows = [];
-    private NotchViewModel? _viewModel;
+    // One notch per connected monitor, keyed by the monitor's display id and kept in step by _displayWatcher.
+    private readonly Dictionary<ulong, (NotchWindow Window, NotchWindowController Controller)> _notches = [];
+    private DisplayAreaWatcher? _displayWatcher;
+    private DispatcherQueue? _uiQueue;    private NotchViewModel? _viewModel;
     private GsmtcMediaProvider? _mediaProvider;
     private ClipboardWatcher? _clipboardWatcher;
     private AgentPollingService? _agentPolling;
@@ -62,16 +64,15 @@ public partial class App : Application
             History = new UsageHistory(Path.Combine(Path.GetDirectoryName(_settingsStore.FilePath) ?? ".", "usage-history.json")),
         };
         // One notch per monitor, all sharing the same view model.
+        var dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        _uiQueue = dispatcherQueue;
         var displays = DisplayArea.FindAll();
         for (var i = 0; i < displays.Count; i++)
         {
-            var window = new NotchWindow(_viewModel);
-            window.AttachController(new NotchWindowController(window, _settings.NotchPosition, displays[i]));
-            window.Activate();
-            _notchWindows.Add(window);
+            AddNotch(displays[i]);
         }
 
-        var dispatcherQueue = _notchWindows[0].DispatcherQueue;
+        WatchDisplays();
 
         StartClock(dispatcherQueue);
         ApplyClipboardSetting();
@@ -89,6 +90,46 @@ public partial class App : Application
         {
             StartAgentPolling(dispatcherQueue);
         }
+    }
+
+    // ---------- one notch per monitor, following monitors as they come and go ----------
+
+    private void AddNotch(DisplayArea area)
+    {
+        var id = area.DisplayId.Value;
+        if (_viewModel is null || _notches.ContainsKey(id))
+        {
+            return; // the watcher also reports the monitors that were already there at startup
+        }
+
+        var window = new NotchWindow(_viewModel);
+        var controller = new NotchWindowController(window, _settings.NotchPosition, area);
+        window.AttachController(controller);
+        window.Activate();
+        _notches[id] = (window, controller);
+    }
+
+    private void RemoveNotch(ulong displayId)
+    {
+        if (_notches.Remove(displayId, out var notch))
+        {
+            notch.Window.Close(); // its Closed handler drops every subscription and timer
+        }
+    }
+
+    private void WatchDisplays()
+    {
+        _displayWatcher = DisplayArea.CreateWatcher();
+        _displayWatcher.Added += (_, area) => _uiQueue?.TryEnqueue(() => AddNotch(area));
+        _displayWatcher.Removed += (_, area) => _uiQueue?.TryEnqueue(() => RemoveNotch(area.DisplayId.Value));
+        _displayWatcher.Updated += (_, area) => _uiQueue?.TryEnqueue(() =>
+        {
+            if (_notches.TryGetValue(area.DisplayId.Value, out var notch))
+            {
+                notch.Controller.UpdateDisplay(area);
+            }
+        });
+        _displayWatcher.Start();
     }
 
     private void StartMusicModule(DispatcherQueue dispatcherQueue)
@@ -165,7 +206,7 @@ public partial class App : Application
     /// <summary>The clipboard is only watched while its tab is enabled; turning the tab off stops recording at once.</summary>
     private void ApplyClipboardSetting()
     {
-        if (_viewModel is null || _notchWindows.Count == 0)
+        if (_viewModel is null || _uiQueue is null)
         {
             return;
         }
@@ -177,7 +218,7 @@ public partial class App : Application
             return;
         }
 
-        _clipboardWatcher ??= new ClipboardWatcher(_viewModel.Clipboard, _notchWindows[0].DispatcherQueue);
+        _clipboardWatcher ??= new ClipboardWatcher(_viewModel.Clipboard, _uiQueue);
         _clipboardWatcher.Start();
     }
 
@@ -356,6 +397,7 @@ public partial class App : Application
 
     private void ExitApp()
     {
+        _displayWatcher?.Stop();
         _agentPolling?.Dispose();
         _mediaProvider?.Dispose();
         _trayIcon?.Dispose();
