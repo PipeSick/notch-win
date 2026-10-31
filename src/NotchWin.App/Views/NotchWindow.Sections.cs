@@ -37,6 +37,7 @@ public sealed partial class NotchWindow
     {
         _viewModel.Ticked += OnTicked;
         _viewModel.DataChanged += OnDataChanged;
+        _viewModel.SectionsChanged += OnSectionsChanged;
         _viewModel.Notifications.Changed += () => DispatcherQueue.TryEnqueue(() =>
         {
             RebuildTabs();
@@ -446,6 +447,11 @@ public sealed partial class NotchWindow
     private void CommitSections()
     {
         _viewModel.PersistSections?.Invoke();
+        _viewModel.RaiseSectionsChanged(); // every notch window (one per monitor) shares the layout
+    }
+
+    private void OnSectionsChanged()
+    {
         RebuildTabs();
         ShowActivePane();
         RelayoutIfExpanded();

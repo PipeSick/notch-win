@@ -70,6 +70,11 @@ public sealed class NotchViewModel : ObservableObject
     /// <summary>Fires when downloads, calendar or similar background data was refreshed.</summary>
     public event Action? DataChanged;
 
+    /// <summary>Fires when the tab order or visibility changed, so every notch window rebuilds its tabs.</summary>
+    public event Action? SectionsChanged;
+
+    public void RaiseSectionsChanged() => SectionsChanged?.Invoke();
+
     public void RaiseTicked() => Ticked?.Invoke();
 
     public void RaiseDataChanged() => DataChanged?.Invoke();

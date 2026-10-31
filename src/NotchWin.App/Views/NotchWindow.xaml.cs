@@ -21,7 +21,7 @@ namespace NotchWin.App.Views;
 
 public sealed partial class NotchWindow : Window
 {
-    private const int ExpandedWidth = 440;
+    private const int ExpandedWidth = 520;
     private const int CollapsedHeight = 32;
     private const int CollapsedIdleWidth = 180;
     private const int CollapsedTrackWidth = 300;
@@ -34,6 +34,7 @@ public sealed partial class NotchWindow : Window
     private readonly DispatcherQueueTimer _uiTimer;
     private readonly DispatcherQueueTimer _hoverTimer;
     private readonly Rectangle[] _eqBars;
+    private readonly Rectangle[] _musicEqBars;
 
     private readonly GlassBackdrop _glass;
     private readonly DispatcherQueueTimer _glassSaveTimer;
@@ -52,6 +53,7 @@ public sealed partial class NotchWindow : Window
         _viewModel = viewModel;
         InitializeComponent();
         _eqBars = [Eq0, Eq1, Eq2, Eq3];
+        _musicEqBars = [XEq0, XEq1, XEq2, XEq3];
 
         _glass = new GlassBackdrop { Level = _viewModel.GlassLevel / 100.0 };
         SystemBackdrop = _glass;
@@ -262,6 +264,7 @@ public sealed partial class NotchWindow : Window
         var playing = info is { IsPlaying: true };
         MiniArt.Visibility = hasTrack ? Visibility.Visible : Visibility.Collapsed;
         EqPanel.Visibility = playing ? Visibility.Visible : Visibility.Collapsed;
+        MusicEq.Visibility = playing ? Visibility.Visible : Visibility.Collapsed;
         UpdateProgress();
 
         ImageSource? art = null;
@@ -340,6 +343,14 @@ public sealed partial class NotchWindow : Window
             foreach (var bar in _eqBars)
             {
                 bar.Height = 4 + Rng.Next(0, 12);
+            }
+
+            if (_expanded)
+            {
+                foreach (var bar in _musicEqBars)
+                {
+                    bar.Height = 6 + Rng.Next(0, 20);
+                }
             }
 
             if (_expanded)
