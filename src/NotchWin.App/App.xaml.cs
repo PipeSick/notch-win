@@ -143,16 +143,82 @@ public partial class App : Application
     private void WatchDisplays()
     {
         _displayWatcher = DisplayArea.CreateWatcher();
-        _displayWatcher.Added += (_, area) => _uiQueue?.TryEnqueue(() => AddNotch(area));
-        _displayWatcher.Removed += (_, area) => _uiQueue?.TryEnqueue(() => RemoveNotch(area.DisplayId.Value));
+        _displayWatcher.Added += (_, area) => _uiQueue?.TryEnqueue(() => { AddNotch(area); ScheduleDisplayResync(); });
+        _displayWatcher.Removed += (_, area) => _uiQueue?.TryEnqueue(() => { RemoveNotch(area.DisplayId.Value); ScheduleDisplayResync(); });
         _displayWatcher.Updated += (_, area) => _uiQueue?.TryEnqueue(() =>
         {
             if (_notches.TryGetValue(area.DisplayId.Value, out var notch))
             {
                 notch.Controller.UpdateDisplay(area);
             }
+
+            ScheduleDisplayResync();
         });
         _displayWatcher.Start();
+    }
+
+    // Windows reports a monitor change (Win+P duplicate/extend, plugging a screen) BEFORE the layout settles, so the DisplayArea carried by the event can be a half-way snapshot and the
+    // notch ends up between two screens. Once things have settled, read the real displays again and put every notch where its monitor really is (same UpdateDisplay path as always).
+    private DispatcherQueueTimer? _resyncTimer;
+    private int _resyncPass;
+
+    private void ScheduleDisplayResync()
+    {
+        if (_uiQueue is null)
+        {
+            return;
+        }
+
+        if (_resyncTimer is null)
+        {
+            _resyncTimer = _uiQueue.CreateTimer();
+            _resyncTimer.IsRepeating = false;
+            _resyncTimer.Tick += (_, _) =>
+            {
+                ResyncDisplays();
+                if (_resyncPass++ == 0)
+                {
+                    _resyncTimer!.Interval = TimeSpan.FromMilliseconds(1500); // a second look: some drivers settle late
+                    _resyncTimer.Start();
+                }
+            };
+        }
+
+        _resyncTimer.Stop();
+        _resyncPass = 0;
+        _resyncTimer.Interval = TimeSpan.FromMilliseconds(600);
+        _resyncTimer.Start();
+    }
+
+    private void ResyncDisplays()
+    {
+        try
+        {
+            var displays = DisplayArea.FindAll();
+            var present = new HashSet<ulong>();
+            for (var i = 0; i < displays.Count; i++)
+            {
+                var area = displays[i];
+                present.Add(area.DisplayId.Value);
+                if (_notches.TryGetValue(area.DisplayId.Value, out var notch))
+                {
+                    notch.Controller.UpdateDisplay(area);
+                }
+                else
+                {
+                    AddNotch(area);
+                }
+            }
+
+            foreach (var id in _notches.Keys.Where(k => !present.Contains(k)).ToList())
+            {
+                RemoveNotch(id);
+            }
+        }
+        catch (Exception)
+        {
+            // a display layout in flux can throw; the next pass tries again
+        }
     }
 
     private void StartMusicModule(DispatcherQueue dispatcherQueue)
