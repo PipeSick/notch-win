@@ -15,6 +15,8 @@
   <ItemGroup>
     <!-- Canal local con el host de WinMac (D9): UNA sola implementación del protocolo, fijada por el submódulo a un commit concreto. -->
     <ProjectReference Include="..\..\external\winmac\src\WinMac.Ipc\WinMac.Ipc.csproj" />
+    <!-- Lector .ics COMPARTIDO con la Barra (una sola implementación; el calendario de la Isla y el de la Barra no pueden divergir). -->
+    <ProjectReference Include="..\..\external\winmac\src\WinMac.System.Core\WinMac.System.Core.csproj" />
   </ItemGroup>
 
 </Project>

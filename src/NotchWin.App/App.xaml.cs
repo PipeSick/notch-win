@@ -15,7 +15,7 @@ using NotchWin.Core.AiAgents.Codex;
 using NotchWin.Core.AiAgents.Copilot;
 using NotchWin.Core.AiAgents.OpenCode;
 using NotchWin.Core.Lyrics;
-using NotchWin.Core.Calendar;
+using WinMac.Calendar;
 using NotchWin.Core.Downloads;
 using NotchWin.Core.Models;
 using NotchWin.Core.Music;
