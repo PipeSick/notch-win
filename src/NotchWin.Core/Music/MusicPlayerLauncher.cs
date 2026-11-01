@@ -24,7 +24,7 @@ public static class MusicPlayerLauncher
         MusicPlayerKind.Feishin => "Feishin",
         _ => string.IsNullOrWhiteSpace(customPath)
             ? "reproductor"
-            : Path.GetFileNameWithoutExtension(customPath.Trim()),
+            : WindowsFileName(customPath.Trim()),
     };
 
     /// <summary>
@@ -37,7 +37,7 @@ public static class MusicPlayerLauncher
         MusicPlayerKind.Feishin => "feishin",
         _ => string.IsNullOrWhiteSpace(customPath)
             ? null
-            : Path.GetFileNameWithoutExtension(customPath.Trim()).ToLowerInvariant(),
+            : WindowsFileName(customPath.Trim()).ToLowerInvariant(),
     };
 
     /// <summary>The target to start, or null if the player can't be found (not installed, or the custom path is wrong).</summary>
@@ -65,6 +65,17 @@ public static class MusicPlayerLauncher
         }
     }
 
+    // These are Windows paths ("C:\Users\..."): handle them as such wherever the code runs, instead of with the host OS rules of System.IO.Path
+    // (which on Linux do not know "\\" and made the unit tests depend on the platform). On Windows the results are the same.
+    private static string Join(string root, params string[] parts) => string.Join('\\', new[] { root.TrimEnd('\\', '/') }.Concat(parts));
+
+    private static string WindowsFileName(string path)
+    {
+        var name = path[(path.LastIndexOfAny(['\\', '/']) + 1)..];
+        var dot = name.LastIndexOf('.');
+        return dot > 0 ? name[..dot] : name;
+    }
+
     private static IEnumerable<string> FeishinCandidates(Func<string, string?> getEnv)
     {
         var local = getEnv("LOCALAPPDATA");
@@ -73,19 +84,19 @@ public static class MusicPlayerLauncher
 
         if (!string.IsNullOrEmpty(local))
         {
-            yield return Path.Combine(local, "Programs", "feishin", "Feishin.exe");
-            yield return Path.Combine(local, "Programs", "Feishin", "Feishin.exe");
-            yield return Path.Combine(local, "feishin", "Feishin.exe");
+            yield return Join(local, "Programs", "feishin", "Feishin.exe");
+            yield return Join(local, "Programs", "Feishin", "Feishin.exe");
+            yield return Join(local, "feishin", "Feishin.exe");
         }
 
         if (!string.IsNullOrEmpty(programFiles))
         {
-            yield return Path.Combine(programFiles, "Feishin", "Feishin.exe");
+            yield return Join(programFiles, "Feishin", "Feishin.exe");
         }
 
         if (!string.IsNullOrEmpty(roaming))
         {
-            yield return Path.Combine(roaming, "Microsoft", "Windows", "Start Menu", "Programs", "Feishin.lnk");
+            yield return Join(roaming, "Microsoft", "Windows", "Start Menu", "Programs", "Feishin.lnk");
         }
     }
 }
