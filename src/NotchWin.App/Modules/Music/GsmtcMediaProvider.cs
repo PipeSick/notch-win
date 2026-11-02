@@ -153,7 +153,8 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
             Position: timeline.Position,
             Duration: duration,
             SourceAppName: session.SourceAppUserModelId ?? string.Empty,
-            AlbumArt: art);
+            AlbumArt: art,
+            Album: string.IsNullOrWhiteSpace(props.AlbumTitle) ? null : props.AlbumTitle);
     }
 
     private static async Task<byte[]?> ReadThumbnailAsync(IRandomAccessStreamReference thumbnail)

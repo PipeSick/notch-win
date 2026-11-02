@@ -88,7 +88,7 @@ public sealed partial class NotchWindow
         NowTestTag.Visibility = test is not null ? Visibility.Visible : Visibility.Collapsed;
         if (_info is { } info)
         {
-            NowTitle.Text = info.Title; NowArtist.Text = info.Artist;
+            NowTitle.Text = info.Title; NowArtist.Text = info.Album is { Length: > 0 } album && album != info.Title ? info.Artist + " · " + album : info.Artist;
             NowArt.Background = MiniArt.Background; NowArtGlyph.Visibility = MiniArt.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             var pos = info.Position + (info.IsPlaying ? DateTime.UtcNow - _infoAtUtc : TimeSpan.Zero);
             SetProgress(info.Duration is { TotalSeconds: > 0 } d ? Math.Clamp(pos.TotalSeconds / d.TotalSeconds, 0, 1) : null, pos, info.Duration);

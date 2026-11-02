@@ -89,7 +89,9 @@ public partial class App
         foreach (var d in active)
             store.Upsert(new Activity("download:" + d.FileName, ActivityKind.Download, d.FileName)
             {
-                Subtitle = FormatBytes(d.Bytes) + " descargados", Source = "Descargas", Path = Path.Combine(folder, d.FileName),
+                Subtitle = FormatBytes(d.Bytes) + " descargados" + (d.BytesPerSecond is { } bps ? " · " + (bps > 0 ? Core.Downloads.DownloadTracker.FormatRate(bps) : "sin avance") : "")
+                    + (d.Source is { } src ? " · " + src : ""),
+                Source = d.Source ?? "Descargas", Path = Path.Combine(folder, d.FileName),
                 IsTest = d.FileName.Contains("prueba", StringComparison.OrdinalIgnoreCase),
             });
         foreach (var name in completed)

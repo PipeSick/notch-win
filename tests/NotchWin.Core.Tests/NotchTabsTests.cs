@@ -214,6 +214,24 @@ public sealed class DownloadTrackerTests : IDisposable
     }
 
     [Fact]
+    public void Poll_MeasuresRealSpeedFromFileGrowth_AndNeverInventsIt()
+    {
+        var now = new DateTime(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc);
+        var tracker = new DownloadTracker(_folder, () => now);
+        var partial = Path.Combine(_folder, "big.iso.crdownload");
+        File.WriteAllBytes(partial, new byte[1000]);
+        var first = tracker.Poll().Active[0];
+        Assert.Null(first.BytesPerSecond);                     // one sample: unknown, not zero, not invented
+        Assert.Equal("Chrome/Edge", first.Source);
+        now = now.AddSeconds(2); File.WriteAllBytes(partial, new byte[5000]);
+        Assert.Equal(2000, tracker.Poll().Active[0].BytesPerSecond!.Value, 3);
+        now = now.AddSeconds(5);                               // stalled: the window moves on, speed drops to 0
+        tracker.Poll(); now = now.AddSeconds(5);
+        Assert.Equal(0, tracker.Poll().Active[0].BytesPerSecond!.Value, 3);
+        Assert.Equal("2,0 MB/s", DownloadTracker.FormatRate(2 * 1048576));
+    }
+
+    [Fact]
     public void Poll_MissingFolder_ReturnsEmpty()
     {
         var (active, completed) = new DownloadTracker(Path.Combine(_folder, "nope")).Poll();
