@@ -606,6 +606,8 @@ public partial class App : Application
         _hosted.PillReceived += item => _uiQueue?.TryEnqueue(() => _viewModel?.PostPill(item));
         // WinMac 2.0: internal activity API (only WinMac's modules reach the pipe)
         _hosted.ActivityReceived += cmd => _uiQueue?.TryEnqueue(() => { if (_viewModel is not null) Core.Activities.ActivityFeed.Apply(_viewModel.Activities, cmd); });
+        _hosted.ClipQuery += (req, q) => _uiQueue?.TryEnqueue(() => OnClipQuery(req, q));
+        _hosted.ClipAction += (id, op) => _uiQueue?.TryEnqueue(() => OnClipAction(id, op));
         _hosted.CollapseRequested += () => _uiQueue?.TryEnqueue(() => { foreach (var (w, _) in _notches.Values.ToList()) w.CollapseIfExpanded(); });
         _hosted.CaptureFolderReceived += folder => _uiQueue?.TryEnqueue(() => SetCaptureFolder(folder));
         _hosted.Start();

@@ -100,3 +100,28 @@ public static class ClipboardStore
         catch (Exception e) when (e is JsonException or FormatException or System.Security.Cryptography.CryptographicException or ArgumentException) { return []; }
     }
 }
+
+/// <summary>
+/// What Spotlight may see of the history (docs/28): only entries already admitted by the privacy rules, as one-line previews (max 160 characters, images
+/// only as «Imagen»), newest/pinned first. The full text never leaves the Island; copying is done by the Island itself. Never logged.
+/// </summary>
+public static class ClipboardQuery
+{
+    public sealed record Item(string Id, string Kind, string Preview, bool Pinned, DateTimeOffset At);
+
+    public static IReadOnlyList<Item> Search(ClipboardHistory h, string? query, int max = 8)
+    {
+        var q = (query ?? "").Trim();
+        bool recent = q.Length == 0 || q.Equals("portapapeles", StringComparison.OrdinalIgnoreCase) || q.Equals("clipboard", StringComparison.OrdinalIgnoreCase);
+        if (q.StartsWith("cb ", StringComparison.OrdinalIgnoreCase)) q = q[3..].Trim();
+        var src = recent ? h.View() : h.View(q);
+        return src.Take(Math.Clamp(max, 1, 20)).Select(e => new Item(e.Id.ToString("N"), e.Kind == ClipboardItemKind.Image ? "image" : "text",
+            e.Kind == ClipboardItemKind.Image ? "Imagen" : Preview(e.Text ?? ""), e.Pinned, e.At)).ToList();
+    }
+
+    public static string Preview(string text)
+    {
+        var one = string.Join(' ', text.Split(['\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim())).Trim();
+        return one.Length > 160 ? one[..159] + "…" : one;
+    }
+}

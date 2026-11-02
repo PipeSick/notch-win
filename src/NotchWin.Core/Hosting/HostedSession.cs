@@ -20,7 +20,27 @@ public sealed class HostedSession : IAsyncDisposable
         _link.Subscribe(Pill.PillFeed.Topic, OnFeed);
         _link.Subscribe(Activities.ActivityFeed.Topic, OnActivity);
         _link.Subscribe(BarTopic, OnBar);
+        _link.Subscribe(ClipQueryTopic, d => { if (d is { ValueKind: JsonValueKind.Object } e && Num(e, "req") is { } r) ClipQuery?.Invoke(r, e.TryGetProperty("q", out var q) && q.ValueKind == JsonValueKind.String ? q.GetString() : null); });
+        _link.Subscribe(ClipActionTopic, d =>
+        {
+            if (d is { ValueKind: JsonValueKind.Object } e && e.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String && Guid.TryParseExact(id.GetString(), "N", out var g)
+                && e.TryGetProperty("op", out var op) && op.GetString() is "copy" or "plain" or "delete")
+                ClipAction?.Invoke(g, op.GetString()!);
+        });
     }
+
+    /// <summary>Spotlight (WinMac's bar) searches the clipboard history: <c>clip.query {req, q}</c> → <c>clip.results {req, enabled, items}</c>; actions <c>clip.action {id, op}</c>.</summary>
+    public const string ClipQueryTopic = "clip.query", ClipResultsTopic = "clip.results", ClipActionTopic = "clip.action";
+
+    /// <summary>(request number, text). Raised on a worker thread.</summary>
+    public event Action<long, string?>? ClipQuery;
+    /// <summary>(entry id, "copy" | "plain" | "delete"). Raised on a worker thread.</summary>
+    public event Action<Guid, string>? ClipAction;
+
+    public void SendClipResults(long req, bool enabled, IEnumerable<Clipboard.ClipboardQuery.Item> items) =>
+        _link.Event(ClipResultsTopic, new { req, enabled, items = items.Select(i => new { id = i.Id, kind = i.Kind, preview = i.Preview, pinned = i.Pinned, at = i.At }).ToArray() });
+
+    private static long? Num(JsonElement e, string n) => e.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out long x) ? x : null;
 
     /// <summary>The bar's settings (retained). The Island only reads the capture folder from them, so its gallery shows where WinMac saves.</summary>
     public const string BarTopic = "config.bar", EditTopic = "capture.edit";

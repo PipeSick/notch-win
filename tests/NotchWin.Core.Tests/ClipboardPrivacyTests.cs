@@ -63,3 +63,21 @@ public class ClipboardPrivacyTests
         Assert.Empty(ClipboardStore.Deserialize([1, 2, 3], p));   // corrupt: ignored
     }
 }
+
+public class ClipboardQueryTests
+{
+    [Fact]
+    public void SpotlightSeesOnlyAdmittedEntriesAsShortPreviews()
+    {
+        var h = new ClipboardHistory();
+        h.AddText("ghp_abcdefghijklmnopqrstuvwxyz0123456789", DateTimeOffset.Now);           // secret: never admitted
+        h.AddText("Lista de la compra:\npan\nleche", DateTimeOffset.Now.AddSeconds(1));
+        h.AddText(new string('x', 400) + " fin", DateTimeOffset.Now.AddSeconds(2));
+        h.AddImage([1, 2, 3], DateTimeOffset.Now.AddSeconds(3));
+        var all = ClipboardQuery.Search(h, "portapapeles");
+        Assert.Equal(3, all.Count); Assert.DoesNotContain(all, i => i.Preview.Contains("ghp_"));
+        Assert.Equal("Imagen", all[0].Preview);
+        Assert.True(all.All(i => i.Preview.Length <= 160));
+        var found = ClipboardQuery.Search(h, "cb leche"); Assert.Equal("Lista de la compra: pan leche", Assert.Single(found).Preview);
+    }
+}

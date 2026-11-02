@@ -1,4 +1,5 @@
 using NotchWin.Core.Clipboard;
+using NotchWin.Core.Settings;
 
 namespace NotchWin.App;
 
@@ -30,6 +31,34 @@ public partial class App
         });
 
         private static byte[] Run(Func<Task<byte[]>> f) => Task.Run(f).GetAwaiter().GetResult();   // never on the UI thread's context
+    }
+
+    /// <summary>Spotlight asks for matching entries (only previews of what the history already admitted). Off when the clipboard tab is disabled.</summary>
+    private void OnClipQuery(long req, string? q)
+    {
+        if (_viewModel is null || _hosted is null) return;
+        bool on = _viewModel.Sections.Any(s => s.Id == NotchSections.Clipboard && s.Enabled);
+        _hosted.SendClipResults(req, on, on ? ClipboardQuery.Search(_viewModel.Clipboard, q) : []);
+    }
+
+    /// <summary>Spotlight chose an entry: the Island copies it (text, plain text or image) or removes it from the history.</summary>
+    private async void OnClipAction(Guid id, string op)
+    {
+        if (_viewModel?.Clipboard is not { } h || h.All.FirstOrDefault(e => e.Id == id) is not { } entry) return;
+        try
+        {
+            if (op == "delete") { h.Remove(id); return; }
+            var data = new Windows.ApplicationModel.DataTransfer.DataPackage();
+            if (entry.Kind == ClipboardItemKind.Text) data.SetText(op == "plain" ? (entry.Text ?? "").Trim() : entry.Text ?? "");   // plain: only text, nothing else
+            else if (entry.ImagePng is { } png)
+            {
+                var ms = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+                await ms.WriteAsync(System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.AsBuffer(png)); ms.Seek(0);
+                data.SetBitmap(Windows.Storage.Streams.RandomAccessStreamReference.CreateFromStream(ms));
+            }
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(data);
+        }
+        catch (Exception) { /* locked clipboard: nothing happens */ }
     }
 
     private void ApplyClipboardOptions(ClipboardOptions o)
