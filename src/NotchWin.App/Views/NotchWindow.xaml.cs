@@ -92,7 +92,7 @@ public sealed partial class NotchWindow : Window
 
         _pillTimer = DispatcherQueue.CreateTimer();
         _pillTimer.IsRepeating = false;
-        _pillTimer.Tick += (_, _) => _pill.Tick();
+        _pillTimer.Tick += (_, _) => OnPillTimer();
         InitPill();   // before anything that lays out the pill (InitSections → UpdatePillText reads the arbiter)
 
         _hoverTimer = DispatcherQueue.CreateTimer();
@@ -403,6 +403,7 @@ public sealed partial class NotchWindow : Window
 
     private void OnUiTick()
     {
+        PillWatchdog();
         if (_info is { IsPlaying: true })
         {
             foreach (var bar in _eqBars)

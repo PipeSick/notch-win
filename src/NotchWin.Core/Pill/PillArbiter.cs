@@ -161,7 +161,10 @@ public sealed class PillArbiter
         return true;
     }
 
-    /// <summary>Call when the timer fires (or at any time): moves on if the item on screen is over.</summary>
+    /// <summary>
+    /// Call when the timer fires (or at any time): moves on if the item on screen is over. A timer that fires a little EARLY changes nothing here, so the caller
+    /// must always schedule again with <see cref="NextWait"/> afterwards (otherwise the pill would stay on the same item forever).
+    /// </summary>
     public void Tick()
     {
         if (_paused || _current is null || _clock() < _until) return;
@@ -169,6 +172,20 @@ public sealed class PillArbiter
         Advance();
         Changed?.Invoke();
     }
+
+    /// <summary>Shortest timer interval: a deadline that is (almost) due is checked again after this, never with a zero or negative interval.</summary>
+    public static readonly TimeSpan MinWait = TimeSpan.FromMilliseconds(15);
+
+    /// <summary>How long until the timer must fire again (null = nothing timed). Always positive, so an early or late timer is simply rescheduled.</summary>
+    public TimeSpan? NextWait()
+    {
+        if (NextDeadline is not { } at) return null;
+        var wait = at - _clock();
+        return wait > MinWait ? wait : MinWait;
+    }
+
+    /// <summary>The item on screen is past its deadline (the UI's watchdog uses this to recover if a timer was lost).</summary>
+    public bool Overdue => NextDeadline is { } at && _clock() >= at;
 
     /// <summary>The notch opened (true) or closed (false). While open nothing is shown in the pill and time stands still for notifications; indicators are dropped.</summary>
     public void SetPaused(bool paused)

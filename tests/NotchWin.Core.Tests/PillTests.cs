@@ -213,3 +213,101 @@ public class PillFeedTests
         var d = new CentralSettings(); Assert.True(d.PillVolume && d.PillBrightness && d.PillNotifications && d.PillAnimations);
     }
 }
+
+/// <summary>The window's timer loop (fire → Tick → NextWait → fire…) simulated with a fake clock, including timers that fire early or late.</summary>
+public class PillTimingTests
+{
+    private DateTime _now = new(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>Runs the UI loop until nothing is timed: the timer fires <paramref name="skewMs"/> before (negative) or after its interval.</summary>
+    private List<PillItem?> Run(PillArbiter a, double skewMs, int maxFires = 200)
+    {
+        var seen = new List<PillItem?> { a.Current };
+        for (int i = 0; i < maxFires && a.NextWait() is { } wait; i++)
+        {
+            _now = _now + wait + TimeSpan.FromMilliseconds(skewMs);
+            a.Tick();
+            if (!ReferenceEquals(seen[^1], a.Current)) seen.Add(a.Current);
+        }
+
+        return seen;
+    }
+
+    private PillArbiter Make() => new(PillPolicy.FromSettings(), () => _now);
+
+    [Theory]
+    [InlineData(-14)] [InlineData(-5)] [InlineData(-1)] [InlineData(0)] [InlineData(3)] [InlineData(250)]
+    public void ATimerThatFiresEarlyOrLateNeverLeavesThePillStuck(double skewMs)
+    {
+        var a = Make();
+        a.Post(new PillItem(PillKind.Notification, "uno", "x"));
+        _now = _now.AddSeconds(1.5);
+        a.Post(new PillItem(PillKind.Volume, "Altavoces", null, 30));   // interrupts: the notification resumes later with 3.5 s left
+        var seen = Run(a, skewMs);
+        Assert.Null(a.Current);                                           // always back to the usual content
+        Assert.Equal([PillKind.Volume, PillKind.Notification], seen.Where(s => s is not null).Select(s => s!.Kind));
+    }
+
+    [Fact]
+    public void EarlyFireIsRescheduledForTheRemainingTimeNotForAFullDuration()
+    {
+        var a = Make(); a.Post(new PillItem(PillKind.Notification, "uno", "x"));
+        _now = _now.AddSeconds(5).AddMilliseconds(-5);   // fired 5 ms early
+        a.Tick();
+        Assert.NotNull(a.Current);
+        Assert.Equal(PillArbiter.MinWait, a.NextWait());   // checked again almost at once, not stuck and not 5 more seconds
+        _now += PillArbiter.MinWait; a.Tick();
+        Assert.Null(a.Current);
+    }
+
+    [Fact]
+    public void RemainingTimeIsRespectedAcrossSeveralInterruptions()
+    {
+        var a = Make(); a.Post(new PillItem(PillKind.Notification, "uno", "x"));   // 5 s
+        _now = _now.AddSeconds(1); a.Post(new PillItem(PillKind.Volume, "A", null, 10));
+        _now = _now.AddSeconds(1); a.Post(new PillItem(PillKind.Volume, "A", null, 20));   // same indicator, restarts its 2 s
+        _now = _now.AddSeconds(2); a.Tick();
+        Assert.Equal(PillKind.Notification, a.Current!.Kind);
+        Assert.Equal(TimeSpan.FromSeconds(4), a.NextWait());   // 4 s left (it had shown for 1 s)
+        _now = _now.AddSeconds(1); a.Post(new PillItem(PillKind.Brightness, "P", null, 50));
+        _now = _now.AddSeconds(2); a.Tick();
+        Assert.Equal(TimeSpan.FromSeconds(3), a.NextWait());   // and 3 s after a second interruption
+    }
+
+    [Fact]
+    public void WatchdogSeesOverdueItemsAndRecovers()
+    {
+        var a = Make(); a.Post(new PillItem(PillKind.Brightness, "P", null, 50));
+        Assert.False(a.Overdue);
+        _now = _now.AddSeconds(30);   // the timer was lost entirely
+        Assert.True(a.Overdue);
+        a.Tick(); Assert.Null(a.Current); Assert.False(a.Overdue); Assert.Null(a.NextWait());
+    }
+
+    [Fact]
+    public void BurstsOfVolumeAndBrightnessNeverStick()
+    {
+        var a = Make(); var rng = new Random(7);
+        for (int i = 0; i < 200; i++)
+        {
+            a.Post(new PillItem(i % 2 == 0 ? PillKind.Volume : PillKind.Brightness, "x", null, rng.Next(0, 101), rng.Next(10) == 0));
+            if (i % 17 == 0) a.Post(new PillItem(PillKind.Notification, "n" + i, "t"));
+            _now = _now.AddMilliseconds(rng.Next(5, 400));
+            if (rng.Next(3) == 0) a.Tick();
+        }
+
+        Run(a, -3, maxFires: 2000);
+        Assert.Null(a.Current); Assert.Equal(0, a.Pending);
+    }
+
+    [Fact]
+    public void PausingAroundADeadlineAndPolicyChangesDoNotStick()
+    {
+        var a = Make(); a.Post(new PillItem(PillKind.Notification, "uno", "x"));
+        _now = _now.AddSeconds(4.99); a.SetPaused(true);
+        _now = _now.AddSeconds(60); a.Tick(); Assert.Null(a.NextWait());   // open notch: nothing timed
+        a.SetPaused(false); Assert.NotNull(a.Current);                      // resumes with at least MinResume
+        a.SetPolicy(PillPolicy.FromSettings(notifications: false));
+        Assert.Null(a.Current); Assert.Null(a.NextWait());
+    }
+}

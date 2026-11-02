@@ -131,11 +131,26 @@ public sealed partial class NotchWindow
     private void ScheduleTick()
     {
         _pillTimer.Stop();
-        if (_pill.NextDeadline is { } at)
+        if (_pill.NextWait() is { } wait)
         {
-            var wait = at - DateTime.UtcNow;
-            _pillTimer.Interval = wait > TimeSpan.FromMilliseconds(15) ? wait : TimeSpan.FromMilliseconds(15);
+            _pillTimer.Interval = wait;
             _pillTimer.Start();
+        }
+    }
+
+    /// <summary>The pill timer fired: advance, then ALWAYS schedule again (a timer that fires a few ms early would otherwise leave the pill stuck).</summary>
+    private void OnPillTimer()
+    {
+        _pill.Tick();
+        ScheduleTick();
+    }
+
+    /// <summary>Watchdog run by the UI clock: if an item is past its deadline (a lost or late timer), move on now.</summary>
+    private void PillWatchdog()
+    {
+        if (_pill?.Overdue == true)
+        {
+            OnPillTimer();
         }
     }
 
