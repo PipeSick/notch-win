@@ -42,7 +42,10 @@ public sealed class GalleryWindow : Window
     {
         _vm = vm;
         Title = "Capturas — WinMac";
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1120, 740));
+        // 1120×740 or 90 % of the monitor's work area, whichever is smaller, centred
+        var area = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).WorkArea;
+        int gw = Math.Min(1120, (int)(area.Width * 0.9)), gh = Math.Min(740, (int)(area.Height * 0.9));
+        AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(area.X + (area.Width - gw) / 2, area.Y + (area.Height - gh) / 2, gw, gh));
         foreach (var s in new[] { "Más recientes", "Más antiguas", "Nombre", "Tamaño" }) _sort.Items.Add(s);
         _sort.SelectedIndex = 0;
 
@@ -85,7 +88,12 @@ public sealed class GalleryWindow : Window
         _zoom.Children.Add(new TextBlock { Text = "Clic o Esc para cerrar", Foreground = Gray(0xC7), FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 8) });
         _zoom.Tapped += (_, _) => Zoom(false);
         Grid.SetRowSpan(_zoom, 2); Grid.SetColumnSpan(_zoom, 2); root.Children.Add(_zoom);
-        root.KeyDown += (_, e) => { if (e.Key == Windows.System.VirtualKey.Escape && _zoom.Visibility == Visibility.Visible) { Zoom(false); e.Handled = true; } };
+        root.KeyDown += (_, e) =>
+        {
+            if (e.Key != Windows.System.VirtualKey.Escape) return;
+            if (_zoom.Visibility == Visibility.Visible) Zoom(false); else Close();   // Esc: first the enlarged view, then the window
+            e.Handled = true;
+        };
 
         Content = root;
         _search.TextChanged += (_, _) => { Reload(); if (!string.IsNullOrEmpty(SelfTestPath)) DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, SelfTestLog); };
@@ -101,7 +109,7 @@ public sealed class GalleryWindow : Window
 
     private static Button Pill(string text, bool accent) => new()
     {
-        Content = text, FontSize = 12.5, Padding = new Thickness(14, 6, 14, 7), CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Stretch,
+        Content = text, FontSize = 12.5, Padding = new Thickness(14, 6, 14, 7), HorizontalContentAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Stretch,
         Background = new SolidColorBrush(accent ? Color.FromArgb(255, 0x0A, 0x84, 0xFF) : Color.FromArgb(0x26, 255, 255, 255)),
     };
 
