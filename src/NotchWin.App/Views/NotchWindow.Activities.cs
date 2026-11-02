@@ -58,15 +58,15 @@ public sealed partial class NotchWindow
     private void UpdateMiniActivity()
     {
         var current = _viewModel.Activities.Current;
-        var dl = current.FirstOrDefault(a => a.Kind == ActivityKind.Download);
+        var dl = current.FirstOrDefault(a => a.Kind == ActivityKind.Recording && !a.IsFinished) ?? current.FirstOrDefault(a => a.Kind == ActivityKind.Download);   // a recording in progress first: it must always be visible
         var media = current.FirstOrDefault(a => a.Kind == ActivityKind.Media && a.IsTest);
         var show = !_hasTrack && (dl is not null || media is not null);
         var a = dl ?? media;
         if (show && a is not null)
         {
-            MiniActivityIcon.Glyph = a.Kind == ActivityKind.Download ? "" : "";
+            MiniActivityIcon.Glyph = a.Kind == ActivityKind.Recording ? "\uE7C8" : a.Kind == ActivityKind.Download ? "" : "";
             MiniActivityText.Text = a.Title;
-            MiniActivitySub.Text = a.Kind == ActivityKind.Download ? (a.Progress is { } p ? $"{p:P0}" : (a.Subtitle ?? "").Replace(" descargados", "")) : "prueba";
+            MiniActivitySub.Text = a.Kind == ActivityKind.Recording ? (a.Subtitle ?? "").Split(" · ")[0] : a.Kind == ActivityKind.Download ? (a.Progress is { } p ? $"{p:P0}" : (a.Subtitle ?? "").Replace(" descargados", "")) : "prueba";
         }
 
         var vis = show ? Visibility.Visible : Visibility.Collapsed;

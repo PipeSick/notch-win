@@ -68,6 +68,7 @@ public static class ActivityActions
         {
             ActivityKind.Capture when a.Path is not null => ActivityAction.Open | ActivityAction.ShowInFolder | ActivityAction.Copy | ActivityAction.Delete,
             ActivityKind.Download when a.Path is not null && a.State == ActivityState.Completed => ActivityAction.Open | ActivityAction.ShowInFolder,
+            ActivityKind.Recording when a.Path is not null && a.State == ActivityState.Completed => ActivityAction.Open | ActivityAction.ShowInFolder,
             ActivityKind.Media when !a.IsTest => ActivityAction.PlayPause | ActivityAction.Next | ActivityAction.Previous,
             _ => ActivityAction.None,
         };

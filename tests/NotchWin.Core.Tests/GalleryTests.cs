@@ -100,3 +100,15 @@ public class ImageHeaderTests
         Assert.Null(CaptureLibrary.ImageSize([1, 2, 3]));
     }
 }
+
+public class RecordingActivityTests
+{
+    [Fact]
+    public void AFinishedRecordingCanBeOpenedButOneInProgressHasNoFakeButtons()
+    {
+        var live = new Activity("ipc:grabacion", ActivityKind.Recording, "Grabando la pantalla") { State = ActivityState.Active };
+        Assert.Equal(ActivityAction.None, ActivityActions.Supported(live));
+        var done = live with { Title = "Grabación guardada", Path = "C:\\v.mp4", State = ActivityState.Completed };
+        Assert.True(ActivityActions.Supported(done).HasFlag(ActivityAction.Open | ActivityAction.ShowInFolder));
+    }
+}
