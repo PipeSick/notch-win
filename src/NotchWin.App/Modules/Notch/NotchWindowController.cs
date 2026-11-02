@@ -51,7 +51,15 @@ public sealed class NotchWindowController : IDisposable
             presenter.SetBorderAndTitleBar(hasBorder: false, hasTitleBar: false);
         }
 
-        _appWindow.IsShownInSwitchers = false;
+        try
+        {
+            _appWindow.IsShownInSwitchers = false;
+        }
+        catch (Exception)
+        {
+            // Some Windows editions (e.g. Windows Server 2025) answer "Not implemented". WS_EX_TOOLWINDOW (MakeOverlay, below) already keeps the notch out of Alt+Tab.
+        }
+
         Win32Window.MakeOverlay(_hwnd);
 
         _timer = window.DispatcherQueue.CreateTimer();
