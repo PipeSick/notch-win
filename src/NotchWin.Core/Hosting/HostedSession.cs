@@ -18,6 +18,7 @@ public sealed class HostedSession : IAsyncDisposable
         _link.Subscribe(CentralSettings.Topic, OnCentral);
         _link.Subscribe(CentralSettings.CommandTopic, OnCommand);
         _link.Subscribe(Pill.PillFeed.Topic, OnFeed);
+        _link.Subscribe(Activities.ActivityFeed.Topic, OnActivity);
     }
 
     /// <summary>Null when not started by the host (no <c>--hosted</c>, no pipe or no token).</summary>
@@ -72,6 +73,17 @@ public sealed class HostedSession : IAsyncDisposable
         if (data is { } d && Pill.PillFeed.Parse(d) is { } item)
         {
             PillReceived?.Invoke(item);
+        }
+    }
+
+    /// <summary>Internal activity API (only WinMac's modules reach the pipe). Raised on a worker thread.</summary>
+    public event Action<Activities.ActivityFeed.Command>? ActivityReceived;
+
+    private void OnActivity(JsonElement? data)
+    {
+        if (data is { } d && Activities.ActivityFeed.Parse(d) is { } c)
+        {
+            ActivityReceived?.Invoke(c);
         }
     }
 

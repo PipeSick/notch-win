@@ -11,6 +11,8 @@ public enum PillKind
     Notification,
     /// <summary>NotchWin's own events: an agent finished, the timer ran out, a download completed.</summary>
     Activity,
+    /// <summary>A screenshot was saved: its thumbnail (<see cref="PillItem.ImagePath"/>) and where it went.</summary>
+    Capture,
     /// <summary>A new track started.</summary>
     Track,
 }
@@ -23,6 +25,9 @@ public sealed record PillItem(PillKind Kind, string Title, string? Subtitle = nu
 {
     /// <summary>The app a notification came from (its initial is drawn when there is no icon).</summary>
     public string? App { get; init; }
+
+    /// <summary>Image file shown as a small thumbnail (a saved screenshot). Decoded at thumbnail size, never in full.</summary>
+    public string? ImagePath { get; init; }
 
     /// <summary>Glyph for the indicator in Segoe Fluent Icons: speaker by level, crossed speaker when muted, sun for brightness.</summary>
     public string Glyph => Kind switch
@@ -76,6 +81,7 @@ public sealed class PillPolicy
         [PillKind.Volume] = new(40, TimeSpan.FromSeconds(Math.Clamp(hudSeconds, 1, 10)), Coalesce: true, Resumable: false, volume),
         [PillKind.Brightness] = new(40, TimeSpan.FromSeconds(Math.Clamp(hudSeconds, 1, 10)), Coalesce: true, Resumable: false, brightness),
         [PillKind.Notification] = new(30, TimeSpan.FromSeconds(Math.Clamp(notifySeconds, 2, 30)), Coalesce: false, Resumable: true, notifications),
+        [PillKind.Capture] = new(25, TimeSpan.FromSeconds(3), Coalesce: false, Resumable: true),
         [PillKind.Activity] = new(20, TimeSpan.FromMilliseconds(3200), Coalesce: false, Resumable: true),
         [PillKind.Track] = new(10, TimeSpan.FromMilliseconds(3200), Coalesce: true, Resumable: false),
     });
