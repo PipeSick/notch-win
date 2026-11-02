@@ -132,6 +132,9 @@ public sealed class HostedSession : IAsyncDisposable
     /// <summary>WinMac opens something that must not be covered (capture overlay, editor, recording): the open Island closes. Raised on a worker thread.</summary>
     public event Action? CollapseRequested;
 
+    /// <summary>Settings › Isla › «Borrar el historial del portapapeles» (pinned included). Raised on a worker thread.</summary>
+    public event Action? ClearClipboardRequested;
+
     private void OnCommand(JsonElement? data)
     {
         if (data is not { ValueKind: JsonValueKind.Object } d || !d.TryGetProperty("cmd", out var cmd) || cmd.ValueKind != JsonValueKind.String) return;
@@ -139,6 +142,7 @@ public sealed class HostedSession : IAsyncDisposable
         {
             case "open-local-settings": OpenLocalSettingsRequested?.Invoke(); break;
             case "collapse": CollapseRequested?.Invoke(); break;
+            case "clear-clipboard": ClearClipboardRequested?.Invoke(); break;
         }
     }
 
