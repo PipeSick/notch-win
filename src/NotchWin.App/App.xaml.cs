@@ -56,6 +56,23 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+        // A crash leaves its reason next to the settings (%LOCALAPPDATA%\NotchWin\crash.log) so it can be diagnosed without a debugger. Only the exception, no user data.
+        UnhandledException += (_, e) => WriteCrash(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => WriteCrash(e.ExceptionObject as Exception);
+    }
+
+    private static void WriteCrash(Exception? ex)
+    {
+        try
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NotchWin");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "crash.log"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {ex}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch (Exception)
+        {
+            // nothing else to do while crashing
+        }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
