@@ -34,14 +34,20 @@ public partial class App
     }
 
     /// <summary>Spotlight asks for matching entries (only previews of what the history already admitted). Off when the clipboard tab is disabled.</summary>
+    /// <summary>CI only (WINMAC_PILL_SELFTEST): counts and steps of the Spotlight queries, never content.</summary>
+    private static void ClipDiag(string what)
+    {
+        if (Environment.GetEnvironmentVariable("WINMAC_PILL_SELFTEST") is not { Length: > 0 } st) return;
+        try { File.AppendAllText(st, $"{DateTime.UtcNow:HH:mm:ss.fff} clip query {what}{Environment.NewLine}"); } catch (Exception) { }
+    }
+
     private void OnClipQuery(long req, string? q)
     {
-        if (_viewModel is null || _hosted is null) return;
+        if (_viewModel is null || _hosted is null) { ClipDiag($"sin modelo/sesión req={req}"); return; }
         bool on = _viewModel.Sections.Any(s => s.Id == NotchSections.Clipboard && s.Enabled);
         var found = on ? ClipboardQuery.Search(_viewModel.Clipboard, q) : [];
         _hosted.SendClipResults(req, on, found);
-        if (Environment.GetEnvironmentVariable("WINMAC_PILL_SELFTEST") is { Length: > 0 } st)   // CI only: counts, never content
-            try { File.AppendAllText(st, $"{DateTime.UtcNow:HH:mm:ss.fff} clip query req={req} pestaña={on} total={_viewModel.Clipboard.Count} encontrados={found.Count} largo={q?.Length ?? 0}{Environment.NewLine}"); } catch (IOException) { }
+        ClipDiag($"respondida req={req} pestaña={on} total={_viewModel.Clipboard.Count} encontrados={found.Count} largo={q?.Length ?? 0}");
     }
 
     /// <summary>Spotlight chose an entry: the Island copies it (text, plain text or image) or removes it from the history.</summary>
