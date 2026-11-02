@@ -109,11 +109,16 @@ public sealed class HostedSession : IAsyncDisposable
         }
     }
 
+    /// <summary>WinMac opens something that must not be covered (capture overlay, editor, recording): the open Island closes. Raised on a worker thread.</summary>
+    public event Action? CollapseRequested;
+
     private void OnCommand(JsonElement? data)
     {
-        if (data is { } d && d.ValueKind == JsonValueKind.Object && d.TryGetProperty("cmd", out var cmd) && cmd.ValueKind == JsonValueKind.String && cmd.GetString() == "open-local-settings")
+        if (data is not { ValueKind: JsonValueKind.Object } d || !d.TryGetProperty("cmd", out var cmd) || cmd.ValueKind != JsonValueKind.String) return;
+        switch (cmd.GetString())
         {
-            OpenLocalSettingsRequested?.Invoke();
+            case "open-local-settings": OpenLocalSettingsRequested?.Invoke(); break;
+            case "collapse": CollapseRequested?.Invoke(); break;
         }
     }
 

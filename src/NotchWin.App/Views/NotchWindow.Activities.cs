@@ -253,6 +253,9 @@ public sealed partial class NotchWindow
         }
     }
 
+    /// <summary>WinMac asked (capture, editor, recording): close the open Island so it never covers them or takes their clicks.</summary>
+    public void CollapseIfExpanded() { if (_expanded) SetExpanded(false); }
+
     /// <summary>A full window opens: the Island closes so it never covers it or takes its clicks.</summary>
     private void OnCapturesAll(object sender, RoutedEventArgs e) { SetExpanded(false); _viewModel.OpenGallery?.Invoke(); }
 
