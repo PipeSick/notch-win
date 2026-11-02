@@ -301,7 +301,7 @@
         </StackPanel>
 
         <!-- Glass finish: soft highlight at the top and a thin light rim, drawn above the content but never hit-tested. -->
-        <Rectangle Height="46" VerticalAlignment="Top" IsHitTestVisible="False">
+        <Rectangle x:Name="GlassHighlight" Height="46" VerticalAlignment="Top" IsHitTestVisible="False">
             <Rectangle.Fill>
                 <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
                     <GradientStop Color="#1AFFFFFF" Offset="0" />
@@ -309,7 +309,16 @@
                 </LinearGradientBrush>
             </Rectangle.Fill>
         </Rectangle>
-        <Border CornerRadius="0,0,20,20" BorderThickness="1" IsHitTestVisible="False">
+        <!-- Inside WinMac and collapsed, the notch takes the top bar's look: a soft shade along its lower edge is all that tells it apart (see UpdateSurface). -->
+        <Rectangle x:Name="BarShade" Height="5" VerticalAlignment="Bottom" IsHitTestVisible="False" Visibility="Collapsed">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                    <GradientStop Color="#00000000" Offset="0" />
+                    <GradientStop Color="#33000000" Offset="1" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+        <Border x:Name="GlassRim" CornerRadius="0,0,20,20" BorderThickness="1" IsHitTestVisible="False">
             <Border.BorderBrush>
                 <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
                     <GradientStop Color="#2EFFFFFF" Offset="0" />

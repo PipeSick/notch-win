@@ -15,6 +15,22 @@ internal sealed class GlassBackdrop : SystemBackdrop
     private DesktopAcrylicController? _controller;
     private SystemBackdropConfiguration? _configuration;
     private double _level = 0.6;
+    private bool _matchBar;
+
+    /// <summary>
+    /// Inside WinMac, collapsed: the same tint and opacity as WinMac's top bar in dark mode (BarPainter: rgb 0.12/0.13/0.16 at 38 % over the blurred wallpaper), so the notch
+    /// reads as part of the bar. Open, it goes back to the darker glass its content needs.
+    /// </summary>
+    public bool MatchBar
+    {
+        get => _matchBar;
+        set
+        {
+            if (_matchBar == value) return;
+            _matchBar = value;
+            Apply();
+        }
+    }
 
     /// <summary>0 = mostly clear glass, 1 = solid black.</summary>
     public double Level
@@ -50,6 +66,16 @@ internal sealed class GlassBackdrop : SystemBackdrop
     {
         if (_controller is null)
         {
+            return;
+        }
+
+        if (_matchBar)
+        {
+            var bar = Microsoft.UI.ColorHelper.FromArgb(255, 31, 33, 41);   // WinMac BarPainter, dark theme
+            _controller.TintColor = bar;
+            _controller.FallbackColor = Microsoft.UI.ColorHelper.FromArgb(255, 38, 40, 48);
+            _controller.TintOpacity = 0.38f;
+            _controller.LuminosityOpacity = 0.12f;
             return;
         }
 

@@ -226,9 +226,41 @@ public sealed partial class NotchWindow : Window
         }
     }
 
+    private Brush? _rimBrush, _rootBrush;
+
+    /// <summary>
+    /// Inside WinMac (dark theme) and collapsed, the notch takes the top bar's look: same glass tint and height, no dark scrim or top highlight, and only a faint rim and a
+    /// soft shade along its lower edge so it can still be told apart. Open (or standalone, or light theme, where the white text needs the dark glass) it keeps its own glass.
+    /// </summary>
+    private void UpdateSurface()
+    {
+        _rimBrush ??= GlassRim.BorderBrush; _rootBrush ??= RootGrid.Background;
+        bool barLook = Program.Hosted is not null && !_expanded && !SystemUsesLightTheme();
+        _glass.MatchBar = barLook;
+        RootGrid.Background = barLook ? new SolidColorBrush(Microsoft.UI.Colors.Transparent) : _rootBrush;
+        GlassHighlight.Visibility = barLook ? Visibility.Collapsed : Visibility.Visible;
+        BarShade.Visibility = barLook ? Visibility.Visible : Visibility.Collapsed;
+        double r = _expanded ? 20 : NotchWin.Core.Notch.NotchPlacement.CornerRadiusDip(CollapsedHeight), s = NotchWin.Core.Notch.NotchPlacement.ShoulderDip;
+        GlassRim.CornerRadius = new CornerRadius(0, 0, r, r);
+        GlassRim.Margin = new Thickness(s, -1, s, 0);   // the body sits between the shoulders; -1 hides the rim's top edge against the screen edge
+        BarShade.Margin = new Thickness(s + r / 2, 0, s + r / 2, 0);
+        GlassRim.BorderBrush = barLook ? new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)) : _rimBrush;
+    }
+
+    private static bool SystemUsesLightTheme()
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") is int v && v != 0;
+        }
+        catch (Exception) { return false; }
+    }
+
     /// <summary>Works out the size the window should have for its current content and moves the controller there.</summary>
     private void ApplyLayout(bool animate, Action? onCompleted = null)
     {
+        UpdateSurface();
         if (_controller is null)
         {
             return;
