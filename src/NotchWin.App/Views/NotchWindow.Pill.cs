@@ -102,6 +102,30 @@ public sealed partial class NotchWindow
         {
             ApplyLayout(animate: true);
         }
+        SelfTestLog(item);
+    }
+
+    /// <summary>CI only: with WINMAC_PILL_SELFTEST=&lt;file&gt; every change of the pill is written there (kind, level, title and the size asked of the window), so the
+    /// Windows runner can check the whole path bar → host → notch → screen. Without the variable nothing is written.</summary>
+    private static readonly string? SelfTestPath = Environment.GetEnvironmentVariable("WINMAC_PILL_SELFTEST");
+
+    private void SelfTestLog(PillItem? item)
+    {
+        if (string.IsNullOrEmpty(SelfTestPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var (w, h) = PillSize();
+            var line = item is null ? "pill none" : $"pill {item.Kind} level={item.Level} muted={item.Muted} icon={(item.Icon is null ? "no" : "yes")} title={item.Title} size={w}x{h}";
+            File.AppendAllText(SelfTestPath, $"{DateTime.UtcNow:HH:mm:ss.fff} {line}{Environment.NewLine}");
+        }
+        catch (Exception)
+        {
+            // test aid only
+        }
     }
 
     private void ScheduleTick()
