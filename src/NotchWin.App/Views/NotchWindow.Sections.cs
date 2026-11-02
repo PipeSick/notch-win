@@ -34,7 +34,7 @@ public sealed partial class NotchWindow
         [NotchSections.Notifications] = ("Notificaciones", ""),
         [NotchSections.Resources] = ("Recursos del sistema", "\uE950"),
         [NotchSections.Clipboard] = ("Portapapeles", "\uE77F"),
-        [NotchSections.Activity] = ("En curso", "\uE896"),
+        [NotchSections.Activity] = ("En curso", "\uE945"),
         [NotchSections.Captures] = ("Capturas", "\uE722"),
         [NotchSections.History] = ("Historial", "\uE81C"),
     };
@@ -94,17 +94,25 @@ public sealed partial class NotchWindow
         for (var i = 0; i < enabled.Count; i++)
         {
             var id = enabled[i].Id;
-            TabBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            // WinMac 2.0 (mockup): the selected tab is a blue pill with its icon AND its name; the others stay compact icons, so many tabs still fit.
+            bool selected = id == _active && !_customizing;
+            TabBar.ColumnDefinitions.Add(new ColumnDefinition { Width = selected ? GridLength.Auto : new GridLength(1, GridUnitType.Star) });
 
             var content = new Grid();
-            content.Children.Add(new FontIcon
+            var face = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            face.Children.Add(new FontIcon
             {
                 Glyph = SectionInfo[id].Glyph,
                 FontSize = 15,
-                Foreground = new SolidColorBrush(id == _active && !_customizing ? Colors.White : Dim),
-                HorizontalAlignment = HorizontalAlignment.Center,
+                Foreground = new SolidColorBrush(selected ? Colors.White : Dim),
                 VerticalAlignment = VerticalAlignment.Center,
             });
+            if (selected)
+            {
+                face.Children.Add(new TextBlock { Text = SectionInfo[id].Name, FontSize = 12.5, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center, MaxWidth = 130, TextTrimming = TextTrimming.CharacterEllipsis });
+            }
+
+            content.Children.Add(face);
 
             if (id == NotchSections.Notifications && _viewModel.Notifications.Items.Count > 0)
             {
@@ -133,11 +141,11 @@ public sealed partial class NotchWindow
             {
                 Content = content,
                 Height = 30,
-                Padding = new Thickness(0),
+                Padding = selected ? new Thickness(12, 0, 14, 0) : new Thickness(0),
                 BorderThickness = new Thickness(0),
                 CornerRadius = new CornerRadius(9),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Background = new SolidColorBrush(id == _active && !_customizing ? TabOn : Colors.Transparent),
+                Background = new SolidColorBrush(selected ? Color.FromArgb(255, 0x0A, 0x84, 0xFF) : Colors.Transparent),
             };
             ToolTipService.SetToolTip(tab, SectionInfo[id].Name);
             tab.Click += (_, _) =>

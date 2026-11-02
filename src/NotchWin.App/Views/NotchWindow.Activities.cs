@@ -66,7 +66,7 @@ public sealed partial class NotchWindow
         {
             MiniActivityIcon.Glyph = a.Kind == ActivityKind.Download ? "" : "";
             MiniActivityText.Text = a.Title;
-            MiniActivitySub.Text = a.Kind == ActivityKind.Download ? (a.Progress is { } p ? $"{p:P0}" : "…") : "prueba";
+            MiniActivitySub.Text = a.Kind == ActivityKind.Download ? (a.Progress is { } p ? $"{p:P0}" : (a.Subtitle ?? "").Replace(" descargados", "")) : "prueba";
         }
 
         var vis = show ? Visibility.Visible : Visibility.Collapsed;
@@ -295,10 +295,13 @@ public sealed partial class NotchWindow
         try
         {
             var ids = EnabledSections().Select(s => s.Id).ToList();
-            var origin = TabBar.TransformToVisual(null).TransformPoint(new Point(0, 0));
-            double scale = Content.XamlRoot?.RasterizationScale ?? 1, colW = TabBar.ActualWidth / Math.Max(1, ids.Count);
+            double scale = Content.XamlRoot?.RasterizationScale ?? 1;
             var win = _controller.ActualRect;
-            var parts = ids.Select((id, i) => $"{id}@{win.X + (int)((origin.X + colW * (i + 0.5)) * scale)},{win.Y + (int)((origin.Y + TabBar.ActualHeight / 2) * scale)}");
+            var parts = TabBar.Children.OfType<Button>().Select(btn =>
+            {
+                int col = Grid.GetColumn(btn); var c = btn.TransformToVisual(null).TransformPoint(new Point(btn.ActualWidth / 2, btn.ActualHeight / 2));
+                return col < ids.Count ? $"{ids[col]}@{win.X + (int)(c.X * scale)},{win.Y + (int)(c.Y * scale)}" : "";
+            });
             File.AppendAllText(SelfTestPath!, $"{DateTime.UtcNow:HH:mm:ss.fff} tabs {string.Join(" ", parts)} active={_active}{Environment.NewLine}");
         }
         catch (Exception) { }
