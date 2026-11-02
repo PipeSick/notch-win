@@ -3,6 +3,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using NotchWin.App.Interop;
+using NotchWin.Core.Notch;
 using NotchWin.Core.Settings;
 using Windows.Graphics;
 using WinRT.Interop;
@@ -17,7 +18,6 @@ namespace NotchWin.App.Modules.Notch;
 /// </summary>
 public sealed class NotchWindowController : IDisposable
 {
-    private const int CornerRadiusDip = 20;
     private const int AnimationMs = 260;
 
     private readonly IntPtr _hwnd;
@@ -60,9 +60,33 @@ public sealed class NotchWindowController : IDisposable
     }
 
     /// <summary>The monitor's width in DIPs, so parts of the notch that grow on their own can stay proportionate on small screens.</summary>
-    public double MonitorWidthDip => _displayArea.OuterBounds.Width / (_scale > 0 ? _scale : 1);
+    public double MonitorWidthDip => Bounds().Width / (_scale > 0 ? _scale : 1);
+
+    /// <summary>The monitor rectangle this notch docks to right now (live from Win32 when available).</summary>
+    public PixelRect MonitorBounds => Bounds();
+
+    /// <summary>Where the window was last put (physical pixels); empty before the first frame.</summary>
+    public PixelRect WindowRect => new(_lastRect.X, _lastRect.Y, _lastRect.Width, _lastRect.Height);
+
+    /// <summary>
+    /// The monitor to dock to. The DisplayArea passed in by a display-change event can be a half-way snapshot (Duplicate → Extend left it spanning both screens, so a centred
+    /// notch sat on the seam). Its DisplayId still names the right monitor, so the monitor's CURRENT rectangle is read from Win32 each time; the snapshot is only a fallback.
+    /// </summary>
+    private PixelRect Bounds()
+    {
+        var ob = _displayArea.OuterBounds;
+        var area = new PixelRect(ob.X, ob.Y, ob.Width, ob.Height);
+        PixelRect? live = null;
+        try { live = NativeMethods.MonitorRect(Win32Interop.GetMonitorFromDisplayId(_displayArea.DisplayId)); }
+        catch (Exception) { /* the display is going away: use the snapshot until the next re-check */ }
+        return NotchPlacement.ChooseBounds(area, live);
+    }
 
     private RectInt32 _footprint;
+    private bool _footprintAnimating;
+
+    private int RadiusPx(int heightPx) => (int)Math.Round(NotchPlacement.CornerRadiusDip(heightPx / (_scale > 0 ? _scale : 1)) * (_scale > 0 ? _scale : 1));
+    private int ShoulderPx() => (int)Math.Round(NotchPlacement.ShoulderDip * (_scale > 0 ? _scale : 1));
 
     /// <summary>Raised when <see cref="Footprint"/> changes (not on every animation frame).</summary>
     public event Action? FootprintChanged;
@@ -72,6 +96,12 @@ public sealed class NotchWindowController : IDisposable
     /// WinMac's top bar uses it to leave that space free.
     /// </summary>
     public RectInt32 Footprint => _footprint;
+
+    /// <summary>
+    /// The same space as <see cref="Footprint"/>, but following the notch's silhouette (shoulders, body, rounded corners) when at rest, so WinMac's bar fills the corners
+    /// instead of leaving the wallpaper showing there. While animating, the plain union rectangle.
+    /// </summary>
+    public IReadOnlyList<RectInt32> FootprintParts { get; private set; } = [];
 
     private void UpdateFootprint(bool animating)
     {
@@ -84,9 +114,12 @@ public sealed class NotchWindowController : IDisposable
             now = new RectInt32(x1, y1, x2 - x1, y2 - y1);
         }
 
-        if (now.X != _footprint.X || now.Y != _footprint.Y || now.Width != _footprint.Width || now.Height != _footprint.Height)
+        if (now.X != _footprint.X || now.Y != _footprint.Y || now.Width != _footprint.Width || now.Height != _footprint.Height || animating != _footprintAnimating)
         {
-            _footprint = now;
+            _footprint = now; _footprintAnimating = animating;
+            FootprintParts = animating
+                ? [now]
+                : NotchPlacement.Silhouette(new PixelRect(now.X, now.Y, now.Width, now.Height), RadiusPx(now.Height), ShoulderPx()).Select(p => new RectInt32(p.X, p.Y, p.Width, p.Height)).ToList();
             FootprintChanged?.Invoke();
         }
     }
@@ -173,7 +206,7 @@ public sealed class NotchWindowController : IDisposable
     /// </summary>
     private double Scale()
     {
-        var bounds = _displayArea.OuterBounds;
+        var bounds = Bounds();
         var center = new NativeMethods.POINT { X = bounds.X + bounds.Width / 2, Y = bounds.Y + bounds.Height / 2 };
         var monitor = NativeMethods.MonitorFromPoint(center, NativeMethods.MONITOR_DEFAULTTONEAREST);
         if (monitor != IntPtr.Zero && NativeMethods.GetDpiForMonitor(monitor, 0, out var dpiX, out _) == 0 && dpiX > 0)
@@ -191,19 +224,10 @@ public sealed class NotchWindowController : IDisposable
     /// <summary>Where the window sits for a given size: docked to the physical screen edge (OuterBounds, not WorkArea) at the chosen position.</summary>
     private RectInt32 ComputeRect(int width, int height)
     {
-        // OuterBounds, not WorkArea: a notch hugs the physical screen edge even when another
+        // The monitor's full rectangle, not its work area: a notch hugs the physical screen edge even when another
         // app-bar (or the taskbar at the top) reserves space there.
-        var bounds = _displayArea.OuterBounds;
-        var margin = (int)(16 * _scale);
-
-        var x = _position switch
-        {
-            NotchPosition.TopLeft => bounds.X + margin,
-            NotchPosition.TopRight => bounds.X + bounds.Width - width - margin,
-            _ => bounds.X + (bounds.Width - width) / 2,
-        };
-
-        return new RectInt32(x, bounds.Y, width, height);
+        var r = NotchPlacement.Dock(Bounds(), width, height, _position, _scale);
+        return new RectInt32(r.X, r.Y, r.Width, r.Height);
     }
 
     private void ApplyFrame()
@@ -220,7 +244,6 @@ public sealed class NotchWindowController : IDisposable
         _lastRect = rect;
         _appWindow.MoveAndResize(rect);
 
-        var radius = (int)(CornerRadiusDip * _scale);
-        Win32Window.ApplyNotchShape(_hwnd, width, height, radius);
+        Win32Window.ApplyNotchShape(_hwnd, width, height, RadiusPx(height), ShoulderPx());
     }
 }

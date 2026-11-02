@@ -22,7 +22,8 @@ namespace NotchWin.App.Views;
 public sealed partial class NotchWindow : Window
 {
     private const int ExpandedWidth = 520;
-    private const int CollapsedHeight = 32;
+    /// <summary>Collapsed height: inside WinMac, exactly its top bar's height (the notch reads as part of the bar); on its own, 32.</summary>
+    private static readonly int CollapsedHeight = NotchWin.Core.Notch.NotchPlacement.CollapsedHeightDip(Program.Hosted is not null);
     private const int CollapsedIdleWidth = 180;
     private const int CollapsedTrackWidth = 300;
     private const int ToastWidth = 340;
@@ -52,6 +53,7 @@ public sealed partial class NotchWindow : Window
     {
         _viewModel = viewModel;
         InitializeComponent();
+        CollapsedBar.Height = CollapsedHeight; ToastBar.Height = CollapsedHeight;   // the XAML says 32; inside WinMac it matches the bar
         _eqBars = [Eq0, Eq1, Eq2, Eq3];
         _musicEqBars = [XEq0, XEq1, XEq2, XEq3];
 

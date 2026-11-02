@@ -152,6 +152,40 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern IntPtr MonitorFromPoint(POINT pt, uint flags);
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT { public int Left, Top, Right, Bottom; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public uint dwFlags; }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFO info);
+
+    public delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdc, IntPtr rect, IntPtr data);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
+
+    /// <summary>The monitor's current rectangle (physical pixels), read now — not a cached snapshot. Null if Windows does not give it.</summary>
+    public static NotchWin.Core.Notch.PixelRect? MonitorRect(IntPtr hmonitor)
+    {
+        if (hmonitor == IntPtr.Zero) return null;
+        var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfoW(hmonitor, ref info)) return null;
+        var r = info.rcMonitor;
+        return new NotchWin.Core.Notch.PixelRect(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
+    }
+
+    /// <summary>Every monitor Windows has right now (physical pixels).</summary>
+    public static List<NotchWin.Core.Notch.PixelRect> MonitorRects()
+    {
+        var list = new List<NotchWin.Core.Notch.PixelRect>();
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (h, _, _, _) => { if (MonitorRect(h) is { } r) list.Add(r); return true; }, IntPtr.Zero);
+        return list;
+    }
+
     /// <summary>dpiType 0 = effective DPI. Returns 0 (S_OK) on success.</summary>
     [DllImport("shcore.dll")]
     public static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
@@ -161,6 +195,21 @@ internal static class NativeMethods
 
     [DllImport("gdi32.dll")]
     public static extern IntPtr CreateRoundRectRgn(int left, int top, int right, int bottom, int widthEllipse, int heightEllipse);
+
+    public const int RGN_OR = 2, RGN_DIFF = 4;
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateEllipticRgn(int left, int top, int right, int bottom);
+
+    [DllImport("gdi32.dll")]
+    public static extern int CombineRgn(IntPtr dest, IntPtr src1, IntPtr src2, int mode);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DeleteObject(IntPtr obj);
 
     [DllImport("dwmapi.dll")]
     public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

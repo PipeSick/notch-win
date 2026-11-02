@@ -5,6 +5,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using NotchWin.App.Modules.Clipboard;
 using NotchWin.App.Modules.Music;
+using NotchWin.App.Interop;
 using NotchWin.App.Modules.Notch;
 using NotchWin.App.Services;
 using NotchWin.App.ViewModels;
@@ -19,6 +20,7 @@ using WinMac.Calendar;
 using NotchWin.Core.Downloads;
 using NotchWin.Core.Models;
 using NotchWin.Core.Music;
+using NotchWin.Core.Notch;
 using NotchWin.Core.Pricing;
 using NotchWin.Core.Hosting;
 using NotchWin.Core.Settings;
@@ -137,7 +139,7 @@ public partial class App : Application
     /// <summary>Tells WinMac how much screen space the notch windows take (pixels), so its top bar does not cover them or take their clicks. No-op when running standalone.</summary>
     private void PublishFootprints()
     {
-        _hosted?.PublishRects(_notches.Values.Select(n => n.Controller.Footprint).Select(r => (r.X, r.Y, r.Width, r.Height)));
+        _hosted?.PublishRects(_notches.Values.SelectMany(n => n.Controller.FootprintParts).Select(r => (r.X, r.Y, r.Width, r.Height)));
     }
 
     private void WatchDisplays()
@@ -158,7 +160,8 @@ public partial class App : Application
     }
 
     // Windows reports a monitor change (Win+P duplicate/extend, plugging a screen) BEFORE the layout settles, so the DisplayArea carried by the event can be a half-way snapshot and the
-    // notch ends up between two screens. Once things have settled, read the real displays again and put every notch where its monitor really is (same UpdateDisplay path as always).
+    // notch ends up between two screens. Read the real displays again and put every notch where its monitor really is (same UpdateDisplay path as always), then CHECK it against the
+    // monitors Win32 reports; until every notch sits inside a real monitor, look again with growing delays (NotchPlacement.ResyncDelaysMs, up to 12 s: GPU mode switches can be slow).
     private DispatcherQueueTimer? _resyncTimer;
     private int _resyncPass;
 
@@ -176,9 +179,10 @@ public partial class App : Application
             _resyncTimer.Tick += (_, _) =>
             {
                 ResyncDisplays();
-                if (_resyncPass++ == 0)
+                var next = NotchPlacement.NextResyncDelay(_resyncPass++, DisplaysSettled());
+                if (next is { } delay)
                 {
-                    _resyncTimer!.Interval = TimeSpan.FromMilliseconds(1500); // a second look: some drivers settle late
+                    _resyncTimer!.Interval = delay;
                     _resyncTimer.Start();
                 }
             };
@@ -186,8 +190,21 @@ public partial class App : Application
 
         _resyncTimer.Stop();
         _resyncPass = 0;
-        _resyncTimer.Interval = TimeSpan.FromMilliseconds(600);
+        _resyncTimer.Interval = TimeSpan.FromMilliseconds(NotchPlacement.ResyncDelaysMs[0]);
         _resyncTimer.Start();
+    }
+
+    /// <summary>Every notch is docked to a real monitor and does not cross a monitor edge (checked against what Win32 reports right now).</summary>
+    private bool DisplaysSettled()
+    {
+        try
+        {
+            return NotchPlacement.IsSettled(_notches.Values.Select(n => (n.Controller.MonitorBounds, n.Controller.WindowRect)), NativeMethods.MonitorRects());
+        }
+        catch (Exception)
+        {
+            return false; // a layout in flux can throw: look again
+        }
     }
 
     private void ResyncDisplays()

@@ -34,14 +34,35 @@ internal static class Win32Window
     }
 
     /// <summary>
-    /// Clips the window to a notch silhouette: flat, square top edge flush with the screen and
-    /// rounded bottom corners. The region's top corners sit above the window so only the bottom rounds.
+    /// Clips the window to a notch silhouette (macOS style): flat top edge flush with the screen, concave «shoulders» of <paramref name="shoulderPx"/> joining it to that edge,
+    /// a body inset by the shoulders and rounded bottom corners. The body's top corners sit above the window so only the bottom rounds.
     /// </summary>
-    public static void ApplyNotchShape(IntPtr hwnd, int widthPx, int heightPx, int radiusPx)
+    public static void ApplyNotchShape(IntPtr hwnd, int widthPx, int heightPx, int radiusPx, int shoulderPx = 0)
     {
-        var r = Math.Min(radiusPx, heightPx / 2);
-        var region = NativeMethods.CreateRoundRectRgn(0, -r, widthPx + 1, heightPx + 1, r * 2, r * 2);
+        var s = Math.Clamp(shoulderPx, 0, widthPx / 4);
+        var bodyW = widthPx - 2 * s;
+        var r = Math.Max(0, Math.Min(radiusPx, Math.Min(heightPx, bodyW) / 2));
+        var region = NativeMethods.CreateRoundRectRgn(s, -r, s + bodyW + 1, heightPx + 1, r * 2, r * 2);
+        if (s > 0 && heightPx > s)
+        {
+            // Each shoulder: an s×s square at the top corner minus a circle of radius s centred on its outer-bottom corner → a concave fillet down into the body.
+            AddShoulder(region, 0, 0, s, -s, 0, s, 2 * s);
+            AddShoulder(region, widthPx - s, 0, widthPx, widthPx - s, 0, widthPx + s, 2 * s);
+        }
+
         // The system owns the region after a successful call, so it must not be deleted here.
         NativeMethods.SetWindowRgn(hwnd, region, true);
+    }
+
+    private static void AddShoulder(IntPtr region, int x1, int y1, int x2, int ex1, int ey1, int ex2, int ey2)
+    {
+        var square = NativeMethods.CreateRectRgn(x1, y1, x2, y1 + (x2 - x1));
+        var circle = NativeMethods.CreateEllipticRgn(ex1, ey1, ex2, ey2);
+        try
+        {
+            NativeMethods.CombineRgn(square, square, circle, NativeMethods.RGN_DIFF);
+            NativeMethods.CombineRgn(region, region, square, NativeMethods.RGN_OR);
+        }
+        finally { NativeMethods.DeleteObject(square); NativeMethods.DeleteObject(circle); }
     }
 }
