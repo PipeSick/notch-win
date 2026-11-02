@@ -93,6 +93,7 @@ public sealed partial class NotchWindow : Window
         _pillTimer = DispatcherQueue.CreateTimer();
         _pillTimer.IsRepeating = false;
         _pillTimer.Tick += (_, _) => _pill.Tick();
+        InitPill();   // before anything that lays out the pill (InitSections → UpdatePillText reads the arbiter)
 
         _hoverTimer = DispatcherQueue.CreateTimer();
         _hoverTimer.Interval = TimeSpan.FromMilliseconds(1100);
@@ -107,7 +108,6 @@ public sealed partial class NotchWindow : Window
 
         RebuildAgents();
         InitSections();
-        InitPill();
         _ = UpdateNowPlayingUiAsync(_viewModel.NowPlaying);
 
         Closed += (_, _) => Detach();

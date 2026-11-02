@@ -253,7 +253,7 @@ public sealed partial class NotchWindow
         {
             _pillLyrics = lyricMode;
             _pillWidth = width;
-            if (!_expanded && _pill.Current is null)
+            if (!_expanded && _pill?.Current is null)
             {
                 ApplyLayout(animate: true);
             }
