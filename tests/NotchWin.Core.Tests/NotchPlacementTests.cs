@@ -72,6 +72,7 @@ public sealed class NotchShapeTests
         Assert.Equal(28, NotchPlacement.CollapsedHeightDip(hostedByWinMac: true)); Assert.Equal(32, NotchPlacement.CollapsedHeightDip(false));
         Assert.Equal(10.08, NotchPlacement.CornerRadiusDip(28), 2);     // before: 20 DIP clipped to a 16-DIP half-circle
         Assert.Equal(20, NotchPlacement.CornerRadiusDip(400)); Assert.Equal(8, NotchPlacement.CornerRadiusDip(10));
+        Assert.Equal(0, NotchPlacement.ShoulderDip);   // no shoulders: they looked like horns next to a notch that has the bar's colour
     }
 
     [Fact]

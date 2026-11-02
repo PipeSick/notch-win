@@ -74,8 +74,11 @@ public static class NotchPlacement
     public const int WinMacBarHeightDip = 28;
     /// <summary>Collapsed height on its own (no WinMac bar to line up with).</summary>
     public const int StandaloneCollapsedHeightDip = 32;
-    /// <summary>Width of the concave «shoulders» that join the notch to the top screen edge (macOS style).</summary>
-    public const double ShoulderDip = 6;
+    /// <summary>
+    /// Width of the concave «shoulders» that would join the notch to the top screen edge (macOS style). 0 = none: with the notch taking the top bar's own look, the user saw
+    /// them as two odd dark horns at its top corners. The shape code keeps supporting them.
+    /// </summary>
+    public const double ShoulderDip = 0;
 
     public static int CollapsedHeightDip(bool hostedByWinMac) => hostedByWinMac ? WinMacBarHeightDip : StandaloneCollapsedHeightDip;
 
