@@ -27,6 +27,7 @@ public sealed partial class NotchWindow
     {
         _viewModel.Activities.Changed += OnActivitiesChanged;
         _viewModel.CapturesChanged += OnCapturesChanged;
+        InitKeyboard();
     }
 
     private void DetachActivitiesUi()

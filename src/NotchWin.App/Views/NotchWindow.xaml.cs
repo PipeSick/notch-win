@@ -164,7 +164,11 @@ public sealed partial class NotchWindow : Window
 
     }
 
-    private void OnBarTapped(object sender, TappedRoutedEventArgs e) => SetExpanded(!_expanded);
+    private void OnBarTapped(object sender, TappedRoutedEventArgs e)
+    {
+        SetExpanded(!_expanded);
+        if (_expanded) KeyboardOn();   // opened by the user's click: the keyboard works in it until it closes
+    }
 
     private void UpdateOpenPlayerButton()
     {
@@ -214,6 +218,7 @@ public sealed partial class NotchWindow : Window
         else
         {
             _hoverTimer.Stop();
+            KeyboardOff();
             UpdateCamera(); // release the webcam the moment the notch closes
             ApplyLayout(animate: true, onCompleted: () =>
             {
