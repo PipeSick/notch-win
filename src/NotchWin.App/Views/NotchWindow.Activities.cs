@@ -294,7 +294,7 @@ public sealed partial class NotchWindow
         if (string.IsNullOrEmpty(SelfTestPath) || _controller is null || TabBar.ActualWidth <= 0) return;
         try
         {
-            var ids = EnabledSections().Select(s => s.Id).ToList();
+            var ids = _visibleTabIds;
             double scale = Content.XamlRoot?.RasterizationScale ?? 1;
             var win = _controller.ActualRect;
             var parts = TabBar.Children.OfType<Button>().Select(btn =>

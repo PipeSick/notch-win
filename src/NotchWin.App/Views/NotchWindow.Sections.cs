@@ -15,7 +15,6 @@ public sealed partial class NotchWindow
     private static readonly Color Faint = Color.FromArgb(255, 0x63, 0x63, 0x66);
     // Glass layers (translucent white over the glass, Liquid Glass style) instead of near-black solid cards.
     private static readonly Color Card = Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF);
-    private static readonly Color TabOn = Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF);
 
     private string _active = string.Empty;   // the first enabled tab (the user's order; «En curso» by default in WinMac 2.0)
     private bool _customizing;
@@ -91,9 +90,16 @@ public sealed partial class NotchWindow
         TabBar.Children.Clear();
         TabBar.ColumnDefinitions.Clear();
 
-        for (var i = 0; i < enabled.Count; i++)
+        // WinMac 2.0: at most MaxPrimaryTabs tabs (the first ones in the user's order); the rest go into «Más» (nothing is lost; the order is still
+        // customizable with the gear). A section opened from «Más» shows as the selected pill at the end.
+        var visible = enabled.Take(MaxPrimaryTabs).Select(s => s.Id).ToList();
+        if (!visible.Contains(_active) && enabled.Any(s => s.Id == _active)) visible.Add(_active);
+        var overflow = enabled.Select(s => s.Id).Where(id => !visible.Contains(id)).ToList();
+        _visibleTabIds = visible;
+
+        for (var i = 0; i < visible.Count; i++)
         {
-            var id = enabled[i].Id;
+            var id = visible[i];
             // WinMac 2.0 (mockup): the selected tab is a blue pill with its icon AND its name; the others stay compact icons, so many tabs still fit.
             bool selected = id == _active && !_customizing;
             TabBar.ColumnDefinitions.Add(new ColumnDefinition { Width = selected ? GridLength.Auto : new GridLength(1, GridUnitType.Star) });
@@ -145,8 +151,8 @@ public sealed partial class NotchWindow
                 BorderThickness = new Thickness(0),
                 CornerRadius = new CornerRadius(9),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Background = new SolidColorBrush(selected ? Color.FromArgb(255, 0x0A, 0x84, 0xFF) : Colors.Transparent),
             };
+            TabLook(tab, selected);
             ToolTipService.SetToolTip(tab, SectionInfo[id].Name);
             tab.Click += (_, _) =>
             {
@@ -161,10 +167,52 @@ public sealed partial class NotchWindow
             TabBar.Children.Add(tab);
         }
 
+        if (overflow.Count > 0)
+        {
+            TabBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var more = new Button { Height = 30, Padding = new Thickness(0), BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(9), HorizontalAlignment = HorizontalAlignment.Stretch, Content = new FontIcon { Glyph = "\uE712", FontSize = 15, Foreground = new SolidColorBrush(Dim) } };
+            TabLook(more, false);
+            ToolTipService.SetToolTip(more, "Más secciones");
+            var menu = new MenuFlyout();
+            foreach (var id in overflow)
+            {
+                var item = new MenuFlyoutItem { Text = SectionInfo[id].Name, Icon = new FontIcon { Glyph = SectionInfo[id].Glyph } };
+                item.Click += (_, _) => { _active = id; _customizing = false; RebuildTabs(); ShowActivePane(); RelayoutIfExpanded(); };
+                menu.Items.Add(item);
+            }
+
+            more.Flyout = menu;
+            Grid.SetColumn(more, visible.Count);
+            TabBar.Children.Add(more);
+        }
+
         // The tabs stay put while customizing so the notch never looks like its icons vanished;
         // none is highlighted then, and the gear lights up instead. Clicking a tab leaves customize mode.
         TabBar.Visibility = enabled.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         GearIcon.Foreground = new SolidColorBrush(_customizing ? Colors.White : Dim);
+    }
+
+    /// <summary>At most this many tabs side by side (the mockup has five plus a few icons); the rest are under «Más».</summary>
+    private const int MaxPrimaryTabs = 6;
+
+    /// <summary>Tabs shown, in column order (the CI diagnostics map columns to sections with it).</summary>
+    private List<string> _visibleTabIds = [];
+
+    /// <summary>
+    /// The tab's colours in EVERY state through lightweight styling (the template's own ButtonBackground* resources): setting Background alone was
+    /// overridden by the PointerOver/Pressed states, which is why the selected tab looked grey in the CI captures while the mouse was over it.
+    /// </summary>
+    private static void TabLook(Button b, bool selected)
+    {
+        Color rest = selected ? Color.FromArgb(255, 0x0A, 0x84, 0xFF) : Colors.Transparent;
+        Color over = selected ? Color.FromArgb(255, 0x33, 0x95, 0xFF) : Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF);
+        Color down = selected ? Color.FromArgb(255, 0x08, 0x6D, 0xD6) : Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF);
+        b.Resources["ButtonBackground"] = new SolidColorBrush(rest);
+        b.Resources["ButtonBackgroundPointerOver"] = new SolidColorBrush(over);
+        b.Resources["ButtonBackgroundPressed"] = new SolidColorBrush(down);
+        b.Resources["ButtonBorderBrushPointerOver"] = new SolidColorBrush(Colors.Transparent);
+        b.Resources["ButtonBorderBrushPressed"] = new SolidColorBrush(Colors.Transparent);
+        b.Background = new SolidColorBrush(rest);
     }
 
     private void ShowActivePane()
