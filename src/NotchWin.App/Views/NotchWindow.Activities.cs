@@ -320,7 +320,7 @@ public sealed partial class NotchWindow
             if (CapturesAll.Visibility == Visibility.Visible && CapturesPane.Visibility == Visibility.Visible && CapturesAll.ActualWidth > 0)
             {
                 var g = CapturesAll.TransformToVisual(null).TransformPoint(new Point(CapturesAll.ActualWidth / 2, CapturesAll.ActualHeight / 2));
-                extra = $" gallery@{win.X + (int)(g.X * scale)},{win.Y + (int)(g.Y * scale)}";
+                extra += $" gallery@{win.X + (int)(g.X * scale)},{win.Y + (int)(g.Y * scale)}";
             }
             foreach (var b in CaptureActions.Children.OfType<Button>())
                 if (b.Content is string label && b.ActualWidth > 0)
