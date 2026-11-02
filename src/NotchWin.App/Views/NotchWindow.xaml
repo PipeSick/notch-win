@@ -18,6 +18,12 @@
             </Grid.ColumnDefinitions>
             <Border x:Name="MiniArt" Width="20" Height="20" CornerRadius="6" HorizontalAlignment="Left"
                     VerticalAlignment="Center" Background="#1C1C1E" Visibility="Collapsed" />
+            <!-- WinMac 2.0: a download in progress, or test media in CI, when there is no track (the track and its lyrics always win: CompactPolicy). -->
+            <StackPanel x:Name="MiniActivity" Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                <FontIcon x:Name="MiniActivityIcon" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" FontSize="12" Foreground="#0A84FF" VerticalAlignment="Center" />
+                <TextBlock x:Name="MiniActivityText" Foreground="White" FontSize="12" FontWeight="SemiBold" MaxWidth="170" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock x:Name="MiniActivitySub" Foreground="#98989D" FontSize="11" VerticalAlignment="Center" />
+            </StackPanel>
             <TextBlock x:Name="MiniTitle" Grid.Column="1" Foreground="White" FontSize="12" FontWeight="SemiBold"
                        HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="190"
                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" />
@@ -106,6 +112,51 @@
                     <Button Click="OnCollapseClicked" Background="Transparent" BorderThickness="0" Padding="0" Width="26" Height="26"
                             CornerRadius="8" ToolTipService.ToolTip="Cerrar">
                         <FontIcon Glyph="&#xE70E;" FontSize="10" Foreground="#8E8E93" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- WinMac 2.0: media header (cover, title, artist, current synced-lyric line, progress, controls only if real). Hidden without media. -->
+            <Grid x:Name="NowHeader" ColumnSpacing="14" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border x:Name="NowArt" Width="64" Height="64" CornerRadius="12" Background="#2C2C2E">
+                    <FontIcon x:Name="NowArtGlyph" Glyph="&#xE8D6;" FontSize="22" Foreground="#8E8E93" />
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Name="NowTitle" Foreground="White" FontSize="15" FontWeight="SemiBold" MaxWidth="230" TextTrimming="CharacterEllipsis" />
+                        <Border x:Name="NowTestTag" Background="#33FF9F0A" CornerRadius="5" Padding="6,1" VerticalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="Datos de prueba" Foreground="#FFB340" FontSize="10" FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock x:Name="NowArtist" Foreground="#98989D" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="NowLyric" Foreground="#E5E5EA" FontSize="12" FontStyle="Italic" TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
+                    <Grid x:Name="NowProgressRow" ColumnSpacing="8" Margin="0,4,0,0" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="NowElapsed" Foreground="#98989D" FontSize="10.5" VerticalAlignment="Center" />
+                        <Border x:Name="NowTrack" Grid.Column="1" Height="4" CornerRadius="2" Background="#33FFFFFF" VerticalAlignment="Center">
+                            <Border x:Name="NowFill" HorizontalAlignment="Left" CornerRadius="2" Background="White" Width="0" />
+                        </Border>
+                        <TextBlock x:Name="NowTotal" Grid.Column="2" Foreground="#98989D" FontSize="10.5" VerticalAlignment="Center" />
+                    </Grid>
+                </StackPanel>
+                <StackPanel x:Name="NowControls" Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Visibility="Collapsed">
+                    <Button Click="OnNowPrev" Background="Transparent" BorderThickness="0" Width="34" Height="34" CornerRadius="17" ToolTipService.ToolTip="Anterior">
+                        <FontIcon Glyph="&#xE892;" FontSize="14" Foreground="White" />
+                    </Button>
+                    <Button Click="OnNowPlayPause" Background="Transparent" BorderThickness="0" Width="38" Height="38" CornerRadius="19" ToolTipService.ToolTip="Reproducir o pausar">
+                        <FontIcon x:Name="NowPlayGlyph" Glyph="&#xE769;" FontSize="18" Foreground="White" />
+                    </Button>
+                    <Button Click="OnNowNext" Background="Transparent" BorderThickness="0" Width="34" Height="34" CornerRadius="17" ToolTipService.ToolTip="Siguiente">
+                        <FontIcon Glyph="&#xE893;" FontSize="14" Foreground="White" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -322,6 +373,36 @@
                                Text="Aquí aparecerá lo que copies mientras NotchWin esté abierto" />
                     <ScrollViewer MaxHeight="290" VerticalScrollBarVisibility="Hidden">
                         <StackPanel x:Name="ClipboardList" Spacing="8" />
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- WinMac 2.0 · En curso: every activity in progress (media, downloads…), with real actions only -->
+                <StackPanel x:Name="ActivityPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
+                    <TextBlock x:Name="ActivityEmpty" Foreground="#8E8E93" FontSize="12.5" TextWrapping="Wrap" Margin="0,24,0,0" HorizontalAlignment="Center" TextAlignment="Center"
+                               Text="No hay nada en curso. Aquí verás la música, las descargas y las capturas recientes." />
+                    <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="ActivityList" Spacing="6" />
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- WinMac 2.0 · Capturas: gallery of the screenshots folder (thumbnails decoded small), actions on the selected one -->
+                <StackPanel x:Name="CapturesPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top">
+                    <TextBlock x:Name="CapturesEmpty" Foreground="#8E8E93" FontSize="12.5" TextWrapping="Wrap" Margin="0,24,0,0" HorizontalAlignment="Center" TextAlignment="Center"
+                               Text="Todavía no hay capturas. Las de Windows (Win+Impr Pant) aparecerán aquí." />
+                    <VariableSizedWrapGrid x:Name="CapturesGrid" Orientation="Horizontal" MaximumRowsOrColumns="3" ItemWidth="158" ItemHeight="118" HorizontalAlignment="Center" />
+                    <StackPanel x:Name="CaptureActions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Visibility="Collapsed" />
+                </StackPanel>
+
+                <!-- WinMac 2.0 · Historial: finished activities of this session -->
+                <StackPanel x:Name="HistoryPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
+                    <Grid>
+                        <TextBlock Text="RECIENTES" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" VerticalAlignment="Center" />
+                        <Button x:Name="HistoryClear" Click="OnHistoryClear" HorizontalAlignment="Right" Padding="8,2" FontSize="11" Background="#1FFFFFFF" BorderThickness="0" CornerRadius="6" Content="Borrar historial" />
+                    </Grid>
+                    <TextBlock x:Name="HistoryEmpty" Foreground="#8E8E93" FontSize="12.5" TextWrapping="Wrap" Margin="0,18,0,0" HorizontalAlignment="Center" TextAlignment="Center"
+                               Text="El historial está vacío. Las descargas y capturas terminadas quedan aquí durante la sesión." />
+                    <ScrollViewer MaxHeight="290" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="HistoryList" Spacing="6" />
                     </ScrollViewer>
                 </StackPanel>
 

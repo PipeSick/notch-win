@@ -96,6 +96,7 @@ public partial class App : Application
         {
             _viewModel.ApplyPill(_central);
         }
+        InitActivities();
         // One notch per monitor, all sharing the same view model.
         var dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         _uiQueue = dispatcherQueue;
@@ -321,6 +322,7 @@ public partial class App : Application
             if (_viewModel is not null)
             {
                 _viewModel.NowPlaying = info;
+                MirrorMedia(info);
             }
         });
 
@@ -519,6 +521,7 @@ public partial class App : Application
         }
 
         var (active, completed) = _downloads.Poll();
+        MirrorDownloads(active, completed, _downloads.Folder);   // WinMac 2.0: the same downloads as activities
         foreach (var name in completed)
         {
             _viewModel.Notifications.Add("Descargas", name, "Descarga terminada");
@@ -600,6 +603,8 @@ public partial class App : Application
         };
         // Volume, brightness and Windows notifications relayed by WinMac's top bar: shown for a moment in the collapsed notch (see PillArbiter).
         _hosted.PillReceived += item => _uiQueue?.TryEnqueue(() => _viewModel?.PostPill(item));
+        // WinMac 2.0: internal activity API (only WinMac's modules reach the pipe)
+        _hosted.ActivityReceived += cmd => _uiQueue?.TryEnqueue(() => { if (_viewModel is not null) Core.Activities.ActivityFeed.Apply(_viewModel.Activities, cmd); });
         _hosted.Start();
 
         if (_firstCentralArrived.Wait(TimeSpan.FromSeconds(1.5)) && _firstCentral is { } first)
@@ -700,6 +705,7 @@ public partial class App : Application
         {
             _viewModel.MediaControls = null;
             _viewModel.NowPlaying = null;
+            MirrorMedia(null);
             _viewModel.RaiseDataChanged();
         }
     }

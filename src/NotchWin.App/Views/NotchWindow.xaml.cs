@@ -108,6 +108,7 @@ public sealed partial class NotchWindow : Window
 
         RebuildAgents();
         InitSections();
+        InitActivitiesUi();
         _ = UpdateNowPlayingUiAsync(_viewModel.NowPlaying);
 
         Closed += (_, _) => Detach();
@@ -145,6 +146,7 @@ public sealed partial class NotchWindow : Window
 
         _uiTimer.Stop();
         DetachPill();
+        DetachActivitiesUi();
         _hoverTimer.Stop();
         _glassSaveTimer.Stop();
         StopCamera();
@@ -277,7 +279,7 @@ public sealed partial class NotchWindow : Window
             var (pw, ph) = PillSize();
             width = pw > 0 ? pw
                 : _pillLyrics ? _pillWidth
-                : _hasTrack || _viewModel.Timer.IsRunning ? CollapsedTrackWidth : CollapsedIdleWidth;
+                : _hasTrack || _viewModel.Timer.IsRunning || MiniActivity.Visibility == Visibility.Visible ? CollapsedTrackWidth : CollapsedIdleWidth;
             height = ph > 0 ? ph : CollapsedHeight;
         }
 
@@ -329,6 +331,7 @@ public sealed partial class NotchWindow : Window
 
         var hasTrack = info is not null && !string.IsNullOrEmpty(info.Title);
         _hasTrack = hasTrack;
+        UpdateMiniActivity();   // WinMac 2.0: the compact activity only shows without a track
 
         // GSMTC re-raises Changed for position/playback updates too, so only a new title/artist is a track change.
         var trackChanged = hasTrack && (info!.Title != _lastTitle || info.Artist != _lastArtist);
@@ -404,6 +407,7 @@ public sealed partial class NotchWindow : Window
     private void OnUiTick()
     {
         PillWatchdog();
+        if (_expanded && NowHeader.Visibility == Visibility.Visible) UpdateNowHeader();   // progress and the current lyric line
         if (_info is { IsPlaying: true })
         {
             foreach (var bar in _eqBars)

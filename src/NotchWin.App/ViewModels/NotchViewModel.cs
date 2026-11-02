@@ -122,6 +122,17 @@ public sealed class NotchViewModel : ObservableObject
         PillPolicyChanged?.Invoke();
     }
 
+    /// <summary>WinMac 2.0: the Island's activities (in progress and history), fed by App from real sources and the internal API.</summary>
+    public NotchWin.Core.Activities.ActivityStore Activities { get; } = new(() => DateTime.UtcNow);
+
+    /// <summary>Folder of the capture gallery (Windows' screenshots folder).</summary>
+    public string CaptureFolder { get; set; } = NotchWin.Core.Activities.CaptureLibrary.DefaultFolder();
+
+    /// <summary>A new screenshot arrived: the gallery reloads.</summary>
+    public event Action? CapturesChanged;
+
+    public void RaiseCapturesChanged() => CapturesChanged?.Invoke();
+
     public ObservableCollection<AgentUsageSnapshot> AgentSnapshots { get; } = [];
 
     public void ReplaceAgentSnapshots(IReadOnlyList<AgentUsageSnapshot> snapshots)

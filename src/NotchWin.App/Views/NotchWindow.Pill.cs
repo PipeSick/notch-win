@@ -209,6 +209,7 @@ public sealed partial class NotchWindow
         ToastArtist.Text = item.Subtitle ?? "";
         ToastArt.Background = item.Kind == PillKind.Activity
             ? new SolidColorBrush(ColorForSource(item.App ?? ""))
+            : item.Kind == PillKind.Capture && item.ImagePath is { } img ? Thumbnail(img, 48)   // the saved screenshot, decoded small
             : MiniArt.Background;   // a new track shows its cover (the mini cover already holds it)
         ToastBar.Visibility = Visibility.Visible;
     }

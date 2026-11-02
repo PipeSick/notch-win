@@ -135,3 +135,31 @@ public class LyricsRegressionTests
         Assert.Equal(CompactContent.Lyrics, CompactPolicy.Choose(true, true, true, true, 40, false, false));
     }
 }
+
+public class CaptureLibraryTests
+{
+    [Fact]
+    public void ListsOnlyImagesNewestFirstAndCaps()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "caps-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            for (int i = 0; i < 15; i++) { var f = Path.Combine(dir, $"c{i}.png"); File.WriteAllBytes(f, [1, 2, 3]); File.SetLastWriteTimeUtc(f, new DateTime(2026, 1, 1).AddMinutes(i)); }
+            File.WriteAllText(Path.Combine(dir, "nota.txt"), "x");
+            var l = CaptureLibrary.List(dir);
+            Assert.Equal(12, l.Count); Assert.Equal("c14.png", l[0].Name); Assert.DoesNotContain(l, c => c.Name.EndsWith(".txt"));
+            Assert.Empty(CaptureLibrary.List(Path.Combine(dir, "no-existe")));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void WhenReadsLikeTheMockup()
+    {
+        var now = new DateTime(2026, 1, 24, 14, 37, 0);
+        Assert.Equal("Hoy 14:36", CaptureLibrary.When(new DateTime(2026, 1, 24, 14, 36, 0), now));
+        Assert.Equal("Ayer 20:17", CaptureLibrary.When(new DateTime(2026, 1, 23, 20, 17, 0), now));
+        Assert.StartsWith("20 ene", CaptureLibrary.When(new DateTime(2026, 1, 20, 9, 5, 0), now));
+    }
+}

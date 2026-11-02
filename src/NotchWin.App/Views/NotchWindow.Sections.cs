@@ -17,7 +17,7 @@ public sealed partial class NotchWindow
     private static readonly Color Card = Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF);
     private static readonly Color TabOn = Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF);
 
-    private string _active = NotchSections.Music;
+    private string _active = string.Empty;   // the first enabled tab (the user's order; «En curso» by default in WinMac 2.0)
     private bool _customizing;
     private string? _sourceName;
     private bool _timerWasRunning;
@@ -34,6 +34,9 @@ public sealed partial class NotchWindow
         [NotchSections.Notifications] = ("Notificaciones", ""),
         [NotchSections.Resources] = ("Recursos del sistema", "\uE950"),
         [NotchSections.Clipboard] = ("Portapapeles", "\uE77F"),
+        [NotchSections.Activity] = ("En curso", "\uE896"),
+        [NotchSections.Captures] = ("Capturas", "\uE722"),
+        [NotchSections.History] = ("Historial", "\uE81C"),
     };
 
     private void InitSections()
@@ -169,6 +172,14 @@ public sealed partial class NotchWindow
         CameraPane.Visibility = Show(!_customizing && _active == NotchSections.Camera && !empty);
         SystemPane.Visibility = Show(!_customizing && _active == NotchSections.Resources && !empty);
         ClipboardPane.Visibility = Show(!_customizing && _active == NotchSections.Clipboard && !empty);
+        ActivityPane.Visibility = Show(!_customizing && _active == NotchSections.Activity && !empty);
+        CapturesPane.Visibility = Show(!_customizing && _active == NotchSections.Captures && !empty);
+        HistoryPane.Visibility = Show(!_customizing && _active == NotchSections.History && !empty);
+        if (ActivityPane.Visibility == Visibility.Visible) RebuildActivities();
+        if (CapturesPane.Visibility == Visibility.Visible) RebuildCaptures();
+        if (HistoryPane.Visibility == Visibility.Visible) RebuildHistory();
+        UpdateNowHeader();
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, SelfTestLogTabs);
         CustomizePane.Visibility = Show(_customizing || empty);
         if (SystemPane.Visibility == Visibility.Visible)
         {
