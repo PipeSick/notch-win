@@ -41,6 +41,17 @@ public sealed class NotchPlacementTests
     }
 
     [Fact]
+    public void The_guard_repairs_a_notch_moved_without_any_event_and_leaves_a_correct_one_alone()
+    {
+        var put = new PixelRect(1080, 0, 400, 28);
+        Assert.False(NotchPlacement.NeedsRepair(true, put, put));
+        Assert.True(NotchPlacement.NeedsRepair(true, put, new PixelRect(2360, 0, 400, 28)));   // moved back onto the seam later, with no display event
+        Assert.True(NotchPlacement.NeedsRepair(false, put, put));                              // layout changed under it
+        Assert.False(NotchPlacement.NeedsRepair(true, default, new PixelRect(5, 5, 5, 5)));    // not placed yet: nothing to compare
+        Assert.Equal(3000, NotchPlacement.GuardIntervalMs);
+    }
+
+    [Fact]
     public void Rechecks_continue_until_settled_with_a_long_tail_and_then_stop()
     {
         Assert.Equal(TimeSpan.FromMilliseconds(900), NotchPlacement.NextResyncDelay(0, settled: true));   // even if it looks right, one confirming pass

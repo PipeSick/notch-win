@@ -25,6 +25,17 @@ public static class NotchPlacement
     /// <summary>Delays (ms after the change) of the successive re-checks. Long tail on purpose: a GPU mode switch (NVIDIA, 1440p, remote-desktop streamers) can take seconds.</summary>
     public static readonly IReadOnlyList<int> ResyncDelaysMs = [600, 1500, 3000, 5000, 8000, 12000];
 
+    /// <summary>
+    /// How often the notches check they are still where they belong, with no display-change event at all. Windows can move them later without telling: monitors waking from
+    /// sleep, a remote-desktop streamer adding or removing its virtual display, topmost windows being rearranged. The check only reads rectangles (no repaint) and repairs
+    /// when needed. Measured on the user's PC: the notch drifted back onto the seam some time after a correct Duplicate → Extend.
+    /// </summary>
+    public const int GuardIntervalMs = 3000;
+
+    /// <summary>A notch needs repairing when the layout is not settled, or its window is not where it was put (someone else moved or resized it).</summary>
+    public static bool NeedsRepair(bool settled, PixelRect expected, PixelRect actual) =>
+        !settled || (!expected.IsEmpty && expected != actual);
+
     /// <summary>The monitor rectangle to dock to: the live one from Win32 (by the display's id) when Windows gives it, otherwise what the DisplayArea says.</summary>
     public static PixelRect ChooseBounds(PixelRect displayArea, PixelRect? liveMonitor) =>
         liveMonitor is { IsEmpty: false } live ? live : displayArea;

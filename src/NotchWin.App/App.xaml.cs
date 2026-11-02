@@ -157,6 +157,52 @@ public partial class App : Application
             ScheduleDisplayResync();
         });
         _displayWatcher.Start();
+        StartDisplayGuard();
+    }
+
+    // Some time after a correct placement the notch could drift back onto the seam with NO display event (monitor sleep/wake, a streamer's virtual display, topmost windows
+    // being rearranged). A cheap, permanent guard: every few seconds, check every notch is inside a real monitor and where it was put; if not, re-read the displays and repair.
+    private DispatcherQueueTimer? _guardTimer;
+
+    private void StartDisplayGuard()
+    {
+        if (_uiQueue is null || _guardTimer is not null)
+        {
+            return;
+        }
+
+        _guardTimer = _uiQueue.CreateTimer();
+        _guardTimer.Interval = TimeSpan.FromMilliseconds(NotchPlacement.GuardIntervalMs);
+        _guardTimer.IsRepeating = true;
+        _guardTimer.Tick += (_, _) => GuardDisplays();
+        _guardTimer.Start();
+    }
+
+    private void GuardDisplays()
+    {
+        try
+        {
+            bool settled = DisplaysSettled(), resynced = false;
+            foreach (var (_, controller) in _notches.Values.ToList())
+            {
+                if (!controller.AtRest || !NotchPlacement.NeedsRepair(settled, controller.WindowRect, controller.ActualRect))
+                {
+                    continue;
+                }
+
+                if (!settled && !resynced)
+                {
+                    ResyncDisplays(); // the layout changed under the notches: new display ids, monitors gone or added
+                    resynced = true;
+                }
+
+                controller.Reassert();
+            }
+        }
+        catch (Exception)
+        {
+            // a layout in flux can throw; the next tick tries again
+        }
     }
 
     // Windows reports a monitor change (Win+P duplicate/extend, plugging a screen) BEFORE the layout settles, so the DisplayArea carried by the event can be a half-way snapshot and the
@@ -680,6 +726,7 @@ public partial class App : Application
         }
 
         _displayWatcher?.Stop();
+        _guardTimer?.Stop();
         _agentPolling?.Dispose();
         _mediaProvider?.Dispose();
         _trayIcon?.Dispose();

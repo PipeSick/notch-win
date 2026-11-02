@@ -168,6 +168,28 @@ public sealed class NotchWindowController : IDisposable
         NativeMethods.SetWindowPos(_hwnd, new IntPtr(-1) /* HWND_TOPMOST */, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
 
+    /// <summary>Where the window really is now (Windows may have moved it without any event).</summary>
+    public PixelRect ActualRect
+    {
+        get
+        {
+            var p = _appWindow.Position; var s = _appWindow.Size;
+            return new PixelRect(p.X, p.Y, s.Width, s.Height);
+        }
+    }
+
+    /// <summary>False while animating (the window is between sizes on purpose).</summary>
+    public bool AtRest => !_timer.IsRunning;
+
+    /// <summary>Puts the window back on its monitor at its current size (same path as a display change), without animating.</summary>
+    public void Reassert()
+    {
+        if (_disposed) return;
+        _lastRect = default;
+        ApplyFrame();
+        UpdateFootprint(_timer.IsRunning);
+    }
+
     public void UpdateDisplay(DisplayArea area)
     {
         if (_disposed)
