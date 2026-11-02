@@ -173,7 +173,7 @@ public sealed partial class NotchWindow
         text.Children.Add(titleRow);
         var sub = StateText(a);
         if (sub.Length > 0) text.Children.Add(new TextBlock { Text = sub, Foreground = new SolidColorBrush(Color.FromArgb(255, 0x98, 0x98, 0x9D)), FontSize = 11.5, TextTrimming = TextTrimming.CharacterEllipsis });
-        if (!a.IsFinished && a.Kind is ActivityKind.Download or ActivityKind.Transfer)
+        if (!a.IsFinished && (a.Kind is ActivityKind.Download or ActivityKind.Transfer || (a.Kind == ActivityKind.Extension && a.Progress is not null)))   // extensions: only when they report real progress
             text.Children.Add(new ProgressBar { Minimum = 0, Maximum = 1, Value = a.Progress ?? 0, IsIndeterminate = a.Progress is null, Margin = new Thickness(0, 4, 0, 0) });
         Grid.SetColumn(text, 1); row.Children.Add(text);
 
