@@ -51,6 +51,41 @@
             </StackPanel>
         </Grid>
 
+        <!-- Volume / brightness indicator (macOS style): symbol, compact level bar and percentage. Shown for a moment by the pill arbiter. -->
+        <Grid x:Name="HudBar" Height="32" VerticalAlignment="Top" Padding="16,0" ColumnSpacing="10"
+              Visibility="Collapsed" IsHitTestVisible="False">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <FontIcon x:Name="HudIcon" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" FontSize="14" Foreground="White" VerticalAlignment="Center" />
+            <Border x:Name="HudTrack" Grid.Column="1" Height="5" CornerRadius="2.5" Background="#38FFFFFF" VerticalAlignment="Center">
+                <Border x:Name="HudFill" HorizontalAlignment="Left" CornerRadius="2.5" Background="White" Width="0" />
+            </Border>
+            <TextBlock x:Name="HudText" Grid.Column="2" Foreground="White" FontSize="12" FontWeight="SemiBold" MinWidth="34"
+                       TextAlignment="Right" VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- A Windows notification relayed by WinMac: app icon, title and a one-line summary. The pill grows for a few seconds and goes back. -->
+        <Grid x:Name="NotifBar" Height="52" VerticalAlignment="Top" Padding="14,0,16,0" ColumnSpacing="10"
+              Visibility="Collapsed" IsHitTestVisible="False">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid Width="28" Height="28" VerticalAlignment="Center">
+                <Border x:Name="NotifInitialBack" CornerRadius="7" Background="#3A3A3C">
+                    <TextBlock x:Name="NotifInitial" Foreground="White" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Image x:Name="NotifIcon" Width="28" Height="28" Stretch="Uniform" Visibility="Collapsed" />
+            </Grid>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                <TextBlock x:Name="NotifTitle" Foreground="White" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                <TextBlock x:Name="NotifBody" Foreground="#B4B4BA" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
+            </StackPanel>
+        </Grid>
+
         <!-- Expanded island. Fixed 440 DIP wide and centered, so the growing window reveals it symmetrically. -->
         <StackPanel x:Name="ExpandedPanel" Width="520" HorizontalAlignment="Center" VerticalAlignment="Top"
                     Padding="22,6,22,20" Spacing="12" Visibility="Collapsed">

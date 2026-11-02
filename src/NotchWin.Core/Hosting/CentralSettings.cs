@@ -17,6 +17,7 @@ public enum CentralChanges
     Player = 32,
     Lyrics = 64,
     Poll = 128,
+    Pill = 256,
 }
 
 /// <summary>
@@ -38,6 +39,17 @@ public sealed class CentralSettings
     public bool LyricsEnabled { get; set; }
     public bool LyricsInPill { get; set; }
     public int PollIntervalSeconds { get; set; } = 30;
+
+    // What the collapsed notch shows for a moment (relayed by WinMac's top bar). Only meaningful inside WinMac.
+    public bool PillVolume { get; set; } = true;
+    public bool PillBrightness { get; set; } = true;
+    public bool PillNotifications { get; set; } = true;
+    public int PillHudSeconds { get; set; } = 2;
+    public int PillNotifySeconds { get; set; } = 5;
+    public bool PillAnimations { get; set; } = true;
+
+    /// <summary>Priorities and durations of the collapsed notch for these settings.</summary>
+    public Pill.PillPolicy PillPolicy() => Pill.PillPolicy.FromSettings(PillVolume, PillBrightness, PillNotifications, PillHudSeconds, PillNotifySeconds);
 
     public static CentralSettings From(AppSettings s) => new()
     {
@@ -109,6 +121,12 @@ public sealed class CentralSettings
                 case "pollintervalseconds" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var s):
                     c.PollIntervalSeconds = Math.Clamp(s, 5, 3600);
                     break;
+                case "pillvolume" when IsBool(v): c.PillVolume = v.GetBoolean(); break;
+                case "pillbrightness" when IsBool(v): c.PillBrightness = v.GetBoolean(); break;
+                case "pillnotifications" when IsBool(v): c.PillNotifications = v.GetBoolean(); break;
+                case "pillanimations" when IsBool(v): c.PillAnimations = v.GetBoolean(); break;
+                case "pillhudseconds" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var hs): c.PillHudSeconds = Math.Clamp(hs, 1, 10); break;
+                case "pillnotifyseconds" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var ns): c.PillNotifySeconds = Math.Clamp(ns, 2, 30); break;
                 case "sections" when v.ValueKind == JsonValueKind.Array:
                     var list = new List<NotchSectionConfig>();
                     foreach (var item in v.EnumerateArray())
@@ -141,6 +159,8 @@ public sealed class CentralSettings
         if (a.MusicPlayer != b.MusicPlayer || a.CustomPlayerPath != b.CustomPlayerPath) r |= CentralChanges.Player;
         if (a.LyricsEnabled != b.LyricsEnabled || a.LyricsInPill != b.LyricsInPill) r |= CentralChanges.Lyrics;
         if (a.PollIntervalSeconds != b.PollIntervalSeconds) r |= CentralChanges.Poll;
+        if (a.PillVolume != b.PillVolume || a.PillBrightness != b.PillBrightness || a.PillNotifications != b.PillNotifications || a.PillHudSeconds != b.PillHudSeconds
+            || a.PillNotifySeconds != b.PillNotifySeconds || a.PillAnimations != b.PillAnimations) r |= CentralChanges.Pill;
         return r;
     }
 

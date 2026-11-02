@@ -27,7 +27,6 @@ public sealed partial class NotchWindow : Window
     private const int CollapsedIdleWidth = 180;
     private const int CollapsedTrackWidth = 300;
     private const int ToastWidth = 340;
-    private const int ToastMs = 3200;
 
     private static readonly Random Rng = new();
 
@@ -44,16 +43,14 @@ public sealed partial class NotchWindow : Window
     private DateTime _infoAtUtc;
     private bool _expanded;
     private bool _hasTrack;
-    private bool _toasting;
     private string? _lastTitle;
     private string? _lastArtist;
-    private readonly DispatcherQueueTimer _toastTimer;
 
     public NotchWindow(NotchViewModel viewModel)
     {
         _viewModel = viewModel;
         InitializeComponent();
-        CollapsedBar.Height = CollapsedHeight; ToastBar.Height = CollapsedHeight;   // the XAML says 32; inside WinMac it matches the bar
+        CollapsedBar.Height = CollapsedHeight; ToastBar.Height = CollapsedHeight; HudBar.Height = CollapsedHeight;   // the XAML says 32; inside WinMac it matches the bar
         _eqBars = [Eq0, Eq1, Eq2, Eq3];
         _musicEqBars = [XEq0, XEq1, XEq2, XEq3];
 
@@ -93,10 +90,9 @@ public sealed partial class NotchWindow : Window
         _uiTimer.Tick += (_, _) => OnUiTick();
         _uiTimer.Start();
 
-        _toastTimer = DispatcherQueue.CreateTimer();
-        _toastTimer.Interval = TimeSpan.FromMilliseconds(ToastMs);
-        _toastTimer.IsRepeating = false;
-        _toastTimer.Tick += (_, _) => EndToast();
+        _pillTimer = DispatcherQueue.CreateTimer();
+        _pillTimer.IsRepeating = false;
+        _pillTimer.Tick += (_, _) => _pill.Tick();
 
         _hoverTimer = DispatcherQueue.CreateTimer();
         _hoverTimer.Interval = TimeSpan.FromMilliseconds(1100);
@@ -111,6 +107,7 @@ public sealed partial class NotchWindow : Window
 
         RebuildAgents();
         InitSections();
+        InitPill();
         _ = UpdateNowPlayingUiAsync(_viewModel.NowPlaying);
 
         Closed += (_, _) => Detach();
@@ -147,7 +144,7 @@ public sealed partial class NotchWindow : Window
         _viewModel.Clipboard.Changed -= OnClipboardChanged;
 
         _uiTimer.Stop();
-        _toastTimer.Stop();
+        DetachPill();
         _hoverTimer.Stop();
         _glassSaveTimer.Stop();
         StopCamera();
@@ -201,9 +198,10 @@ public sealed partial class NotchWindow : Window
         if (expanded)
         {
             _controller?.BringToFront();
-            _toastTimer.Stop();
-            _toasting = false;
-            ToastBar.Visibility = Visibility.Collapsed;
+            _pill.SetPaused(true);   // the pill's transient content waits (notifications) or is dropped (indicators) while the notch is open
+            HidePillBars();
+            _shownPill = null;
+            _pillTimer.Stop();
             CollapsedBar.Visibility = Visibility.Collapsed;
             ExpandedPanel.Visibility = Visibility.Visible;
             _customizing = false;
@@ -221,6 +219,7 @@ public sealed partial class NotchWindow : Window
                 {
                     ExpandedPanel.Visibility = Visibility.Collapsed;
                     CollapsedBar.Visibility = Visibility.Visible;
+                    _pill.SetPaused(false);   // a notification that arrived while open is shown now
                 }
             });
         }
@@ -240,7 +239,7 @@ public sealed partial class NotchWindow : Window
         RootGrid.Background = barLook ? new SolidColorBrush(Microsoft.UI.Colors.Transparent) : _rootBrush;
         GlassHighlight.Visibility = barLook ? Visibility.Collapsed : Visibility.Visible;
         BarShade.Visibility = barLook ? Visibility.Visible : Visibility.Collapsed;
-        double r = _expanded ? 20 : NotchWin.Core.Notch.NotchPlacement.CornerRadiusDip(CollapsedHeight), s = NotchWin.Core.Notch.NotchPlacement.ShoulderDip;
+        double r = _expanded ? 20 : NotchWin.Core.Notch.NotchPlacement.CornerRadiusDip(Math.Max(CollapsedHeight, PillSize().Height)), s = NotchWin.Core.Notch.NotchPlacement.ShoulderDip;
         GlassRim.CornerRadius = new CornerRadius(0, 0, r, r);
         GlassRim.Margin = new Thickness(s, -1, s, 0);   // the body sits between the shoulders; -1 hides the rim's top edge against the screen edge
         BarShade.Margin = new Thickness(s + r / 2, 0, s + r / 2, 0);
@@ -275,13 +274,14 @@ public sealed partial class NotchWindow : Window
         }
         else
         {
-            width = _toasting ? ToastWidth
+            var (pw, ph) = PillSize();
+            width = pw > 0 ? pw
                 : _pillLyrics ? _pillWidth
                 : _hasTrack || _viewModel.Timer.IsRunning ? CollapsedTrackWidth : CollapsedIdleWidth;
-            height = CollapsedHeight;
+            height = ph > 0 ? ph : CollapsedHeight;
         }
 
-        if (animate)
+        if (animate && _viewModel.PillAnimations)
         {
             _controller.AnimateTo(width, height, onCompleted);
         }
@@ -388,43 +388,7 @@ public sealed partial class NotchWindow : Window
         }
     }
 
-    private void ShowTrackToast(NowPlayingInfo info) => ShowToast(info.Title, info.Artist);
-
-    /// <summary>Widens the collapsed pill for a few seconds; <paramref name="art"/> keeps the current cover when null.</summary>
-    private void ShowToast(string title, string subtitle, Brush? art = null)
-    {
-        ToastTitle.Text = title;
-        ToastArtist.Text = subtitle;
-        if (art is not null)
-        {
-            ToastArt.Background = art;
-        }
-
-        _toasting = true;
-        CollapsedBar.Visibility = Visibility.Collapsed;
-        ToastBar.Visibility = Visibility.Visible;
-        ApplyLayout(animate: true);
-
-        _toastTimer.Stop();
-        _toastTimer.Start();
-    }
-
-    private void EndToast()
-    {
-        _toastTimer.Stop();
-        if (!_toasting)
-        {
-            return;
-        }
-
-        _toasting = false;
-        ToastBar.Visibility = Visibility.Collapsed;
-        if (!_expanded)
-        {
-            CollapsedBar.Visibility = Visibility.Visible;
-            ApplyLayout(animate: true);
-        }
-    }
+    private void ShowTrackToast(NowPlayingInfo info) => _pill.Post(new NotchWin.Core.Pill.PillItem(NotchWin.Core.Pill.PillKind.Track, info.Title, info.Artist));
 
     private static void SetArt(Border target, ImageSource? source, FontIcon? placeholder)
     {

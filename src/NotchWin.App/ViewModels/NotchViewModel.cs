@@ -7,6 +7,8 @@ using NotchWin.Core.Downloads;
 using NotchWin.Core.Lyrics;
 using NotchWin.Core.Models;
 using NotchWin.Core.Notifications;
+using NotchWin.Core.Pill;
+using NotchWin.Core.Hosting;
 using NotchWin.Core.Settings;
 using NotchWin.Core.Timers;
 using NotchWin.Core.Music;
@@ -98,6 +100,27 @@ public sealed class NotchViewModel : ObservableObject
 
     /// <summary>Set once the music module starts; null while it's disabled (the player shows no controls then).</summary>
     public IMediaControls? MediaControls { get; set; }
+
+    /// <summary>Priorities and durations of what the collapsed notch shows for a moment; every notch window has its own arbiter built on it.</summary>
+    public PillPolicy PillPolicy { get; private set; } = PillPolicy.FromSettings();
+
+    /// <summary>False: the pill changes size at once instead of animating (setting «Animaciones»).</summary>
+    public bool PillAnimations { get; private set; } = true;
+
+    /// <summary>Raised after <see cref="PillPolicy"/> or <see cref="PillAnimations"/> changed.</summary>
+    public event Action? PillPolicyChanged;
+
+    /// <summary>Something to show for a moment in the collapsed notch (volume, brightness, a Windows notification). Every notch window decides with its arbiter.</summary>
+    public event Action<PillItem>? PillPosted;
+
+    public void PostPill(PillItem item) => PillPosted?.Invoke(item);
+
+    public void ApplyPill(CentralSettings c)
+    {
+        PillPolicy = c.PillPolicy();
+        PillAnimations = c.PillAnimations;
+        PillPolicyChanged?.Invoke();
+    }
 
     public ObservableCollection<AgentUsageSnapshot> AgentSnapshots { get; } = [];
 

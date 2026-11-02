@@ -75,6 +75,10 @@ public partial class App : Application
             OpenPlayer = OpenPlayer,
             History = new UsageHistory(Path.Combine(Path.GetDirectoryName(_settingsStore.FilePath) ?? ".", "usage-history.json")),
         };
+        if (_central is not null)
+        {
+            _viewModel.ApplyPill(_central);
+        }
         // One notch per monitor, all sharing the same view model.
         var dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         _uiQueue = dispatcherQueue;
@@ -577,6 +581,8 @@ public partial class App : Application
             _firstCentralArrived.Set();
             _uiQueue?.TryEnqueue(() => ApplyCentral(central));
         };
+        // Volume, brightness and Windows notifications relayed by WinMac's top bar: shown for a moment in the collapsed notch (see PillArbiter).
+        _hosted.PillReceived += item => _uiQueue?.TryEnqueue(() => _viewModel?.PostPill(item));
         _hosted.Start();
 
         if (_firstCentralArrived.Wait(TimeSpan.FromSeconds(1.5)) && _firstCentral is { } first)
@@ -584,7 +590,7 @@ public partial class App : Application
             first.ApplyTo(_settings);
         }
 
-        _central = CentralSettings.From(_settings);
+        _central = _firstCentral ?? CentralSettings.From(_settings);   // the first message also carries the pill options, which have no local counterpart
     }
 
     /// <summary>Answers WinMac's heartbeat only while the UI thread is actually processing messages, so a hung notch gets restarted.</summary>
@@ -615,6 +621,11 @@ public partial class App : Application
         }
 
         next.ApplyTo(_settings);
+
+        if (changes.HasFlag(CentralChanges.Pill))
+        {
+            _viewModel.ApplyPill(next);
+        }
 
         if (changes.HasFlag(CentralChanges.Sections))
         {

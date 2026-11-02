@@ -419,7 +419,7 @@ public sealed partial class NotchWindow
             return;
         }
 
-        ShowToast(n.Title, n.Source, new SolidColorBrush(ColorForSource(n.Source)));
+        _pill.Post(new NotchWin.Core.Pill.PillItem(NotchWin.Core.Pill.PillKind.Activity, n.Title, n.Source) { App = n.Source });
     }
 
     // ---------- customize ----------

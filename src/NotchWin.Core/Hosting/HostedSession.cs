@@ -17,6 +17,7 @@ public sealed class HostedSession : IAsyncDisposable
         _link.ShutdownRequested += () => ShutdownRequested?.Invoke();
         _link.Subscribe(CentralSettings.Topic, OnCentral);
         _link.Subscribe(CentralSettings.CommandTopic, OnCommand);
+        _link.Subscribe(Pill.PillFeed.Topic, OnFeed);
     }
 
     /// <summary>Null when not started by the host (no <c>--hosted</c>, no pipe or no token).</summary>
@@ -28,6 +29,9 @@ public sealed class HostedSession : IAsyncDisposable
 
     /// <summary>The host's settings arrived (on connect and after every change). Raised on a worker thread.</summary>
     public event Action<CentralSettings>? CentralReceived;
+
+    /// <summary>WinMac's top bar relayed a volume/brightness change or a Windows notification for the collapsed notch. Raised on a worker thread.</summary>
+    public event Action<Pill.PillItem>? PillReceived;
 
     /// <summary>The host asks to open NotchWin's own window for the local data (folders, calendar file). Raised on a worker thread.</summary>
     public event Action? OpenLocalSettingsRequested;
@@ -60,6 +64,14 @@ public sealed class HostedSession : IAsyncDisposable
         if (data is { } d && CentralSettings.FromJson(d) is { } c)
         {
             CentralReceived?.Invoke(c);
+        }
+    }
+
+    private void OnFeed(JsonElement? data)
+    {
+        if (data is { } d && Pill.PillFeed.Parse(d) is { } item)
+        {
+            PillReceived?.Invoke(item);
         }
     }
 
