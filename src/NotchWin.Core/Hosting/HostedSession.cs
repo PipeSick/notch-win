@@ -37,8 +37,8 @@ public sealed class HostedSession : IAsyncDisposable
     /// <summary>(entry id, "copy" | "plain" | "delete"). Raised on a worker thread.</summary>
     public event Action<Guid, string>? ClipAction;
 
-    public void SendClipResults(long req, bool enabled, IEnumerable<Clipboard.ClipboardQuery.Item> items) =>
-        _link.Event(ClipResultsTopic, new { req, enabled, items = items.Select(i => new { id = i.Id, kind = i.Kind, preview = i.Preview, pinned = i.Pinned, at = i.At }).ToArray() });
+    public void SendClipResults(long req, bool enabled, IEnumerable<Clipboard.ClipboardQuery.Item> items, int total = -1) =>
+        _link.Event(ClipResultsTopic, new { req, enabled, total, items = items.Select(i => new { id = i.Id, kind = i.Kind, preview = i.Preview, pinned = i.Pinned, at = i.At }).ToArray() });
 
     private static long? Num(JsonElement e, string n) => e.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out long x) ? x : null;
 
