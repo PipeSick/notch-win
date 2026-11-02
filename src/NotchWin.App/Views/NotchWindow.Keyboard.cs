@@ -31,8 +31,9 @@ public sealed partial class NotchWindow
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             var ex = (uint)NativeMethods.GetWindowLongPtrW(hwnd, NativeMethods.GWL_EXSTYLE).ToInt64();
             NativeMethods.SetWindowLongPtrW(hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(ex & ~NativeMethods.WS_EX_NOACTIVATE));
-            NativeMethods.SetForegroundWindow(hwnd);   // allowed: this process just received the user's click
+            bool fg = NativeMethods.SetForegroundWindow(hwnd);   // allowed: this process just received the user's click
             _keyboardOn = true;
+            SelfTestKey("activado primer-plano=" + fg);
             DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => FocusActiveTab(FocusState.Programmatic));
         }
         catch (Exception) { }
