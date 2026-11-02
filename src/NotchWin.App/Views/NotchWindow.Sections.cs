@@ -13,8 +13,9 @@ public sealed partial class NotchWindow
 {
     private static readonly Color Dim = Color.FromArgb(255, 0x8E, 0x8E, 0x93);
     private static readonly Color Faint = Color.FromArgb(255, 0x63, 0x63, 0x66);
-    private static readonly Color Card = Color.FromArgb(255, 0x12, 0x12, 0x14);
-    private static readonly Color TabOn = Color.FromArgb(255, 0x2A, 0x2A, 0x2D);
+    // Glass layers (translucent white over the glass, Liquid Glass style) instead of near-black solid cards.
+    private static readonly Color Card = Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF);
+    private static readonly Color TabOn = Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF);
 
     private string _active = NotchSections.Music;
     private bool _customizing;

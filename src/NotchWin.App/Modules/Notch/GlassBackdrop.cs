@@ -79,11 +79,12 @@ internal sealed class GlassBackdrop : SystemBackdrop
             return;
         }
 
-        _controller.TintColor = Colors.Black;
-        _controller.FallbackColor = Colors.Black;
-        // Never fully clear: at the low end the blurred wallpaper (or a white window) washes out the white
-        // icons and text, so the glass keeps a dark floor and the slider only moves it from there.
-        _controller.TintOpacity = (float)(0.45 + 0.55 * _level);
-        _controller.LuminosityOpacity = (float)(0.4 + 0.6 * _level);
+        // Liquid Glass approximation: a neutral graphite tint (not black) that lets the live blur of what is behind show through. The slider follows a curve: the default
+        // (0.6) is clearly glass (tint ≈ 38 %), the top end still reaches an almost solid surface. Before, even the lowest setting was 45 % black plus a 30 % black scrim.
+        var t = _level * _level;
+        _controller.TintColor = Microsoft.UI.ColorHelper.FromArgb(255, 24, 24, 28);
+        _controller.FallbackColor = Microsoft.UI.ColorHelper.FromArgb(255, 30, 30, 34);
+        _controller.TintOpacity = (float)(0.08 + 0.82 * t);
+        _controller.LuminosityOpacity = (float)(0.12 + 0.78 * t);
     }
 }
