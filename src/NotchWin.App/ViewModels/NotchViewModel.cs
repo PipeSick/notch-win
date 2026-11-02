@@ -131,6 +131,12 @@ public sealed class NotchViewModel : ObservableObject
     /// <summary>A new screenshot arrived: the gallery reloads.</summary>
     public event Action? CapturesChanged;
 
+    /// <summary>Opens a capture in WinMac's editor; null outside WinMac (the action is then not shown).</summary>
+    public Action<string>? EditCapture { get; set; }
+
+    /// <summary>Opens the full capture gallery window.</summary>
+    public Action? OpenGallery { get; set; }
+
     public void RaiseCapturesChanged() => CapturesChanged?.Invoke();
 
     public ObservableCollection<AgentUsageSnapshot> AgentSnapshots { get; } = [];

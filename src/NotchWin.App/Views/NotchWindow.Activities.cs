@@ -178,11 +178,11 @@ public sealed partial class NotchWindow
         Grid.SetColumn(text, 1); row.Children.Add(text);
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
-        var supported = ActivityActions.Supported(a);
+        var supported = ActivityActions.Supported(a, canEdit: _viewModel.EditCapture is not null);
         foreach (var (flag, glyph, tip) in new (ActivityAction, string, string)[]
         {
             (ActivityAction.PlayPause, "", "Reproducir o pausar"), (ActivityAction.Next, "", "Siguiente"),
-            (ActivityAction.Open, "", "Abrir"), (ActivityAction.ShowInFolder, "", "Mostrar en la carpeta"), (ActivityAction.Copy, "", "Copiar"),
+            (ActivityAction.Open, "", "Abrir"), (ActivityAction.ShowInFolder, "", "Mostrar en la carpeta"), (ActivityAction.Edit, "\uE70F", "Editar en WinMac"), (ActivityAction.Copy, "", "Copiar"),
             (ActivityAction.Delete, "", "Eliminar (a la Papelera)"), (ActivityAction.RemoveFromHistory, "", "Quitar del historial"),
         })
         {
@@ -236,17 +236,24 @@ public sealed partial class NotchWindow
             CapturesGrid.Children.Add(tile);
         }
 
+        CapturesAll.Visibility = _viewModel.OpenGallery is null ? Visibility.Collapsed : Visibility.Visible;
+        if (!string.IsNullOrEmpty(SelfTestPath)) DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, SelfTestLogTabs);
         CaptureActions.Children.Clear();
         CaptureActions.Visibility = _selectedCapture is null ? Visibility.Collapsed : Visibility.Visible;
         if (_selectedCapture is not { } chosen) return;
         var act = new Activity("gallery:" + chosen, ActivityKind.Capture, Path.GetFileName(chosen)) { Path = chosen, State = ActivityState.Completed };
-        foreach (var (flag, text) in new[] { (ActivityAction.Open, "Abrir"), (ActivityAction.Copy, "Copiar"), (ActivityAction.ShowInFolder, "Mostrar en carpeta"), (ActivityAction.Delete, "Eliminar") })
+        var galleryActions = new List<(ActivityAction, string)> { (ActivityAction.Open, "Abrir") };
+        if (_viewModel.EditCapture is not null) galleryActions.Add((ActivityAction.Edit, "Editar"));
+        galleryActions.AddRange([(ActivityAction.Copy, "Copiar"), (ActivityAction.ShowInFolder, "Mostrar en carpeta"), (ActivityAction.Delete, "Eliminar")]);
+        foreach (var (flag, text) in galleryActions)
         {
             var b = new Button { Content = text, FontSize = 12, Padding = new Thickness(12, 4, 12, 5), CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(Color.FromArgb(0x26, 255, 255, 255)), BorderThickness = new Thickness(0) };
             b.Click += async (_, _) => { await RunAction(act, flag); if (flag == ActivityAction.Delete) { _selectedCapture = null; RebuildCaptures(); RelayoutIfExpanded(); } };
             CaptureActions.Children.Add(b);
         }
     }
+
+    private void OnCapturesAll(object sender, RoutedEventArgs e) => _viewModel.OpenGallery?.Invoke();
 
     /// <summary>Thumbnail decoded at the size it is drawn (never the full image in memory).</summary>
     private static Brush Thumbnail(string path, int decodeWidth)
@@ -275,6 +282,7 @@ public sealed partial class NotchWindow
                     await f.DeleteAsync(Windows.Storage.StorageDeleteOption.Default);   // to the Recycle Bin, never permanently
                     _viewModel.Activities.Remove(a.Id);
                     break;
+                case ActivityAction.Edit when a.Path is { } p && File.Exists(p) && _viewModel.EditCapture is { } edit: edit(p); break;
                 case ActivityAction.RemoveFromHistory: _viewModel.Activities.Remove(a.Id); break;
                 case ActivityAction.PlayPause when _viewModel.MediaControls is { } m: await m.TogglePlayPauseAsync(); break;
                 case ActivityAction.Next when _viewModel.MediaControls is { } m: await m.NextAsync(); break;
@@ -302,7 +310,19 @@ public sealed partial class NotchWindow
                 int col = Grid.GetColumn(btn); var c = btn.TransformToVisual(null).TransformPoint(new Point(btn.ActualWidth / 2, btn.ActualHeight / 2));
                 return col < ids.Count ? $"{ids[col]}@{win.X + (int)(c.X * scale)},{win.Y + (int)(c.Y * scale)}" : "";
             });
-            File.AppendAllText(SelfTestPath!, $"{DateTime.UtcNow:HH:mm:ss.fff} tabs {string.Join(" ", parts)} active={_active}{Environment.NewLine}");
+            string extra = "";
+            if (CapturesAll.Visibility == Visibility.Visible && CapturesPane.Visibility == Visibility.Visible && CapturesAll.ActualWidth > 0)
+            {
+                var g = CapturesAll.TransformToVisual(null).TransformPoint(new Point(CapturesAll.ActualWidth / 2, CapturesAll.ActualHeight / 2));
+                extra = $" gallery@{win.X + (int)(g.X * scale)},{win.Y + (int)(g.Y * scale)}";
+            }
+            foreach (var b in CaptureActions.Children.OfType<Button>())
+                if (b.Content is string label && b.ActualWidth > 0)
+                {
+                    var c = b.TransformToVisual(null).TransformPoint(new Point(b.ActualWidth / 2, b.ActualHeight / 2));
+                    extra += $" capaction:{label.Replace(' ', '_')}@{win.X + (int)(c.X * scale)},{win.Y + (int)(c.Y * scale)}";
+                }
+            File.AppendAllText(SelfTestPath!, $"{DateTime.UtcNow:HH:mm:ss.fff} tabs {string.Join(" ", parts)} active={_active}{extra}{Environment.NewLine}");
         }
         catch (Exception) { }
     }

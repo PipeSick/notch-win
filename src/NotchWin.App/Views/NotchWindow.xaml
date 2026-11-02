@@ -389,6 +389,10 @@
                 <StackPanel x:Name="CapturesPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top">
                     <TextBlock x:Name="CapturesEmpty" Foreground="#8E8E93" FontSize="12.5" TextWrapping="Wrap" Margin="0,24,0,0" HorizontalAlignment="Center" TextAlignment="Center"
                                Text="Todavía no hay capturas. Las de Windows (Win+Impr Pant) aparecerán aquí." />
+                    <Grid>
+                        <TextBlock Text="RECIENTES" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" VerticalAlignment="Center" />
+                        <Button x:Name="CapturesAll" Click="OnCapturesAll" HorizontalAlignment="Right" Padding="8,2" FontSize="11" Background="#1FFFFFFF" BorderThickness="0" CornerRadius="6" Content="Ver todas" ToolTipService.ToolTip="Abrir la galería completa: buscar, ordenar, renombrar, editar" />
+                    </Grid>
                     <VariableSizedWrapGrid x:Name="CapturesGrid" Orientation="Horizontal" MaximumRowsOrColumns="3" ItemWidth="158" ItemHeight="118" HorizontalAlignment="Center" />
                     <StackPanel x:Name="CaptureActions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Visibility="Collapsed" />
                 </StackPanel>

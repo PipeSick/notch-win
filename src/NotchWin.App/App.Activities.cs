@@ -15,16 +15,43 @@ public partial class App
     private void InitActivities()
     {
         if (_viewModel is null) return;
-        var folder = CaptureLibrary.DefaultFolder();
+        _viewModel.OpenGallery = OpenGallery;
+        if (_hosted is { } h) _viewModel.EditCapture = path => h.RequestEdit(path);
+        SetCaptureFolder(_configuredCaptureFolder);
+    }
+
+    /// <summary>Watches the capture folder (WinMac's configured one, or Windows' default). Changing it moves the gallery and the watcher; nothing is copied or deleted.</summary>
+    private string? _configuredCaptureFolder;
+
+    private void SetCaptureFolder(string? configured)
+    {
+        _configuredCaptureFolder = configured;
+        if (_viewModel is null) return;
+        var folder = string.IsNullOrWhiteSpace(configured) ? CaptureLibrary.DefaultFolder() : configured!;
+        if (_captureWatcher is not null && string.Equals(_viewModel.CaptureFolder, folder, StringComparison.OrdinalIgnoreCase)) return;
+        _captureWatcher?.Dispose(); _captureWatcher = null;
         _viewModel.CaptureFolder = folder;
         try
         {
-            Directory.CreateDirectory(folder);   // the folder Windows itself uses for Win+PrtScn; creating it (empty) changes nothing else
+            Directory.CreateDirectory(folder);   // the folder Windows itself uses for Win+PrtScn (or the one chosen in WinMac); creating it (empty) changes nothing else
             _captureWatcher = new FileSystemWatcher(folder) { NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite, EnableRaisingEvents = true };
             _captureWatcher.Created += (_, e) => _uiQueue?.TryEnqueue(() => OnCaptureSaved(e.FullPath));
-            _captureWatcher.Renamed += (_, e) => _uiQueue?.TryEnqueue(() => OnCaptureSaved(e.FullPath));
+            _captureWatcher.Renamed += (_, e) => _uiQueue?.TryEnqueue(() => { OnCaptureSaved(e.FullPath); _viewModel?.RaiseCapturesChanged(); });
+            _captureWatcher.Deleted += (_, _) => _uiQueue?.TryEnqueue(() => _viewModel?.RaiseCapturesChanged());
         }
         catch (Exception) { /* no capture folder: the gallery shows its empty state */ }
+        _viewModel.RaiseCapturesChanged();
+    }
+
+    private Views.GalleryWindow? _gallery;
+
+    private void OpenGallery()
+    {
+        if (_viewModel is null) return;
+        if (_gallery is not null) { _gallery.Activate(); return; }
+        _gallery = new Views.GalleryWindow(_viewModel);
+        _gallery.Closed += (_, _) => _gallery = null;
+        _gallery.Activate();
     }
 
     private readonly HashSet<string> _announcedCaptures = new(StringComparer.OrdinalIgnoreCase);

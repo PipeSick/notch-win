@@ -26,6 +26,63 @@ public static class CaptureLibrary
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
     }
 
+    /// <summary>Gallery sort orders.</summary>
+    public enum Sort { Newest, Oldest, Name, Largest }
+
+    /// <summary>All images of the folder (metadata only), filtered by a text in the name (case/accents ignored) and sorted.</summary>
+    public static IReadOnlyList<CaptureFile> Query(string folder, string? filter, Sort sort, int max = 500)
+    {
+        var all = List(folder, int.MaxValue);
+        IEnumerable<CaptureFile> q = all;
+        if (!string.IsNullOrWhiteSpace(filter))
+        {
+            var f = Fold(filter.Trim());
+            q = q.Where(c => Fold(c.Name).Contains(f, StringComparison.Ordinal));
+        }
+
+        q = sort switch
+        {
+            Sort.Oldest => q.OrderBy(c => c.ModifiedUtc),
+            Sort.Name => q.OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase),
+            Sort.Largest => q.OrderByDescending(c => c.Bytes),
+            _ => q.OrderByDescending(c => c.ModifiedUtc),
+        };
+        return q.Take(Math.Max(1, max)).ToList();
+    }
+
+    private static string Fold(string s)
+    {
+        var d = s.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        return new string(d.Where(ch => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+    }
+
+    /// <summary>
+    /// Validates a new name for a capture: same folder, no path, no characters Windows forbids, the original extension kept (added if missing),
+    /// and never over an existing file. Returns the new full path, or null with the reason.
+    /// </summary>
+    public static (string? Path, string? Error) RenameTarget(string original, string newName, Func<string, bool> exists)
+    {
+        var name = (newName ?? "").Trim().TrimEnd('.');
+        if (name.Length == 0) return (null, "Escribe un nombre");
+        if (name.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0 || name.IndexOfAny(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) >= 0) return (null, "El nombre tiene caracteres no permitidos");
+        var stem = System.IO.Path.GetFileNameWithoutExtension(name).ToUpperInvariant();
+        if (stem is "CON" or "PRN" or "AUX" or "NUL" || (stem.Length == 4 && (stem.StartsWith("COM") || stem.StartsWith("LPT")) && char.IsDigit(stem[3]))) return (null, "Ese nombre está reservado por Windows");
+        var ext = System.IO.Path.GetExtension(original);
+        if (!name.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) name += ext;
+        if (name.Length > 200) return (null, "El nombre es demasiado largo");
+        var target = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(original) ?? "", name);
+        if (string.Equals(target, original, StringComparison.OrdinalIgnoreCase)) return (null, null);
+        if (exists(target)) return (null, "Ya existe un archivo con ese nombre");
+        return (target, null);
+    }
+
+    public static string Size(long bytes) => bytes switch
+    {
+        < 1024 => bytes + " B",
+        < 1024 * 1024 => (bytes / 1024.0).ToString("0", System.Globalization.CultureInfo.GetCultureInfo("es-ES")) + " KB",
+        _ => (bytes / 1048576.0).ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("es-ES")) + " MB",
+    };
+
     /// <summary>«Hoy 14:36», «Ayer 20:17» or «24 ene 13:55», like the mockup.</summary>
     public static string When(DateTime localTime, DateTime localNow)
     {

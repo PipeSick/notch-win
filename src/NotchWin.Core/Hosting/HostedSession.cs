@@ -19,7 +19,29 @@ public sealed class HostedSession : IAsyncDisposable
         _link.Subscribe(CentralSettings.CommandTopic, OnCommand);
         _link.Subscribe(Pill.PillFeed.Topic, OnFeed);
         _link.Subscribe(Activities.ActivityFeed.Topic, OnActivity);
+        _link.Subscribe(BarTopic, OnBar);
     }
+
+    /// <summary>The bar's settings (retained). The Island only reads the capture folder from them, so its gallery shows where WinMac saves.</summary>
+    public const string BarTopic = "config.bar", EditTopic = "capture.edit";
+
+    /// <summary>The capture folder WinMac's bar saves to (null = Windows' default «Pictures\Screenshots»). Raised on a worker thread.</summary>
+    public event Action<string?>? CaptureFolderReceived;
+
+    /// <summary>Asks WinMac's bar to open its capture editor on this file (the bar validates it again).</summary>
+    public void RequestEdit(string path) => _link.Event(EditTopic, new { path });
+
+    private void OnBar(JsonElement? data)
+    {
+        if (data is { ValueKind: JsonValueKind.Object } d)
+        {
+            CaptureFolderReceived?.Invoke(ParseCaptureFolder(d));
+        }
+    }
+
+    /// <summary>Only an absolute folder path is accepted; anything else means the default folder.</summary>
+    public static string? ParseCaptureFolder(JsonElement bar) =>
+        bar.TryGetProperty("captureFolder", out var v) && v.ValueKind == JsonValueKind.String && v.GetString() is { Length: > 0 } f && System.IO.Path.IsPathFullyQualified(f.Trim()) ? f.Trim() : null;
 
     /// <summary>Null when not started by the host (no <c>--hosted</c>, no pipe or no token).</summary>
     public static HostedSession? FromArgs(string[] args, string version = "0")

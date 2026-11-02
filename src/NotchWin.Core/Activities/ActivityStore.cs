@@ -20,6 +20,8 @@ public enum ActivityAction
     Resume = 256,
     Cancel = 512,
     RemoveFromHistory = 1024,
+    /// <summary>Open the capture in WinMac's editor (only inside WinMac: the editor lives in its bar process).</summary>
+    Edit = 2048,
 }
 
 /// <summary>When it ends: keep it in the history (downloads, captures) or just drop it (a song that stopped).</summary>
@@ -60,7 +62,7 @@ public static class ActivityActions
     /// Actions the Island really implements per kind (and per state). Anything else an activity asks for is NOT shown: no decorative buttons.
     /// Pausing/resuming/cancelling a browser download has no universal Windows API, so downloads only get open / show in folder once finished.
     /// </summary>
-    public static ActivityAction Supported(Activity a)
+    public static ActivityAction Supported(Activity a, bool canEdit = false)
     {
         var s = a.Kind switch
         {
@@ -69,8 +71,9 @@ public static class ActivityActions
             ActivityKind.Media when !a.IsTest => ActivityAction.PlayPause | ActivityAction.Next | ActivityAction.Previous,
             _ => ActivityAction.None,
         };
+        if (canEdit && a.Kind == ActivityKind.Capture && a.Path is not null) s |= ActivityAction.Edit;
         if (a.IsFinished) s |= ActivityAction.RemoveFromHistory;
-        return a.Actions == ActivityAction.None ? s : s & (a.Actions | ActivityAction.RemoveFromHistory);
+        return a.Actions == ActivityAction.None ? s : s & (a.Actions | ActivityAction.RemoveFromHistory | ActivityAction.Edit);
     }
 }
 
