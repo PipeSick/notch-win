@@ -312,6 +312,11 @@ public sealed partial class NotchWindow
                 return col < ids.Count ? $"{ids[col]}@{win.X + (int)(c.X * scale)},{win.Y + (int)(c.Y * scale)}" : "";
             });
             string extra = "";
+            if (CollapseButton.ActualWidth > 0)
+            {
+                var k = CollapseButton.TransformToVisual(null).TransformPoint(new Point(CollapseButton.ActualWidth / 2, CollapseButton.ActualHeight / 2));
+                extra += $" collapse@{win.X + (int)(k.X * scale)},{win.Y + (int)(k.Y * scale)}";
+            }
             if (CapturesAll.Visibility == Visibility.Visible && CapturesPane.Visibility == Visibility.Visible && CapturesAll.ActualWidth > 0)
             {
                 var g = CapturesAll.TransformToVisual(null).TransformPoint(new Point(CapturesAll.ActualWidth / 2, CapturesAll.ActualHeight / 2));

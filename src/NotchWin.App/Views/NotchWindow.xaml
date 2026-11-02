@@ -109,7 +109,7 @@
                             CornerRadius="8" ToolTipService.ToolTip="Personalizar secciones">
                         <FontIcon x:Name="GearIcon" Glyph="&#xE713;" FontSize="13" Foreground="#8E8E93" />
                     </Button>
-                    <Button Click="OnCollapseClicked" Background="Transparent" BorderThickness="0" Padding="0" Width="26" Height="26"
+                    <Button x:Name="CollapseButton" Click="OnCollapseClicked" Background="Transparent" BorderThickness="0" Padding="0" Width="26" Height="26"
                             CornerRadius="8" ToolTipService.ToolTip="Cerrar">
                         <FontIcon Glyph="&#xE70E;" FontSize="10" Foreground="#8E8E93" />
                     </Button>
