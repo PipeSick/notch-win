@@ -1,4 +1,7 @@
-using System.Diagnostics;
+using Process = System.Diagnostics.Process;
+using ProcessStartInfo = System.Diagnostics.ProcessStartInfo;
+using Activity = NotchWin.Core.Activities.Activity;
+using ActivityKind = NotchWin.Core.Activities.ActivityKind;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
