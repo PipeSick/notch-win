@@ -46,6 +46,10 @@ public sealed partial class NotchWindow
         ClipboardEmpty.Text = string.IsNullOrWhiteSpace(ClipSearch.Text)
             ? "Aquí aparecerá lo que copies mientras NotchWin esté abierto"
             : "Nada coincide con la búsqueda";
+        if (_viewModel.Clipboard.Skipped > 0)
+        {
+            ClipboardEmpty.Text += $"\n{_viewModel.Clipboard.Skipped} copia(s) parecían contraseñas o claves y no se guardaron.";
+        }
 
         foreach (var item in items)
         {

@@ -48,6 +48,14 @@ public sealed class ClipboardWatcher(ClipboardHistory history, DispatcherQueue u
         try
         {
             var view = Windows.ApplicationModel.DataTransfer.Clipboard.GetContent();
+            // Apps that copy passwords mark their data so clipboard managers skip it (documented formats); and the user's excluded apps.
+            if (view.AvailableFormats.Any(f => f is "ExcludeClipboardContentFromMonitorProcessing" or "Clipboard Viewer Ignore")
+                || (view.Contains("CanIncludeInClipboardHistory") && await IsZeroAsync(view, "CanIncludeInClipboardHistory"))
+                || history.Options.IsExcluded(OwnerProcess()))
+            {
+                return;
+            }
+
             if (view.Contains(StandardDataFormats.Text))
             {
                 history.AddText(await view.GetTextAsync(), DateTimeOffset.Now);
@@ -66,6 +74,34 @@ public sealed class ClipboardWatcher(ClipboardHistory history, DispatcherQueue u
             // The clipboard is locked by the app that is still writing to it, or holds something unreadable.
         }
     }
+
+    private static async Task<bool> IsZeroAsync(DataPackageView view, string format)
+    {
+        try
+        {
+            if (await view.GetDataAsync(format) is IRandomAccessStream s)
+            {
+                using var r = new DataReader(s.GetInputStreamAt(0)); await r.LoadAsync(4); return r.UnconsumedBufferLength >= 4 && r.ReadUInt32() == 0;
+            }
+        }
+        catch (Exception) { }
+        return false;
+    }
+
+    /// <summary>Process that owns the clipboard now (documented GetClipboardOwner); only its name is used, to honour the exclusion list.</summary>
+    private static string? OwnerProcess()
+    {
+        try
+        {
+            var w = GetClipboardOwner(); if (w == IntPtr.Zero) return null;
+            GetWindowThreadProcessId(w, out uint pid);
+            using var p = System.Diagnostics.Process.GetProcessById((int)pid); return p.ProcessName;
+        }
+        catch (Exception) { return null; }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetClipboardOwner();
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 
     private static async Task<byte[]?> ToPngAsync(RandomAccessStreamReference reference)
     {

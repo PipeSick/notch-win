@@ -18,6 +18,7 @@ public enum CentralChanges
     Lyrics = 64,
     Poll = 128,
     Pill = 256,
+    Clipboard = 512,
 }
 
 /// <summary>
@@ -47,6 +48,9 @@ public sealed class CentralSettings
     public int PillHudSeconds { get; set; } = 2;
     public int PillNotifySeconds { get; set; } = 5;
     public bool PillAnimations { get; set; } = true;
+
+    // Clipboard (docs/28): history size, optional encrypted persistence, secrets and excluded apps. Only meaningful inside WinMac.
+    public Clipboard.ClipboardOptions Clipboard { get; set; } = new();
 
     /// <summary>Priorities and durations of the collapsed notch for these settings.</summary>
     public Pill.PillPolicy PillPolicy() => Pill.PillPolicy.FromSettings(PillVolume, PillBrightness, PillNotifications, PillHudSeconds, PillNotifySeconds);
@@ -127,6 +131,12 @@ public sealed class CentralSettings
                 case "pillanimations" when IsBool(v): c.PillAnimations = v.GetBoolean(); break;
                 case "pillhudseconds" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var hs): c.PillHudSeconds = Math.Clamp(hs, 1, 10); break;
                 case "pillnotifyseconds" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var ns): c.PillNotifySeconds = Math.Clamp(ns, 2, 30); break;
+                case "clipboardlimit" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var cl): c.Clipboard = (c.Clipboard with { Limit = cl }).Sanitize(); break;
+                case "clipboardpersist" when IsBool(v): c.Clipboard = c.Clipboard with { Persist = v.GetBoolean() }; break;
+                case "clipboardskipsecrets" when IsBool(v): c.Clipboard = c.Clipboard with { SkipSecrets = v.GetBoolean() }; break;
+                case "clipboardexcludedapps" when v.ValueKind == JsonValueKind.Array:
+                    c.Clipboard = (c.Clipboard with { ExcludedApps = v.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!).ToList() }).Sanitize();
+                    break;
                 case "sections" when v.ValueKind == JsonValueKind.Array:
                     var list = new List<NotchSectionConfig>();
                     foreach (var item in v.EnumerateArray())
@@ -161,6 +171,8 @@ public sealed class CentralSettings
         if (a.PollIntervalSeconds != b.PollIntervalSeconds) r |= CentralChanges.Poll;
         if (a.PillVolume != b.PillVolume || a.PillBrightness != b.PillBrightness || a.PillNotifications != b.PillNotifications || a.PillHudSeconds != b.PillHudSeconds
             || a.PillNotifySeconds != b.PillNotifySeconds || a.PillAnimations != b.PillAnimations) r |= CentralChanges.Pill;
+        if (a.Clipboard.Limit != b.Clipboard.Limit || a.Clipboard.Persist != b.Clipboard.Persist || a.Clipboard.SkipSecrets != b.Clipboard.SkipSecrets
+            || !a.Clipboard.ExcludedApps.SequenceEqual(b.Clipboard.ExcludedApps, StringComparer.OrdinalIgnoreCase)) r |= CentralChanges.Clipboard;
         return r;
     }
 

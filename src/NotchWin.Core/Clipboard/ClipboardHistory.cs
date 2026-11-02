@@ -31,6 +31,27 @@ public sealed class ClipboardEntry
 public sealed class ClipboardHistory(int capacity = 50)
 {
     private readonly List<ClipboardEntry> _items = [];
+    private int _capacity = capacity;
+
+    /// <summary>Options from WinMac's settings: the limit applies at once; secrets are filtered on the way in.</summary>
+    public ClipboardOptions Options { get; private set; } = new ClipboardOptions { Limit = capacity };
+
+    /// <summary>Copies skipped for privacy since start (count only: their content is never kept or logged).</summary>
+    public int Skipped { get; private set; }
+
+    public void Configure(ClipboardOptions o) { Options = o.Sanitize(); _capacity = Options.Limit; TrimAndNotify(); }
+
+    /// <summary>Entries to restore from the encrypted file (oldest first is fine: order is by time).</summary>
+    public void Restore(IEnumerable<ClipboardEntry> entries)
+    {
+        foreach (var e in entries) if (!_items.Any(i => i.Kind == e.Kind && i.Text == e.Text && e.Kind == ClipboardItemKind.Text)) _items.Add(e);
+        TrimAndNotify();
+    }
+
+    public IReadOnlyList<ClipboardEntry> All => _items;
+
+    /// <summary>Removes everything, pinned included (the «Borrar todo» action).</summary>
+    public void ClearAll() { if (_items.Count > 0) { _items.Clear(); Changed?.Invoke(); } }
 
     public event Action? Changed;
 
@@ -40,6 +61,12 @@ public sealed class ClipboardHistory(int capacity = 50)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
+            return;
+        }
+
+        if (Options.SkipSecrets && SecretDetector.LooksSecret(text))
+        {
+            Skipped++;   // looks like a password, key or token: not kept
             return;
         }
 
@@ -131,7 +158,7 @@ public sealed class ClipboardHistory(int capacity = 50)
     private void TrimAndNotify()
     {
         var unpinned = _items.Where(i => !i.Pinned).ToList();
-        foreach (var extra in unpinned.Skip(capacity))
+        foreach (var extra in unpinned.Skip(_capacity))
         {
             _items.Remove(extra);
         }

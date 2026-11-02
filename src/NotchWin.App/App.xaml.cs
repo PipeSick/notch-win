@@ -407,6 +407,7 @@ public partial class App : Application
             return;
         }
 
+        if (_central is { } c) ApplyClipboardOptions(c.Clipboard);
         _clipboardWatcher ??= new ClipboardWatcher(_viewModel.Clipboard, _uiQueue);
         _clipboardWatcher.Start();
     }
@@ -648,6 +649,11 @@ public partial class App : Application
         if (changes.HasFlag(CentralChanges.Pill))
         {
             _viewModel.ApplyPill(next);
+        }
+
+        if (changes.HasFlag(CentralChanges.Clipboard))
+        {
+            ApplyClipboardOptions(next.Clipboard);
         }
 
         if (changes.HasFlag(CentralChanges.Sections))
