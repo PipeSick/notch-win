@@ -44,8 +44,11 @@ public sealed class GalleryWindow : Window
         Title = "Capturas — WinMac";
         // 1120×740 or 90 % of the monitor's work area, whichever is smaller, centred
         var area = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).WorkArea;
-        int gw = Math.Min(1120, (int)(area.Width * 0.9)), gh = Math.Min(740, (int)(area.Height * 0.9));
-        AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(area.X + (area.Width - gw) / 2, area.Y + (area.Height - gh) / 2, gw, gh));
+        // between WinMac's top bar (~40 px) and its Dock (~130 px) so neither covers the search box or the last row
+        double sc = Math.Max(1, Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).OuterBounds.Height / 1080.0);
+        int top = area.Y + (int)(44 * sc), room = Math.Max(420, area.Height - (int)(184 * sc));
+        int gw = Math.Min(1120, (int)(area.Width * 0.9)), gh = Math.Min(740, room);
+        AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(area.X + (area.Width - gw) / 2, top + (room - gh) / 2, gw, gh));
         foreach (var s in new[] { "Más recientes", "Más antiguas", "Nombre", "Tamaño" }) _sort.Items.Add(s);
         _sort.SelectedIndex = 0;
 
