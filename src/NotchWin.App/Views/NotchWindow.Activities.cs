@@ -253,12 +253,13 @@ public sealed partial class NotchWindow
         }
     }
 
-    private void OnCapturesAll(object sender, RoutedEventArgs e) => _viewModel.OpenGallery?.Invoke();
+    /// <summary>A full window opens: the Island closes so it never covers it or takes its clicks.</summary>
+    private void OnCapturesAll(object sender, RoutedEventArgs e) { SetExpanded(false); _viewModel.OpenGallery?.Invoke(); }
 
     /// <summary>Thumbnail decoded at the size it is drawn (never the full image in memory).</summary>
     private static Brush Thumbnail(string path, int decodeWidth)
     {
-        try { return new ImageBrush { ImageSource = new BitmapImage(new Uri(path)) { DecodePixelWidth = decodeWidth }, Stretch = Stretch.UniformToFill }; }
+        try { return new ImageBrush { ImageSource = ThumbLoader.Load(path, decodeWidth), Stretch = Stretch.UniformToFill }; }
         catch (Exception) { return new SolidColorBrush(Color.FromArgb(255, 0x2C, 0x2C, 0x2E)); }
     }
 
@@ -282,7 +283,7 @@ public sealed partial class NotchWindow
                     await f.DeleteAsync(Windows.Storage.StorageDeleteOption.Default);   // to the Recycle Bin, never permanently
                     _viewModel.Activities.Remove(a.Id);
                     break;
-                case ActivityAction.Edit when a.Path is { } p && File.Exists(p) && _viewModel.EditCapture is { } edit: edit(p); break;
+                case ActivityAction.Edit when a.Path is { } p && File.Exists(p) && _viewModel.EditCapture is { } edit: SetExpanded(false); edit(p); break;
                 case ActivityAction.RemoveFromHistory: _viewModel.Activities.Remove(a.Id); break;
                 case ActivityAction.PlayPause when _viewModel.MediaControls is { } m: await m.TogglePlayPauseAsync(); break;
                 case ActivityAction.Next when _viewModel.MediaControls is { } m: await m.NextAsync(); break;

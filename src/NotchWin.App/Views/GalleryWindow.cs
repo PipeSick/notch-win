@@ -133,7 +133,7 @@ public sealed class GalleryWindow : Window
 
     private static BitmapImage? Thumb(string path, int width)
     {
-        try { return new BitmapImage { DecodePixelWidth = width, UriSource = new Uri(path) }; } catch (Exception) { return null; }
+        try { return ThumbLoader.Load(path, width); } catch (Exception) { return null; }
     }
 
     private List<CaptureFile> Selected => _grid.SelectedItems.OfType<CaptureFile>().ToList();
@@ -161,7 +161,7 @@ public sealed class GalleryWindow : Window
         _pName.Text = one.Name;
         string info = CaptureLibrary.When(one.ModifiedUtc.ToLocalTime(), DateTime.Now) + " · " + CaptureLibrary.Size(one.Bytes);
         _pInfo.Text = info;
-        if (bmp is not null) bmp.ImageOpened += (_, _) => { if (Selected is [var cur] && cur.Path == one.Path && bmp.PixelWidth > 0) _pInfo.Text = $"{bmp.PixelWidth} × {bmp.PixelHeight} px · {info}"; };
+        if (CaptureLibrary.ImageSize(one.Path) is { } px) _pInfo.Text = $"{px.W} × {px.H} px · {info}";
         Add("Abrir", () => Shell(one.Path, null), accent: true);
         if (_vm.EditCapture is { } edit) Add("Editar", () => { edit(one.Path); _status.Text = "Abriendo el editor de WinMac…"; });
         Add("Ver en grande", () => Zoom(true));
@@ -259,6 +259,15 @@ public sealed class GalleryWindow : Window
         Reload();
     }
 
+    /// <summary>Activate() alone may leave it behind the window the user was in; the click that opened it gives this process the right to come to the front.</summary>
+    public void BringToFront()
+    {
+        Activate();
+        var h = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        SetForegroundWindow(h);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr h);
     private struct PT { public int X, Y; }
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool ClientToScreen(IntPtr h, ref PT p);
 

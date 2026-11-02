@@ -76,6 +76,39 @@ public static class CaptureLibrary
         return (target, null);
     }
 
+    /// <summary>Pixel size read from the file header only (PNG, BMP, JPEG); null if unknown. Never decodes the image.</summary>
+    public static (int W, int H)? ImageSize(string path)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            var h = new byte[64 * 1024]; int n = fs.Read(h, 0, h.Length);
+            return ImageSize(h.AsSpan(0, n));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    public static (int W, int H)? ImageSize(ReadOnlySpan<byte> h)
+    {
+        if (h.Length >= 24 && h[0] == 0x89 && h[1] == 'P' && h[2] == 'N' && h[3] == 'G')
+            return (System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(h[16..]), System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(h[20..]));
+        if (h.Length >= 26 && h[0] == 'B' && h[1] == 'M')
+            return (BitConverter.ToInt32(h[18..22]), Math.Abs(BitConverter.ToInt32(h[22..26])));
+        if (h.Length >= 4 && h[0] == 0xFF && h[1] == 0xD8)
+        {
+            int i = 2;
+            while (i + 9 < h.Length)
+            {
+                if (h[i] != 0xFF) { i++; continue; }
+                byte m = h[i + 1];
+                if (m is >= 0xC0 and <= 0xCF && m is not (0xC4 or 0xC8 or 0xCC)) return ((h[i + 7] << 8) | h[i + 8], (h[i + 5] << 8) | h[i + 6]);
+                if (m is 0xD8 or 0x01 || m is >= 0xD0 and <= 0xD7) { i += 2; continue; }
+                i += 2 + ((h[i + 2] << 8) | h[i + 3]);
+            }
+        }
+        return null;
+    }
+
     public static string Size(long bytes) => bytes switch
     {
         < 1024 => bytes + " B",

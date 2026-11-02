@@ -48,10 +48,10 @@ public partial class App
     private void OpenGallery()
     {
         if (_viewModel is null) return;
-        if (_gallery is not null) { _gallery.Activate(); return; }
+        if (_gallery is not null) { _gallery.BringToFront(); return; }
         _gallery = new Views.GalleryWindow(_viewModel);
         _gallery.Closed += (_, _) => _gallery = null;
-        _gallery.Activate();
+        _gallery.BringToFront();
     }
 
     private readonly HashSet<string> _announcedCaptures = new(StringComparer.OrdinalIgnoreCase);

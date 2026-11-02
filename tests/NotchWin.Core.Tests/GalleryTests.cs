@@ -85,3 +85,18 @@ public class GalleryTests : IDisposable
         Assert.False(ActivityActions.Supported(dl, canEdit: true).HasFlag(ActivityAction.Edit));
     }
 }
+
+public class ImageHeaderTests
+{
+    [Fact]
+    public void ReadsPngBmpAndJpegSizesFromTheHeaderOnly()
+    {
+        byte[] png = [0x89, (byte)'P', (byte)'N', (byte)'G', 13, 10, 26, 10, 0, 0, 0, 13, (byte)'I', (byte)'H', (byte)'D', (byte)'R', 0, 0, 1, 0xB8, 0, 0, 1, 0x2C];
+        Assert.Equal((440, 300), CaptureLibrary.ImageSize(png));
+        var bmp = new byte[26]; bmp[0] = (byte)'B'; bmp[1] = (byte)'M'; BitConverter.GetBytes(1024).CopyTo(bmp, 18); BitConverter.GetBytes(-768).CopyTo(bmp, 22);
+        Assert.Equal((1024, 768), CaptureLibrary.ImageSize(bmp));
+        byte[] jpg = [0xFF, 0xD8, 0xFF, 0xE0, 0, 4, 0, 0, 0xFF, 0xC0, 0, 17, 8, 0x02, 0xD0, 0x05, 0x00, 3, 0, 0, 0, 0, 0, 0];
+        Assert.Equal((1280, 720), CaptureLibrary.ImageSize(jpg));
+        Assert.Null(CaptureLibrary.ImageSize([1, 2, 3]));
+    }
+}
