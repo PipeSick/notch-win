@@ -38,7 +38,10 @@ public partial class App
     {
         if (_viewModel is null || _hosted is null) return;
         bool on = _viewModel.Sections.Any(s => s.Id == NotchSections.Clipboard && s.Enabled);
-        _hosted.SendClipResults(req, on, on ? ClipboardQuery.Search(_viewModel.Clipboard, q) : []);
+        var found = on ? ClipboardQuery.Search(_viewModel.Clipboard, q) : [];
+        _hosted.SendClipResults(req, on, found);
+        if (Environment.GetEnvironmentVariable("WINMAC_PILL_SELFTEST") is { Length: > 0 } st)   // CI only: counts, never content
+            try { File.AppendAllText(st, $"{DateTime.UtcNow:HH:mm:ss.fff} clip query req={req} pestaña={on} total={_viewModel.Clipboard.Count} encontrados={found.Count} largo={q?.Length ?? 0}{Environment.NewLine}"); } catch (IOException) { }
     }
 
     /// <summary>Spotlight chose an entry: the Island copies it (text, plain text or image) or removes it from the history.</summary>
