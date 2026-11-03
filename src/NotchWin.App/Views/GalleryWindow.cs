@@ -26,14 +26,14 @@ public sealed class GalleryWindow : Window
     private readonly NotchViewModel _vm;
     private readonly TextBox _search = new() { PlaceholderText = "Buscar por nombre", Width = 260 };
     private readonly ComboBox _sort = new() { Width = 170 };
-    private readonly GridView _grid = new() { SelectionMode = ListViewSelectionMode.Extended, IsMultiSelectCheckBoxEnabled = true, Padding = new Thickness(12, 0, 12, 12) };
+    private readonly GridView _grid = new() { SelectionMode = ListViewSelectionMode.Extended, IsMultiSelectCheckBoxEnabled = true, Padding = new Thickness(12, 0, 4, 12) };
     private readonly TextBlock _folder = new() { Foreground = Gray(0x8E), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock _empty = new() { Foreground = Gray(0x8E), FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Visibility = Visibility.Collapsed };
-    private readonly Image _preview = new() { Stretch = Stretch.Uniform, MaxHeight = 260 };
+    private readonly Image _preview = new() { Stretch = Stretch.Uniform, MaxHeight = 220, HorizontalAlignment = HorizontalAlignment.Center };
     private readonly TextBlock _pName = new() { FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Colors.White) };
     private readonly TextBlock _pInfo = new() { FontSize = 12, Foreground = Gray(0x98), TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _status = new() { FontSize = 12, Foreground = Gray(0xC7), TextWrapping = TextWrapping.Wrap };
-    private readonly StackPanel _actions = new() { Spacing = 6 };
+    private readonly Grid _actions = new() { ColumnSpacing = 6, RowSpacing = 6 };   // WM-028: two columns of compact buttons
     private readonly Grid _zoom = new() { Background = new SolidColorBrush(Color.FromArgb(0xE6, 0, 0, 0)), Visibility = Visibility.Collapsed };
     private readonly Image _zoomImage = new() { Stretch = Stretch.Uniform, Margin = new Thickness(24) };
     private List<CaptureFile> _items = [];
@@ -42,6 +42,14 @@ public sealed class GalleryWindow : Window
     {
         _vm = vm;
         Title = "Capturas — WinMac";
+        // WM-028: a dark title bar like the rest of WinMac (Windows' own title bar customization; nothing drawn by hand)
+        if (Microsoft.UI.Windowing.AppWindowTitleBar.IsCustomizationSupported())
+        {
+            var tb = AppWindow.TitleBar; var bg = Color.FromArgb(255, 0x1C, 0x1C, 0x1E);
+            tb.BackgroundColor = bg; tb.InactiveBackgroundColor = bg; tb.ForegroundColor = Colors.White; tb.InactiveForegroundColor = Color.FromArgb(255, 0x8E, 0x8E, 0x93);
+            tb.ButtonBackgroundColor = bg; tb.ButtonInactiveBackgroundColor = bg; tb.ButtonForegroundColor = Colors.White; tb.ButtonInactiveForegroundColor = Color.FromArgb(255, 0x8E, 0x8E, 0x93);
+            tb.ButtonHoverBackgroundColor = Color.FromArgb(255, 0x3A, 0x3A, 0x3C); tb.ButtonHoverForegroundColor = Colors.White; tb.ButtonPressedBackgroundColor = Color.FromArgb(255, 0x48, 0x48, 0x4A);
+        }
         // 1120×740 or 90 % of the monitor's work area, whichever is smaller, centred
         var area = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).WorkArea;
         // between WinMac's top bar (~40 px) and its Dock (~130 px) so neither covers the search box or the last row
@@ -56,7 +64,7 @@ public sealed class GalleryWindow : Window
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(330) });
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(300) });
 
         var top = new Grid { Padding = new Thickness(16, 14, 16, 10), ColumnSpacing = 10 };
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -71,9 +79,10 @@ public sealed class GalleryWindow : Window
         Grid.SetColumnSpan(top, 2); root.Children.Add(top);
 
         _grid.ItemTemplate = (DataTemplate)XamlReader.Load(
-            "<DataTemplate xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"><StackPanel Width=\"196\" Spacing=\"4\" Padding=\"4\">" +
-            "<Border Width=\"188\" Height=\"112\" CornerRadius=\"8\" Background=\"#2C2C2E\"><Image Stretch=\"UniformToFill\" /></Border>" +
-            "<TextBlock FontSize=\"12\" TextTrimming=\"CharacterEllipsis\" Foreground=\"White\" /><TextBlock FontSize=\"11\" Foreground=\"#8E8E93\" /></StackPanel></DataTemplate>");
+            // WM-028: smaller tiles (more per row), the image whole (aspect kept, no crop) and the name on up to two lines
+            "<DataTemplate xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"><StackPanel Width=\"156\" Spacing=\"3\" Padding=\"4\">" +
+            "<Border Width=\"148\" Height=\"96\" CornerRadius=\"8\" Background=\"#2C2C2E\"><Image Stretch=\"Uniform\" /></Border>" +
+            "<TextBlock FontSize=\"11.5\" TextWrapping=\"Wrap\" MaxLines=\"2\" TextTrimming=\"CharacterEllipsis\" Foreground=\"White\" Height=\"32\" /><TextBlock FontSize=\"10.5\" Foreground=\"#8E8E93\" /></StackPanel></DataTemplate>");
         _grid.ContainerContentChanging += OnContainer;
         _grid.SelectionChanged += (_, _) => { UpdatePreview(); if (!string.IsNullOrEmpty(SelfTestPath)) DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, SelfTestLog); };
         _grid.DoubleTapped += (_, _) => Zoom(true);
@@ -82,7 +91,7 @@ public sealed class GalleryWindow : Window
         Grid.SetRow(gridHost, 1); root.Children.Add(gridHost);
 
         var side = new StackPanel { Spacing = 10, Padding = new Thickness(16, 4, 16, 16) };
-        side.Children.Add(new Border { CornerRadius = new CornerRadius(10), Background = new SolidColorBrush(Color.FromArgb(255, 0x2C, 0x2C, 0x2E)), MinHeight = 160, Child = _preview });
+        side.Children.Add(new Border { CornerRadius = new CornerRadius(10), Background = new SolidColorBrush(Color.FromArgb(255, 0x2C, 0x2C, 0x2E)), Padding = new Thickness(6), Child = _preview });
         side.Children.Add(_pName); side.Children.Add(_pInfo); side.Children.Add(_actions); side.Children.Add(_status);
         var sideScroll = new ScrollViewer { Content = side };
         Grid.SetRow(sideScroll, 1); Grid.SetColumn(sideScroll, 1); root.Children.Add(sideScroll);
@@ -163,7 +172,7 @@ public sealed class GalleryWindow : Window
         {
             _preview.Source = Thumb(sel[0].Path, 600);
             _pName.Text = sel.Count + " capturas seleccionadas"; _pInfo.Text = CaptureLibrary.Size(sel.Sum(f => f.Bytes)) + " en total";
-            Add("Copiar rutas", CopyPaths); Add("Eliminar " + sel.Count + " (a la Papelera)", Delete);
+            Add("Copiar rutas", CopyPaths); Add("Eliminar " + sel.Count, Delete); ToolTipService.SetToolTip(_actions.Children[^1], "Van a la Papelera");
             return;
         }
 
@@ -178,17 +187,26 @@ public sealed class GalleryWindow : Window
         Add("Ver en grande", () => Zoom(true));
         Add("Copiar imagen", () => _ = CopyImage(one.Path));
         Add("Copiar ruta", CopyPaths);
-        Add("Mostrar en la carpeta", () => Shell("explorer.exe", "/select," + Quote(one.Path)));
+        Add("En la carpeta", () => Shell("explorer.exe", "/select," + Quote(one.Path)));
         Add("Renombrar", () => _ = Rename(one));
-        Add("Eliminar (a la Papelera)", Delete);
+        Add("Eliminar", Delete); ToolTipService.SetToolTip(_actions.Children[^1], "Va a la Papelera");
     }
 
+    /// <summary>WM-028: actions in a compact two-column grid; the main one (accent) spans the whole row.</summary>
     private void Add(string text, Action run, bool accent = false)
     {
-        var b = Pill(text, accent);
+        if (_actions.ColumnDefinitions.Count == 0) { _actions.ColumnDefinitions.Add(new ColumnDefinition()); _actions.ColumnDefinitions.Add(new ColumnDefinition()); }
+        if (_actions.Children.Count == 0) { _actions.RowDefinitions.Clear(); _slot = 0; }
+        var b = Pill(text, accent); b.HorizontalContentAlignment = HorizontalAlignment.Center;
         b.Click += (_, _) => { try { run(); } catch (Exception e) { _status.Text = "No se pudo: " + e.Message; } };
-        _actions.Children.Add(b);
+        if (accent && _slot % 2 == 1) _slot++;   // a full-width button starts on its own row
+        int row = _slot / 2, col = _slot % 2;
+        while (_actions.RowDefinitions.Count <= row) _actions.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Grid.SetRow(b, row); Grid.SetColumn(b, col); if (accent) Grid.SetColumnSpan(b, 2);
+        _actions.Children.Add(b); _slot += accent ? 2 : 1;
     }
+
+    private int _slot;
 
     private void Zoom(bool on)
     {
