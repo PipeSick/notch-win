@@ -32,11 +32,37 @@ public static class PillFeed
                 if (app is null && title is null && body is null) return null;
                 var (icon, w, h) = Icon(e);
                 // Title line: the notification's own title, or the app when it has none. Second line: the text (or the app, so it is never empty).
-                return new PillItem(PillKind.Notification, title ?? app!, body ?? (title is null ? null : app), 0, false, icon, w, h) { App = app };
+                return new PillItem(PillKind.Notification, title ?? app!, body ?? (title is null ? null : app), 0, false, icon, w, h) { App = app, NotificationKey = Long(e, "id") is { } id ? "win:" + id : null };
             default:
                 return null;
         }
     }
+
+    public const int MaxSnapshot = 60, MaxFullBody = 2000;
+
+    /// <summary>
+    /// WM-025: the snapshot of Windows' notification centre the bar sends on change:
+    /// <c>{ "kind": "notifications", "items": [ { "id": 12, "app": "Teams", "appId": "…", "title": "Ana", "body": "…", "at": 1730600000000 } ] }</c>.
+    /// Null if <paramref name="e"/> is not one. Texts keep their line breaks (the expanded view shows them in full), within limits.
+    /// </summary>
+    public static IReadOnlyList<Notifications.NotchNotification>? ParseSnapshot(JsonElement e)
+    {
+        if (e.ValueKind != JsonValueKind.Object || !string.Equals(Str(e, "kind"), "notifications", StringComparison.OrdinalIgnoreCase)) return null;
+        var list = new List<Notifications.NotchNotification>();
+        if (!e.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array) return list;
+        foreach (var it in items.EnumerateArray())
+        {
+            if (list.Count >= MaxSnapshot || it.ValueKind != JsonValueKind.Object || Long(it, "id") is not { } id) continue;
+            string app = Short(Str(it, "app"), MaxTitle) ?? "App", title = Short(Str(it, "title"), MaxTitle) ?? app;
+            string body = Str(it, "body") is { } b ? (b.Length > MaxFullBody ? b[..MaxFullBody] + "…" : b).Trim() : "";
+            var at = Long(it, "at") is { } ms ? DateTimeOffset.FromUnixTimeMilliseconds(ms) : DateTimeOffset.Now;
+            list.Add(new Notifications.NotchNotification(app, title, body, at, "win:" + id, Short(Str(it, "appId"), 300)));
+        }
+
+        return list;
+    }
+
+    private static long? Long(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var l) ? l : null;
 
     private static (byte[]? Px, int W, int H) Icon(JsonElement e)
     {

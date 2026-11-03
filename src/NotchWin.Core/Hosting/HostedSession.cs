@@ -110,8 +110,17 @@ public sealed class HostedSession : IAsyncDisposable
         }
     }
 
+    /// <summary>WM-025: a snapshot of Windows' notification centre (sent by WinMac's bar when it changes). Raised on a worker thread.</summary>
+    public event Action<IReadOnlyList<Notifications.NotchNotification>>? NotificationsReceived;
+
     private void OnFeed(JsonElement? data)
     {
+        if (data is { } s && Pill.PillFeed.ParseSnapshot(s) is { } snap)
+        {
+            NotificationsReceived?.Invoke(snap);
+            return;
+        }
+
         if (data is { } d && Pill.PillFeed.Parse(d) is { } item)
         {
             PillReceived?.Invoke(item);

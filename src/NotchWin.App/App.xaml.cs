@@ -604,6 +604,8 @@ public partial class App : Application
         };
         // Volume, brightness and Windows notifications relayed by WinMac's top bar: shown for a moment in the collapsed notch (see PillArbiter).
         _hosted.PillReceived += item => _uiQueue?.TryEnqueue(() => _viewModel?.PostPill(item));
+        // WM-025: what Windows' notification centre holds (read by WinMac's bar) fills the Notifications tab
+        _hosted.NotificationsReceived += list => _uiQueue?.TryEnqueue(() => _viewModel?.Notifications.SetWindows(list));
         // WinMac 2.0: internal activity API (only WinMac's modules reach the pipe)
         _hosted.ActivityReceived += cmd => _uiQueue?.TryEnqueue(() => { if (_viewModel is not null) Core.Activities.ActivityFeed.Apply(_viewModel.Activities, cmd); });
         _hosted.ClearClipboardRequested += () => _uiQueue?.TryEnqueue(() => _viewModel?.Clipboard.ClearAll());

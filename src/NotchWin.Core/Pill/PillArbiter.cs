@@ -26,6 +26,9 @@ public sealed record PillItem(PillKind Kind, string Title, string? Subtitle = nu
     /// <summary>The app a notification came from (its initial is drawn when there is no icon).</summary>
     public string? App { get; init; }
 
+    /// <summary>WM-025: identity of a Windows notification («win:&lt;id&gt;»), so a click on the pill opens that same notification in full.</summary>
+    public string? NotificationKey { get; init; }
+
     /// <summary>Image file shown as a small thumbnail (a saved screenshot). Decoded at thumbnail size, never in full.</summary>
     public string? ImagePath { get; init; }
 

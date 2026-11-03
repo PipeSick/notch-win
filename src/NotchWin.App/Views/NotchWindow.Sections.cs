@@ -441,6 +441,9 @@ public sealed partial class NotchWindow
         }
     }
 
+    /// <summary>WM-025: the notification shown in full (expanded row); set by a click on its row or on the notification pill.</summary>
+    private string? _openNotif;
+
     private void RebuildNotifications()
     {
         NotificationsList.Children.Clear();
@@ -450,12 +453,13 @@ public sealed partial class NotchWindow
         foreach (var n in items)
         {
             var accent = ColorForSource(n.Source);
+            bool open = n.Key is not null && n.Key == _openNotif;
             var row = new Grid { Background = new SolidColorBrush(Card), CornerRadius = new CornerRadius(12), Padding = new Thickness(12, 9, 12, 9), ColumnSpacing = 10 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var badge = new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(accent) };
+            var badge = new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(accent), VerticalAlignment = VerticalAlignment.Top };
             badge.Child = new TextBlock
             {
                 Text = n.Source.Length > 0 ? n.Source[..1].ToUpperInvariant() : "?",
@@ -465,18 +469,59 @@ public sealed partial class NotchWindow
             row.Children.Add(badge);
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(Label(n.Title, 12.5, Colors.White, bold: true, trim: true));
-            text.Children.Add(Label(n.Message, 11, Dim, trim: true));
+            text.Children.Add(Label(n.Title, 12.5, Colors.White, bold: true, trim: !open));
+            if (open)
+            {
+                // the full text Windows gave (wraps; the list scrolls when it is long), the app's name and, when Windows says which app it is, «Abrir»
+                text.Children.Add(new TextBlock { Text = n.Message, FontSize = 11, Foreground = new SolidColorBrush(Dim), TextWrapping = TextWrapping.WrapWholeWords, IsTextSelectionEnabled = true });
+                var foot = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 6, 0, 0) };
+                foot.Children.Add(Label(n.Source, 10, Faint));
+                if (n.AppId is { Length: > 0 } aumid)
+                {
+                    var openApp = new Button { Content = "Abrir " + n.Source, FontSize = 11, Padding = new Thickness(10, 2, 10, 3), CornerRadius = new CornerRadius(10) };
+                    openApp.Click += (_, _) => OpenNotificationApp(aumid);
+                    foot.Children.Add(openApp);
+                }
+
+                text.Children.Add(foot);
+            }
+            else
+            {
+                text.Children.Add(Label(n.Message, 11, Dim, trim: true));
+            }
+
             Grid.SetColumn(text, 1);
             row.Children.Add(text);
 
             var ago = Label(FormatAgo(DateTimeOffset.Now - n.At), 10, Faint);
-            ago.VerticalAlignment = VerticalAlignment.Center;
+            ago.VerticalAlignment = VerticalAlignment.Top;
             Grid.SetColumn(ago, 2);
             row.Children.Add(ago);
 
+            if (n.Key is { } key)
+            {
+                row.Tapped += (_, e) => { if (e.OriginalSource is not Button) { _openNotif = _openNotif == key ? null : key; RebuildNotifications(); RelayoutIfExpanded(); } };
+            }
+
             NotificationsList.Children.Add(row);
         }
+    }
+
+    /// <summary>Opens the app that sent a notification (its AUMID in the Shell's apps folder), as Windows' own centre does.</summary>
+    private static void OpenNotificationApp(string aumid)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"shell:AppsFolder\\" + aumid + "\"") { UseShellExecute = false })?.Dispose(); }
+        catch (Exception) { /* the app cannot be opened from outside: nothing else to do */ }
+    }
+
+    /// <summary>WM-025: a click on the notification pill opens the Island on the Notifications tab with that notification in full.</summary>
+    private void OpenNotificationFromPill(string? key)
+    {
+        if (!_viewModel.Sections.Any(s => s.Id == NotchSections.Notifications && s.Enabled)) return;
+        _openNotif = key;
+        _active = NotchSections.Notifications;
+        RebuildTabs();
+        RebuildNotifications();
     }
 
     private void OnClearNotificationsClicked(object sender, RoutedEventArgs e) => _viewModel.Notifications.Clear();

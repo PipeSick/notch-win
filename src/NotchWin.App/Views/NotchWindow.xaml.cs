@@ -166,6 +166,7 @@ public sealed partial class NotchWindow : Window
 
     private void OnBarTapped(object sender, TappedRoutedEventArgs e)
     {
+        if (!_expanded && _shownPill is { Kind: NotchWin.Core.Pill.PillKind.Notification } np) OpenNotificationFromPill(np.NotificationKey);   // WM-025
         SetExpanded(!_expanded);
         if (_expanded) KeyboardOn();   // opened by the user's click: the keyboard works in it until it closes
     }
