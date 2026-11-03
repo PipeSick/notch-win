@@ -177,10 +177,12 @@ public sealed partial class NotchWindow
             foreach (var id in overflow)
             {
                 var item = new MenuFlyoutItem { Text = SectionInfo[id].Name, Icon = new FontIcon { Glyph = SectionInfo[id].Glyph } };
-                item.Click += (_, _) => { _active = id; _customizing = false; RebuildTabs(); ShowActivePane(); RelayoutIfExpanded(); };
+                item.Click += (_, _) => { _active = id; _customizing = false; RebuildTabs(); ShowActivePane(); RelayoutIfExpanded(); SelfTestKey("mas eligio " + id); };
                 menu.Items.Add(item);
             }
 
+            HoldOpenWhile(menu);
+            menu.Opened += (_, _) => SelfTestKey("mas abierto");
             more.Flyout = menu;
             Grid.SetColumn(more, visible.Count);
             TabBar.Children.Add(more);

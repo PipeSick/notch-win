@@ -100,7 +100,7 @@ public sealed partial class NotchWindow : Window
         _hoverTimer.IsRepeating = false;
         _hoverTimer.Tick += (_, _) =>
         {
-            if (_expanded)
+            if (_expanded && _popupsOpen == 0)   // WM-005: never while one of its menus is open (they are separate windows: the pointer «leaves» to reach them)
             {
                 SetExpanded(false);
             }
@@ -190,9 +190,18 @@ public sealed partial class NotchWindow : Window
         _controller?.BringToFront(); // never let another always-on-top window (e.g. WinMac's bar) cover the notch while it is being used
     }
 
+    private int _popupsOpen;
+
+    /// <summary>WM-005: keep the Island open while this menu is open; when it closes, the usual «pointer left» rule applies again.</summary>
+    internal void HoldOpenWhile(Microsoft.UI.Xaml.Controls.Primitives.FlyoutBase flyout)
+    {
+        flyout.Opened += (_, _) => { _popupsOpen++; _hoverTimer.Stop(); };
+        flyout.Closed += (_, _) => _popupsOpen = Math.Max(0, _popupsOpen - 1);   // after choosing, the chosen section stays open; leaving the Island again closes it as usual
+    }
+
     private void OnPointerExited(object sender, PointerRoutedEventArgs e)
     {
-        if (_expanded)
+        if (_expanded && _popupsOpen == 0)
         {
             _hoverTimer.Start();
         }
@@ -367,9 +376,8 @@ public sealed partial class NotchWindow : Window
         UpdateHeader();
         ProgressRow.Visibility = hasTrack && info!.Duration is not null ? Visibility.Visible : Visibility.Collapsed;
         ControlsRow.Visibility = hasTrack && _viewModel.MediaControls is not null ? Visibility.Visible : Visibility.Collapsed;
-        PlayPauseIcon.Glyph = info is { IsPlaying: true } ? "" : "";
-
         var playing = info is { IsPlaying: true };
+        PlayIcon.Visibility = playing ? Visibility.Collapsed : Visibility.Visible; PauseIcon.Visibility = playing ? Visibility.Visible : Visibility.Collapsed;   // WM-006: vector icons
         MiniArt.Visibility = hasTrack ? Visibility.Visible : Visibility.Collapsed;
         UpdateOpenPlayerButton();
         EqPanel.Visibility = playing ? Visibility.Visible : Visibility.Collapsed;

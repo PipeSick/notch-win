@@ -81,7 +81,8 @@ public sealed partial class NotchWindow
     // ───────────────────────────── media header
     private void UpdateNowHeader()
     {
-        if (!_expanded) { NowHeader.Visibility = Visibility.Collapsed; return; }
+        // WM-007: the Música tab already shows cover, title, progress, controls and lyrics: the compact header is not repeated above it
+        if (!_expanded || (_active == NotchSections.Music && !_customizing)) { NowHeader.Visibility = Visibility.Collapsed; return; }
         var test = _info is null ? _viewModel.Activities.Current.FirstOrDefault(a => a.Kind == ActivityKind.Media && a.IsTest) : null;
         if (_info is null && test is null) { NowHeader.Visibility = Visibility.Collapsed; return; }
 
@@ -102,7 +103,7 @@ public sealed partial class NotchWindow
             }
             else NowLyric.Visibility = Visibility.Collapsed;
 
-            NowPlayGlyph.Glyph = info.IsPlaying ? "" : "";
+            NowPlayIcon.Visibility = info.IsPlaying ? Visibility.Collapsed : Visibility.Visible; NowPauseIcon.Visibility = info.IsPlaying ? Visibility.Visible : Visibility.Collapsed;   // WM-006: same vector icons as the Música tab
             NowControls.Visibility = _viewModel.MediaControls is not null ? Visibility.Visible : Visibility.Collapsed;   // only real controls
         }
         else if (test is not null)
@@ -313,7 +314,7 @@ public sealed partial class NotchWindow
             var parts = TabBar.Children.OfType<Button>().Select(btn =>
             {
                 int col = Grid.GetColumn(btn); var c = btn.TransformToVisual(null).TransformPoint(new Point(btn.ActualWidth / 2, btn.ActualHeight / 2));
-                return col < ids.Count ? $"{ids[col]}@{win.X + (int)(c.X * scale)},{win.Y + (int)(c.Y * scale)}" : "";
+                return col < ids.Count ? $"{ids[col]}@{win.X + (int)(c.X * scale)},{win.Y + (int)(c.Y * scale)}" : $"more@{win.X + (int)(c.X * scale)},{win.Y + (int)(c.Y * scale)}";
             });
             string extra = "";
             if (CollapseButton.ActualWidth > 0)

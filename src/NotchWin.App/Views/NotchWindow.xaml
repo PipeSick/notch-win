@@ -148,15 +148,15 @@
                         <TextBlock x:Name="NowTotal" Grid.Column="2" Foreground="#98989D" FontSize="10.5" VerticalAlignment="Center" />
                     </Grid>
                 </StackPanel>
-                <StackPanel x:Name="NowControls" Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Visibility="Collapsed">
+                <StackPanel x:Name="NowControls" Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="0,0,6,0" Visibility="Collapsed">
                     <Button Click="OnNowPrev" Background="Transparent" BorderThickness="0" Width="34" Height="34" CornerRadius="17" ToolTipService.ToolTip="Anterior">
-                        <FontIcon Glyph="&#xE892;" FontSize="14" Foreground="White" />
+                        <Viewbox Width="13" Height="13"><Path Data="M2.5,2.5 L4.3,2.5 L4.3,13.5 L2.5,13.5 Z M14,2.5 L5.5,8 L14,13.5 Z" Fill="White" /></Viewbox>
                     </Button>
                     <Button Click="OnNowPlayPause" Background="Transparent" BorderThickness="0" Width="38" Height="38" CornerRadius="19" ToolTipService.ToolTip="Reproducir o pausar">
-                        <FontIcon x:Name="NowPlayGlyph" Glyph="&#xE769;" FontSize="18" Foreground="White" />
+                        <Grid><Viewbox x:Name="NowPlayIcon" Width="16" Height="16"><Path Data="M4,2.5 L13.5,8 L4,13.5 Z" Fill="White" /></Viewbox><Viewbox x:Name="NowPauseIcon" Width="16" Height="16" Visibility="Collapsed"><Path Data="M3.5,2.5 L6.5,2.5 L6.5,13.5 L3.5,13.5 Z M9.5,2.5 L12.5,2.5 L12.5,13.5 L9.5,13.5 Z" Fill="White" /></Viewbox></Grid>
                     </Button>
                     <Button Click="OnNowNext" Background="Transparent" BorderThickness="0" Width="34" Height="34" CornerRadius="17" ToolTipService.ToolTip="Siguiente">
-                        <FontIcon Glyph="&#xE893;" FontSize="14" Foreground="White" />
+                        <Viewbox Width="13" Height="13"><Path Data="M13.5,2.5 L11.7,2.5 L11.7,13.5 L13.5,13.5 Z M2,2.5 L10.5,8 L2,13.5 Z" Fill="White" /></Viewbox>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -227,14 +227,14 @@
                     <StackPanel x:Name="ControlsRow" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="22"
                                 Visibility="Collapsed">
                         <Button Click="OnPreviousClicked" Background="Transparent" BorderThickness="0" Padding="10" CornerRadius="20">
-                            <FontIcon Glyph="&#xE892;" FontSize="18" Foreground="White" />
+                            <Viewbox Width="16" Height="16"><Path Data="M2.5,2.5 L4.3,2.5 L4.3,13.5 L2.5,13.5 Z M14,2.5 L5.5,8 L14,13.5 Z" Fill="White" /></Viewbox>
                         </Button>
                         <Button Click="OnPlayPauseClicked" Background="White" BorderThickness="0" Padding="0"
                                 Width="44" Height="44" CornerRadius="22">
-                            <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE768;" FontSize="18" Foreground="Black" />
+                            <Grid><Viewbox x:Name="PlayIcon" Width="18" Height="18"><Path Data="M4,2.5 L13.5,8 L4,13.5 Z" Fill="Black" /></Viewbox><Viewbox x:Name="PauseIcon" Width="18" Height="18" Visibility="Collapsed"><Path Data="M3.5,2.5 L6.5,2.5 L6.5,13.5 L3.5,13.5 Z M9.5,2.5 L12.5,2.5 L12.5,13.5 L9.5,13.5 Z" Fill="Black" /></Viewbox></Grid>
                         </Button>
                         <Button Click="OnNextClicked" Background="Transparent" BorderThickness="0" Padding="10" CornerRadius="20">
-                            <FontIcon Glyph="&#xE893;" FontSize="18" Foreground="White" />
+                            <Viewbox Width="16" Height="16"><Path Data="M13.5,2.5 L11.7,2.5 L11.7,13.5 L13.5,13.5 Z M2,2.5 L10.5,8 L2,13.5 Z" Fill="White" /></Viewbox>
                         </Button>
                     </StackPanel>
                 </Grid>
