@@ -297,6 +297,7 @@ public sealed partial class NotchWindow
         UpdateLyrics();
         var (lines, status) = await client.LookupAsync(info.Title, info.Artist, info.Duration);
         _lyricsLoading = false;
+        LogLyrics(status, client.LastDiagnosis, info);
         _lyricsTriedUtc = DateTime.UtcNow;
         if (_info?.Title != info.Title || _info?.Artist != info.Artist)
         {
@@ -310,6 +311,27 @@ public sealed partial class NotchWindow
         if (_expanded)
         {
             ApplyLayout(animate: true);
+        }
+    }
+
+    /// <summary>
+    /// WM-008: one line per lookup in %LOCALAPPDATA%\NotchWin\lyrics.log (kept under 64 KB) with how it was decided — candidates, which filter rejected
+    /// them, the source used, the player and whether it gave a duration — but never the title or the artist. It is what a tester can send when a song has no lyrics.
+    /// </summary>
+    private static void LogLyrics(LyricsStatus status, string diagnosis, NowPlayingInfo info)
+    {
+        try
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NotchWin"); Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "lyrics.log");
+            if (File.Exists(path) && new FileInfo(path).Length > 64 * 1024) File.Delete(path);
+            string app = info.SourceAppName.Length > 40 ? info.SourceAppName[..40] : info.SourceAppName;
+            File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {status} · reproductor {app} · duración {(info.Duration is { } d ? ((int)d.TotalSeconds) + " s" : "desconocida")} · {diagnosis}{Environment.NewLine}");
+            if (Environment.GetEnvironmentVariable("WINMAC_PILL_SELFTEST") is { Length: > 0 } st) File.AppendAllText(st, $"{DateTime.UtcNow:HH:mm:ss.fff} lyrics {status} {diagnosis}{Environment.NewLine}");
+        }
+        catch (Exception)
+        {
+            // diagnostics never break the lyrics
         }
     }
 

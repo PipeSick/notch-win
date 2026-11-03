@@ -511,7 +511,7 @@ public partial class App : Application
     {
         var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("NotchWin/0.1 (https://github.com/pipesick/notch-win)");
-        return new NeteaseLyricsClient(http);
+        return new NeteaseLyricsClient(http, new LrclibLyricsClient(http));   // WM-008: LRCLIB only when NetEase has nothing or refuses
     }
 
     private void PollDownloads()
