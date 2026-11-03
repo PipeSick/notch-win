@@ -375,6 +375,7 @@ public sealed partial class NotchWindow : Window
         ArtistText.Text = hasTrack ? info!.Artist : string.Empty;
         _sourceName = hasTrack ? FriendlySource(info!.SourceAppName) : null;
         UpdateHeader();
+        if (_expanded) UpdateNowHeader();   // WM-031: the «En curso» header follows the session at once (playing, paused, none)
         ProgressRow.Visibility = hasTrack && info!.Duration is not null ? Visibility.Visible : Visibility.Collapsed;
         ControlsRow.Visibility = hasTrack && _viewModel.MediaControls is not null ? Visibility.Visible : Visibility.Collapsed;
         var playing = info is { IsPlaying: true };

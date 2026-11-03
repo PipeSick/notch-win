@@ -149,13 +149,13 @@
                     </Grid>
                 </StackPanel>
                 <StackPanel x:Name="NowControls" Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="0,0,6,0" Visibility="Collapsed">
-                    <Button Click="OnNowPrev" Background="Transparent" BorderThickness="0" Width="34" Height="34" CornerRadius="17" ToolTipService.ToolTip="Anterior">
+                    <Button x:Name="NowPrevButton" Click="OnNowPrev" Background="Transparent" BorderThickness="0" Width="34" Height="34" CornerRadius="17" ToolTipService.ToolTip="Anterior">
                         <Viewbox Width="13" Height="13"><Path Data="M2.5,2.5 L4.3,2.5 L4.3,13.5 L2.5,13.5 Z M14,2.5 L5.5,8 L14,13.5 Z" Fill="White" /></Viewbox>
                     </Button>
                     <Button Click="OnNowPlayPause" Background="Transparent" BorderThickness="0" Width="38" Height="38" CornerRadius="19" ToolTipService.ToolTip="Reproducir o pausar">
                         <Grid><Viewbox x:Name="NowPlayIcon" Width="16" Height="16"><Path Data="M4,2.5 L13.5,8 L4,13.5 Z" Fill="White" /></Viewbox><Viewbox x:Name="NowPauseIcon" Width="16" Height="16" Visibility="Collapsed"><Path Data="M3.5,2.5 L6.5,2.5 L6.5,13.5 L3.5,13.5 Z M9.5,2.5 L12.5,2.5 L12.5,13.5 L9.5,13.5 Z" Fill="White" /></Viewbox></Grid>
                     </Button>
-                    <Button Click="OnNowNext" Background="Transparent" BorderThickness="0" Width="34" Height="34" CornerRadius="17" ToolTipService.ToolTip="Siguiente">
+                    <Button x:Name="NowNextButton" Click="OnNowNext" Background="Transparent" BorderThickness="0" Width="34" Height="34" CornerRadius="17" ToolTipService.ToolTip="Siguiente">
                         <Viewbox Width="13" Height="13"><Path Data="M13.5,2.5 L11.7,2.5 L11.7,13.5 L13.5,13.5 Z M2,2.5 L10.5,8 L2,13.5 Z" Fill="White" /></Viewbox>
                     </Button>
                 </StackPanel>

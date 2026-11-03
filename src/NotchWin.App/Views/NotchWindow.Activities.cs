@@ -84,7 +84,23 @@ public sealed partial class NotchWindow
         // WM-007: the Música tab already shows cover, title, progress, controls and lyrics: the compact header is not repeated above it
         if (!_expanded || (_active == NotchSections.Music && !_customizing)) { NowHeader.Visibility = Visibility.Collapsed; return; }
         var test = _info is null ? _viewModel.Activities.Current.FirstOrDefault(a => a.Kind == ActivityKind.Media && a.IsTest) : null;
-        if (_info is null && test is null) { NowHeader.Visibility = Visibility.Collapsed; return; }
+        if (_info is null && test is null)
+        {
+            // WM-031, state 3 (no media session): the header stays as a compact quick access to music — same layout, a generic cover, «Nada en reproducción»
+            // and Play, which resumes a session if Windows has one and otherwise opens the preferred player. Previous/next are hidden: there is nothing to skip.
+            NowHeader.Visibility = Visibility.Visible;
+            NowTestTag.Visibility = Visibility.Collapsed;
+            NowTitle.Text = "Nada en reproducción";
+            NowArtist.Text = _viewModel.MediaControls is { HasSession: true } ? "Pulsa reproducir para reanudar" : "Abrir " + _viewModel.PlayerName;
+            NowArt.Background = new SolidColorBrush(Color.FromArgb(255, 0x1C, 0x1C, 0x1E)); NowArtGlyph.Visibility = Visibility.Visible;
+            NowProgressRow.Visibility = Visibility.Collapsed; NowLyric.Visibility = Visibility.Collapsed;
+            NowPlayIcon.Visibility = Visibility.Visible; NowPauseIcon.Visibility = Visibility.Collapsed;
+            NowPrevButton.Visibility = Visibility.Collapsed; NowNextButton.Visibility = Visibility.Collapsed;
+            NowControls.Visibility = Visibility.Visible;
+            return;
+        }
+
+        NowPrevButton.Visibility = Visibility.Visible; NowNextButton.Visibility = Visibility.Visible;
 
         NowHeader.Visibility = Visibility.Visible;
         NowTestTag.Visibility = test is not null ? Visibility.Visible : Visibility.Collapsed;
@@ -126,9 +142,17 @@ public sealed partial class NotchWindow
         NowFill.Width = Math.Round(w * v);
     }
 
-    private async void OnNowPlayPause(object sender, RoutedEventArgs e) { if (_viewModel.MediaControls is { } m) await m.TogglePlayPauseAsync(); }
-    private async void OnNowNext(object sender, RoutedEventArgs e) { if (_viewModel.MediaControls is { } m) await m.NextAsync(); }
-    private async void OnNowPrev(object sender, RoutedEventArgs e) { if (_viewModel.MediaControls is { } m) await m.PreviousAsync(); }
+    // WM-031: these three used to call the player directly from «async void» without catching anything: when the session had gone (player closed) the
+    // exception was unhandled, NotchWin closed and the host restarted it — the Island «disappeared and came back». Now they go through the same guarded
+    // RunControl as the Música tab, and Play with no session opens the preferred player instead of sending a command to nobody.
+    private async void OnNowPlayPause(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.MediaControls is { HasSession: true }) { await RunControl(c => c.TogglePlayPauseAsync()); return; }
+        if (_viewModel.OpenPlayer?.Invoke() is { } error) NowArtist.Text = error;
+    }
+
+    private async void OnNowNext(object sender, RoutedEventArgs e) => await RunControl(c => c.NextAsync());
+    private async void OnNowPrev(object sender, RoutedEventArgs e) => await RunControl(c => c.PreviousAsync());
 
     // ───────────────────────────── «En curso» and «Historial»
     private void RebuildActivities()

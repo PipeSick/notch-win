@@ -57,6 +57,8 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
         return playing ?? current;
     }
 
+    public bool HasSession => _currentSession is not null;
+
     public async Task TogglePlayPauseAsync()
     {
         if (_currentSession is { } s) { await s.TryTogglePlayPauseAsync(); }
