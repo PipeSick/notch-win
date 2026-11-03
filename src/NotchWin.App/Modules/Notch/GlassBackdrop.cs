@@ -32,6 +32,14 @@ internal sealed class GlassBackdrop : SystemBackdrop
         }
     }
 
+    private bool _light;
+    /// <summary>WM-037: Windows is in light theme (what is behind is bright): the tint keeps a minimum opacity so the island stays dark and readable.</summary>
+    public bool LightSurroundings
+    {
+        get => _light;
+        set { if (_light == value) return; _light = value; Apply(); }
+    }
+
     /// <summary>0 = mostly clear glass, 1 = solid black.</summary>
     public double Level
     {
@@ -69,22 +77,20 @@ internal sealed class GlassBackdrop : SystemBackdrop
             return;
         }
 
+        var (tint, lum) = NotchWin.Core.Notch.GlassTint.For(_level, _matchBar, _light);
         if (_matchBar)
         {
-            var bar = Microsoft.UI.ColorHelper.FromArgb(255, 31, 33, 41);   // WinMac BarPainter, dark theme
-            _controller.TintColor = bar;
+            _controller.TintColor = Microsoft.UI.ColorHelper.FromArgb(255, 31, 33, 41);   // WinMac BarPainter, dark theme
             _controller.FallbackColor = Microsoft.UI.ColorHelper.FromArgb(255, 38, 40, 48);
-            _controller.TintOpacity = 0.38f;
-            _controller.LuminosityOpacity = 0.12f;
-            return;
+        }
+        else
+        {
+            // Liquid Glass approximation: a neutral graphite tint (not black) that lets the live blur of what is behind show through (curve and floors: GlassTint).
+            _controller.TintColor = Microsoft.UI.ColorHelper.FromArgb(255, 24, 24, 28);
+            _controller.FallbackColor = Microsoft.UI.ColorHelper.FromArgb(255, 30, 30, 34);
         }
 
-        // Liquid Glass approximation: a neutral graphite tint (not black) that lets the live blur of what is behind show through. The slider follows a curve: the default
-        // (0.6) is clearly glass (tint ≈ 38 %), the top end still reaches an almost solid surface. Before, even the lowest setting was 45 % black plus a 30 % black scrim.
-        var t = _level * _level;
-        _controller.TintColor = Microsoft.UI.ColorHelper.FromArgb(255, 24, 24, 28);
-        _controller.FallbackColor = Microsoft.UI.ColorHelper.FromArgb(255, 30, 30, 34);
-        _controller.TintOpacity = (float)(0.08 + 0.82 * t);
-        _controller.LuminosityOpacity = (float)(0.12 + 0.78 * t);
+        _controller.TintOpacity = tint;
+        _controller.LuminosityOpacity = lum;
     }
 }

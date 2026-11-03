@@ -37,6 +37,14 @@ public sealed partial class NotchWindow : Window
     private readonly Rectangle[] _musicEqBars;
 
     private readonly GlassBackdrop _glass;
+    private readonly Windows.UI.ViewManagement.UISettings _uiSettings = new();
+
+    /// <summary>Windows' app theme is light (its background colour is bright). Any failure counts as light: the safer, darker glass.</summary>
+    private bool WindowsIsLight()
+    {
+        try { var c = _uiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background); return c.R + c.G + c.B > 3 * 128; }
+        catch (Exception) { return true; }
+    }
     private readonly DispatcherQueueTimer _glassSaveTimer;
     private NotchWindowController? _controller;
     private NowPlayingInfo? _info;
@@ -54,8 +62,10 @@ public sealed partial class NotchWindow : Window
         _eqBars = [Eq0, Eq1, Eq2, Eq3];
         _musicEqBars = [XEq0, XEq1, XEq2, XEq3];
 
-        _glass = new GlassBackdrop { Level = _viewModel.GlassLevel / 100.0 };
+        _glass = new GlassBackdrop { Level = _viewModel.GlassLevel / 100.0, LightSurroundings = WindowsIsLight() };
         SystemBackdrop = _glass;
+        // WM-037: the island stays dark in Windows' light theme too. Theme changes made while it runs are followed (the event comes on another thread).
+        _uiSettings.ColorValuesChanged += (_, _) => DispatcherQueue.TryEnqueue(() => _glass.LightSurroundings = WindowsIsLight());
         GlassSlider.Value = _viewModel.GlassLevel;
         _glassSaveTimer = DispatcherQueue.CreateTimer();
         _glassSaveTimer.Interval = TimeSpan.FromMilliseconds(400);
