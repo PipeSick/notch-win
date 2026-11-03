@@ -33,10 +33,25 @@ public static class PillFeed
                 var (icon, w, h) = Icon(e);
                 // Title line: the notification's own title, or the app when it has none. Second line: the text (or the app, so it is never empty).
                 return new PillItem(PillKind.Notification, title ?? app!, body ?? (title is null ? null : app), 0, false, icon, w, h) { App = app, NotificationKey = Long(e, "id") is { } id ? "win:" + id : null };
+            case "call":
+                return Call(Str(e, "state"), Short(Str(e, "caller"), MaxTitle));
             default:
                 return null;
         }
     }
+
+    /// <summary>
+    /// WM-038: <c>{ "kind": "call", "state": "ringing"|"missed"|"ended"|"none", "caller": "Mamá" }</c> from WinMac Connect. Ringing stays (up to the arbiter's safety time);
+    /// missed and ended show for a few seconds; none takes the call away. Only a notice: no answer/reject controls (not validated) and no audio.
+    /// </summary>
+    public static PillItem? Call(string? state, string? caller) => state?.ToLowerInvariant() switch
+    {
+        "ringing" => new PillItem(PillKind.Call, caller is null ? "Llamada entrante" : "Llamada de " + caller, "iPhone") { App = caller ?? "Teléfono" },
+        "missed" => new PillItem(PillKind.Call, "Llamada perdida", caller ?? "iPhone") { App = caller ?? "Teléfono", Duration = TimeSpan.FromSeconds(5) },
+        "ended" => new PillItem(PillKind.Call, "Llamada terminada", caller ?? "iPhone") { App = caller ?? "Teléfono", Duration = TimeSpan.FromSeconds(3) },
+        "none" => new PillItem(PillKind.Call, "") { Withdraw = true },
+        _ => null,
+    };
 
     public const int MaxSnapshot = 60, MaxFullBody = 2000;
 

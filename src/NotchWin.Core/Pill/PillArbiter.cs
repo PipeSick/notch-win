@@ -15,6 +15,8 @@ public enum PillKind
     Capture,
     /// <summary>A new track started.</summary>
     Track,
+    /// <summary>WM-038: an iPhone call (WinMac Connect). While it rings it stays (it does not expire like a notification); missed or ended, a few seconds.</summary>
+    Call,
 }
 
 /// <summary>
@@ -28,6 +30,12 @@ public sealed record PillItem(PillKind Kind, string Title, string? Subtitle = nu
 
     /// <summary>WM-025: identity of a Windows notification («win:&lt;id&gt;»), so a click on the pill opens that same notification in full.</summary>
     public string? NotificationKey { get; init; }
+
+    /// <summary>How long this item stays, when it is not the kind's usual time (WM-038: a ringing call stays until it ends).</summary>
+    public TimeSpan? Duration { get; init; }
+
+    /// <summary>WM-038: not something to show but «take the current item of this kind away» (the call ended).</summary>
+    public bool Withdraw { get; init; }
 
     /// <summary>Image file shown as a small thumbnail (a saved screenshot). Decoded at thumbnail size, never in full.</summary>
     public string? ImagePath { get; init; }
@@ -87,6 +95,8 @@ public sealed class PillPolicy
         [PillKind.Capture] = new(25, TimeSpan.FromSeconds(3), Coalesce: false, Resumable: true),
         [PillKind.Activity] = new(20, TimeSpan.FromMilliseconds(3200), Coalesce: false, Resumable: true),
         [PillKind.Track] = new(10, TimeSpan.FromMilliseconds(3200), Coalesce: true, Resumable: false),
+        // WM-038: above everything (a ringing phone matters more than a volume change); a new state of the call replaces the one on screen
+        [PillKind.Call] = new(50, TimeSpan.FromSeconds(95), Coalesce: true, Resumable: true, notifications),
     });
 }
 
@@ -147,7 +157,7 @@ public sealed class PillArbiter
             _recent[item.Key] = now;
         }
 
-        var entry = new Entry(item, rule.Duration, ++_seq);
+        var entry = new Entry(item, item.Duration ?? rule.Duration, ++_seq);
         if (_paused)
         {
             if (rule.Resumable) Enqueue(entry);
@@ -215,6 +225,15 @@ public sealed class PillArbiter
 
         _paused = false;
         if (_current is not null) _until = now + _pausedLeft; else Advance();
+        Changed?.Invoke();
+    }
+
+    /// <summary>WM-038: the item of this kind on screen or waiting goes away now (the call ended without a «missed» to show).</summary>
+    public void Withdraw(PillKind kind)
+    {
+        _queue.RemoveAll(e => e.Item.Kind == kind);
+        if (_current?.Item.Kind != kind) return;
+        _current = null; if (!_paused) Advance();
         Changed?.Invoke();
     }
 

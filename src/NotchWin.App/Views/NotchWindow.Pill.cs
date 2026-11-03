@@ -44,7 +44,7 @@ public sealed partial class NotchWindow
     {
         if (!_closed)
         {
-            _pill.Post(item);
+            if (item.Withdraw) _pill.Withdraw(item.Kind); else _pill.Post(item);
         }
     }
 
@@ -60,7 +60,7 @@ public sealed partial class NotchWindow
     private (int Width, int Height) PillSize() => _expanded || _shownPill is null ? (0, 0) : _shownPill.Kind switch
     {
         PillKind.Volume or PillKind.Brightness => (HudWidth, CollapsedHeight),
-        PillKind.Notification => (NotifWidth, Math.Max(NotifHeight, CollapsedHeight)),
+        PillKind.Notification or PillKind.Call => (NotifWidth, Math.Max(NotifHeight, CollapsedHeight)),
         _ => (ToastWidth, CollapsedHeight),
     };
 
@@ -91,7 +91,7 @@ public sealed partial class NotchWindow
             switch (item.Kind)
             {
                 case PillKind.Volume or PillKind.Brightness: ShowHud(item); break;
-                case PillKind.Notification: ShowNotif(item); break;
+                case PillKind.Notification or PillKind.Call: ShowNotif(item); break;   // WM-038: the call uses the notification's layout (no new design)
                 default: ShowBanner(item); break;
             }
         }
