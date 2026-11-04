@@ -62,6 +62,8 @@ public sealed partial class NotchWindow : Window
         _eqBars = [Eq0, Eq1, Eq2, Eq3];
         _musicEqBars = [XEq0, XEq1, XEq2, XEq3];
 
+        var scrim = NotchWin.Core.Notch.PanelLegibility.Scrim;   // WM-037: el panel «Personalizar» es legible con cualquier nivel de cristal y cualquier cosa detrás
+        CustomizePane.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(scrim.A, scrim.R, scrim.G, scrim.B));
         _glass = new GlassBackdrop { Level = _viewModel.GlassLevel / 100.0, LightSurroundings = WindowsIsLight() };
         SystemBackdrop = _glass;
         // WM-037: the island stays dark in Windows' light theme too. Theme changes made while it runs are followed (the event comes on another thread).

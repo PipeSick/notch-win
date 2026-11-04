@@ -554,7 +554,7 @@ public sealed partial class NotchWindow
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var name = Label(SectionInfo[section.Id].Name, 13, section.Enabled ? Colors.White : Faint);
+            var dis = NotchWin.Core.Notch.PanelLegibility.Disabled; var name = Label(SectionInfo[section.Id].Name, 13, section.Enabled ? Colors.White : Color.FromArgb(255, dis.R, dis.G, dis.B));   // WM-037: una sección desactivada también se lee
             name.VerticalAlignment = VerticalAlignment.Center;
             row.Children.Add(name);
 

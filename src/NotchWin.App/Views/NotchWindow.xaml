@@ -411,10 +411,11 @@
                 </StackPanel>
 
                 <!-- Customize sections -->
-                <StackPanel x:Name="CustomizePane" Spacing="6" Visibility="Collapsed" VerticalAlignment="Top">
-                    <TextBlock Text="CRISTAL" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
+                <!-- WM-037: el fondo (casi opaco, oscuro) y los rótulos se fijan en código con PanelLegibility: legible con cualquier nivel de cristal y cualquier cosa detrás. -->
+                <StackPanel x:Name="CustomizePane" Spacing="6" Visibility="Collapsed" VerticalAlignment="Top" CornerRadius="14" Padding="10,8,10,10">
+                    <TextBlock x:Name="CustomizeGlassLabel" Text="CRISTAL" Foreground="#A1A1A6" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
                     <Slider x:Name="GlassSlider" Minimum="0" Maximum="100" StepFrequency="5" />
-                    <TextBlock Text="SECCIONES" Foreground="#636366" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
+                    <TextBlock x:Name="CustomizeSectionsLabel" Text="SECCIONES" Foreground="#A1A1A6" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
                     <StackPanel x:Name="CustomizeList" Spacing="6" />
                 </StackPanel>
             </Grid>

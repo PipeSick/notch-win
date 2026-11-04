@@ -59,3 +59,57 @@ public class CallPillTests
         Assert.Null(NotchWin.Core.Pill.PillFeed.Call("contestar", "X"));   // estados desconocidos: nada (no hay controles de llamada)
     }
 }
+
+/// <summary>WM-037 (iteración 6): el panel «Personalizar» se lee con cualquier nivel de cristal y cualquier cosa detrás, con Windows en tema claro y oscuro.</summary>
+public class PanelLegibilityTests
+{
+    private static readonly (byte, byte, byte) White = (255, 255, 255);
+
+    [Theory]
+    [InlineData(0)] [InlineData(64)] [InlineData(128)] [InlineData(192)] [InlineData(255)]   // lo que hay detrás: de negro a blanco puro (una página web)
+    public void Text_labels_and_disabled_rows_are_readable_over_any_backdrop(byte backdrop)
+    {
+        var bg = PanelLegibility.Composite(PanelLegibility.Scrim, backdrop);
+        Assert.True(PanelLegibility.Contrast(PanelLegibility.Text, bg) >= 7.0);        // texto principal (AAA)
+        Assert.True(PanelLegibility.Contrast(PanelLegibility.Label, bg) >= 4.5);       // rótulos «CRISTAL» y «SECCIONES» (AA)
+        Assert.True(PanelLegibility.Contrast(PanelLegibility.Disabled, bg) >= 3.0);    // sección desactivada (componente de interfaz, AA)
+    }
+
+    [Fact]
+    public void The_old_label_colour_was_below_the_minimum_and_the_new_one_is_not()
+    {
+        var oldLabel = ((byte)0x63, (byte)0x63, (byte)0x66); var graphite = ((byte)0x1C, (byte)0x1C, (byte)0x1E);
+        Assert.True(PanelLegibility.Contrast(oldLabel, graphite) < 3.0);                // 2,8:1: la causa de «ilegible»
+        Assert.True(PanelLegibility.Contrast(PanelLegibility.Label, graphite) >= 4.5);
+    }
+
+    [Theory]
+    [InlineData(0.0, false)] [InlineData(0.3, false)] [InlineData(1.0, false)] [InlineData(0.0, true)] [InlineData(0.6, true)]
+    public void The_scrim_does_not_depend_on_the_windows_theme_or_the_glass_level(double level, bool lightTheme)
+    {
+        // El fondo del panel es un valor fijo: el nivel de cristal y el tema del sistema solo afectan al resto de la Isla (GlassTint), que no se toca.
+        _ = GlassTint.For(level, false, lightTheme);
+        var worst = PanelLegibility.Composite(PanelLegibility.Scrim, 255);              // peor caso: blanco puro detrás
+        Assert.True(PanelLegibility.Contrast(PanelLegibility.Text, worst) >= 7.0);
+    }
+
+    [Fact]
+    public void The_scrim_is_nearly_opaque_but_lets_a_little_glass_through()
+    {
+        Assert.InRange(PanelLegibility.Scrim.A, 0xD9, 0xF5);   // 85–96 %
+    }
+
+    [Fact]
+    public void The_island_glass_curve_is_unchanged_by_this_fix()
+    {
+        var (tint, lum) = GlassTint.For(0.0, false, false);
+        Assert.Equal(0.08, tint, 3); Assert.Equal(0.12, lum, 3);
+    }
+
+    [Fact]
+    public void Composite_of_a_black_backdrop_is_the_scrim_colour_itself()
+    {
+        var c = PanelLegibility.Composite(PanelLegibility.Scrim, 0);
+        Assert.Equal(((byte)(0.92157 * 0x1C + 0.5), (byte)(0.92157 * 0x1C + 0.5), (byte)(0.92157 * 0x1E + 0.5)), (c.R, c.G, c.B));
+    }
+}
