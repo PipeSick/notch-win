@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- A very light scrim keeps white text readable over a bright window without hiding the glass (it used to be 30 % black, which turned the glass into plain black). -->
-    <Grid x:Name="RootGrid" Background="{ThemeResource NW_1F000000}" AllowDrop="True" RequestedTheme="Dark"
+    <Grid x:Name="RootGrid" AllowDrop="True" RequestedTheme="Dark"
           PointerEntered="OnPointerEntered" PointerExited="OnPointerExited"
           DragEnter="OnRootDragEnter" DragOver="OnRootDragOver" Drop="OnRootDrop">
 

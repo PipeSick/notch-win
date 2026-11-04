@@ -54,6 +54,7 @@ public sealed partial class NotchWindow : Window
         Pal.Set(Pal.SystemIsLight());   // It7: el tema de las aplicaciones de Windows manda, también al arrancar
         InitializeComponent();
         RootGrid.RequestedTheme = Pal.Light ? ElementTheme.Light : ElementTheme.Dark;
+        RootGrid.Background = new SolidColorBrush(Pal.C(0x1F, 0, 0, 0));   // el velo del cristal: en código, porque un elemento no resuelve sus PROPIOS recursos de tema al cargar el XAML
         CollapsedBar.Height = CollapsedHeight; ToastBar.Height = CollapsedHeight; HudBar.Height = CollapsedHeight;   // the XAML says 32; inside WinMac it matches the bar
         _eqBars = [Eq0, Eq1, Eq2, Eq3];
         _musicEqBars = [XEq0, XEq1, XEq2, XEq3];
