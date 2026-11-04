@@ -9,17 +9,17 @@ namespace NotchWin.App.Views;
 /// <summary>Small builders for the translucent "cards" used by the agents, resources and clipboard tabs.</summary>
 internal static class CardUi
 {
-    public static readonly Color Dim = Color.FromArgb(255, 0x8E, 0x8E, 0x93);
-    public static readonly Color Faint = Color.FromArgb(255, 0x63, 0x63, 0x66);
-    public static readonly Color Track = Color.FromArgb(255, 0x3A, 0x3A, 0x3C);
-    public static readonly Color Danger = Color.FromArgb(255, 0xFF, 0x45, 0x3A);
+    public static Color Dim => Pal.C(255, 0x8E, 0x8E, 0x93);
+    public static Color Faint => Pal.C(255, 0x63, 0x63, 0x66);
+    public static Color Track => Pal.C(255, 0x3A, 0x3A, 0x3C);
+    public static Color Danger => Pal.C(255, 0xFF, 0x45, 0x3A);
 
     public static SolidColorBrush Brush(Color color) => new(color);
 
     public static Border Card(UIElement child, double padding = 12) => new()
     {
-        Background = new SolidColorBrush(Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF)),
-        BorderBrush = new SolidColorBrush(Color.FromArgb(0x1C, 0xFF, 0xFF, 0xFF)),
+        Background = new SolidColorBrush(Pal.C(0x12, 0xFF, 0xFF, 0xFF)),
+        BorderBrush = new SolidColorBrush(Pal.C(0x1C, 0xFF, 0xFF, 0xFF)),
         BorderThickness = new Thickness(1),
         CornerRadius = new CornerRadius(14),
         Padding = new Thickness(padding),
@@ -73,7 +73,7 @@ internal static class CardUi
             overlay.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(m, GridUnitType.Star) });
             overlay.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             overlay.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - m, GridUnitType.Star) });
-            var tick = new Border { Width = 2, Height = height + 6, Background = new SolidColorBrush(Colors.White), CornerRadius = new CornerRadius(1) };
+            var tick = new Border { Width = 2, Height = height + 6, Background = new SolidColorBrush(Pal.Fg), CornerRadius = new CornerRadius(1) };
             Grid.SetColumn(tick, 1);
             overlay.Children.Add(tick);
             Grid.SetColumnSpan(overlay, 2);

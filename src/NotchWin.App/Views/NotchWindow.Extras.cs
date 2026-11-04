@@ -104,7 +104,7 @@ public sealed partial class NotchWindow
 
             row.Children.Add(new FontIcon { Glyph = "", FontSize = 14, Foreground = new SolidColorBrush(Dim), VerticalAlignment = VerticalAlignment.Center });
 
-            var name = Label(Path.GetFileName(path), 12, Microsoft.UI.Colors.White, trim: true);
+            var name = Label(Path.GetFileName(path), 12, Pal.Fg, trim: true);
             name.VerticalAlignment = VerticalAlignment.Center;
             ToolTipService.SetToolTip(name, path);
             Grid.SetColumn(name, 1);

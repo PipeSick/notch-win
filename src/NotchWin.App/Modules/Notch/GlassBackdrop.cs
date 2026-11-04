@@ -33,7 +33,7 @@ internal sealed class GlassBackdrop : SystemBackdrop
     }
 
     private bool _light;
-    /// <summary>WM-037: Windows is in light theme (what is behind is bright): the tint keeps a minimum opacity so the island stays dark and readable.</summary>
+    /// <summary>It7: Windows is in light theme: the glass is LIGHT (graphite text) and its tint keeps a minimum opacity so the text stays readable over anything behind (GlassTint, IslandThemeTests).</summary>
     public bool LightSurroundings
     {
         get => _light;
@@ -54,7 +54,7 @@ internal sealed class GlassBackdrop : SystemBackdrop
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop connectedTarget, XamlRoot xamlRoot)
     {
         base.OnTargetConnected(connectedTarget, xamlRoot);
-        _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = SystemBackdropTheme.Dark };
+        _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = _light ? SystemBackdropTheme.Light : SystemBackdropTheme.Dark };
         _controller = new DesktopAcrylicController();
         _controller.AddSystemBackdropTarget(connectedTarget);
         _controller.SetSystemBackdropConfiguration(_configuration);
@@ -78,17 +78,11 @@ internal sealed class GlassBackdrop : SystemBackdrop
         }
 
         var (tint, lum) = NotchWin.Core.Notch.GlassTint.For(_level, _matchBar, _light);
-        if (_matchBar)
-        {
-            _controller.TintColor = Microsoft.UI.ColorHelper.FromArgb(255, 31, 33, 41);   // WinMac BarPainter, dark theme
-            _controller.FallbackColor = Microsoft.UI.ColorHelper.FromArgb(255, 38, 40, 48);
-        }
-        else
-        {
-            // Liquid Glass approximation: a neutral graphite tint (not black) that lets the live blur of what is behind show through (curve and floors: GlassTint).
-            _controller.TintColor = Microsoft.UI.ColorHelper.FromArgb(255, 24, 24, 28);
-            _controller.FallbackColor = Microsoft.UI.ColorHelper.FromArgb(255, 30, 30, 34);
-        }
+        // Dark: WinMac BarPainter's tint when collapsed inside WinMac, otherwise the Liquid Glass graphite. Light: the equivalent light glass (IslandPalette).
+        var baseTint = NotchWin.Core.Notch.IslandPalette.GlassBase(_light, _matchBar); var fallback = NotchWin.Core.Notch.IslandPalette.GlassFallback(_light, _matchBar);
+        _controller.TintColor = Microsoft.UI.ColorHelper.FromArgb(255, baseTint.R, baseTint.G, baseTint.B);
+        _controller.FallbackColor = Microsoft.UI.ColorHelper.FromArgb(255, fallback.R, fallback.G, fallback.B);
+        if (_configuration is not null) _configuration.Theme = _light ? SystemBackdropTheme.Light : SystemBackdropTheme.Dark;
 
         _controller.TintOpacity = tint;
         _controller.LuminosityOpacity = lum;

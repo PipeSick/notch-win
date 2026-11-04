@@ -86,7 +86,7 @@ public sealed partial class NotchWindow
 
         actions.Children.Add(ActionButton("", "Copiar", () => _ = CopyBackAsync(item)));
         actions.Children.Add(ActionButton(item.Pinned ? "" : "", item.Pinned ? "Quitar fijado" : "Fijar",
-            () => _viewModel.Clipboard.TogglePin(item.Id), item.Pinned ? Color.FromArgb(255, 0xFF, 0xD6, 0x0A) : CardUi.Dim));
+            () => _viewModel.Clipboard.TogglePin(item.Id), item.Pinned ? Pal.C(255, 0xFF, 0xD6, 0x0A) : CardUi.Dim));
         actions.Children.Add(ActionButton("", "Eliminar", () => _viewModel.Clipboard.Remove(item.Id)));
         footer.Children.Add(CardUi.At(actions, 2));
         body.Children.Add(footer);
@@ -94,7 +94,7 @@ public sealed partial class NotchWindow
         var card = CardUi.Card(body, 10);
         if (item.Pinned)
         {
-            card.BorderBrush = CardUi.Brush(Color.FromArgb(0x66, 0xFF, 0xD6, 0x0A));
+            card.BorderBrush = CardUi.Brush(Pal.C(0x66, 0xFF, 0xD6, 0x0A));
         }
 
         return card;
@@ -112,7 +112,7 @@ public sealed partial class NotchWindow
         return new TextBlock
         {
             Text = item.Text ?? string.Empty,
-            Foreground = CardUi.Brush(Colors.White),
+            Foreground = CardUi.Brush(Pal.Fg),
             FontSize = 13,
             TextWrapping = TextWrapping.Wrap,
             TextTrimming = TextTrimming.CharacterEllipsis,

@@ -92,7 +92,7 @@ public sealed partial class NotchWindow
             NowTestTag.Visibility = Visibility.Collapsed;
             NowTitle.Text = "Nada en reproducción";
             NowArtist.Text = _viewModel.MediaControls is { HasSession: true } ? "Pulsa reproducir para reanudar" : "Abrir " + _viewModel.PlayerName;
-            NowArt.Background = new SolidColorBrush(Color.FromArgb(255, 0x1C, 0x1C, 0x1E)); NowArtGlyph.Visibility = Visibility.Visible;
+            NowArt.Background = new SolidColorBrush(Pal.C(255, 0x1C, 0x1C, 0x1E)); NowArtGlyph.Visibility = Visibility.Visible;
             NowProgressRow.Visibility = Visibility.Collapsed; NowLyric.Visibility = Visibility.Collapsed;
             NowPlayIcon.Visibility = Visibility.Visible; NowPauseIcon.Visibility = Visibility.Collapsed;
             NowPrevButton.Visibility = Visibility.Collapsed; NowNextButton.Visibility = Visibility.Collapsed;
@@ -125,7 +125,7 @@ public sealed partial class NotchWindow
         else if (test is not null)
         {
             NowTitle.Text = test.Title; NowArtist.Text = test.Subtitle ?? "";
-            NowArt.Background = new SolidColorBrush(Color.FromArgb(255, 0x3A, 0x2D, 0x5C)); NowArtGlyph.Visibility = Visibility.Visible;
+            NowArt.Background = new SolidColorBrush(Pal.C(255, 0x3A, 0x2D, 0x5C)); NowArtGlyph.Visibility = Visibility.Visible;
             SetProgress(test.Progress, null, null);
             NowLyric.Visibility = Visibility.Collapsed;
             NowControls.Visibility = Visibility.Collapsed;   // test data: no controls that would look functional
@@ -176,7 +176,7 @@ public sealed partial class NotchWindow
 
     private FrameworkElement ActivityRow(Activity a)
     {
-        var row = new Grid { ColumnSpacing = 12, Padding = new Thickness(12, 10, 10, 10), CornerRadius = new CornerRadius(12), Background = new SolidColorBrush(Color.FromArgb(0x14, 255, 255, 255)) };
+        var row = new Grid { ColumnSpacing = 12, Padding = new Thickness(12, 10, 10, 10), CornerRadius = new CornerRadius(12), Background = new SolidColorBrush(Pal.C(0x14, 255, 255, 255)) };
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -187,25 +187,25 @@ public sealed partial class NotchWindow
         else
             icon = new Border
             {
-                Width = 40, Height = 40, CornerRadius = new CornerRadius(20), Background = new SolidColorBrush(Color.FromArgb(0x33, 0x0A, 0x84, 0xFF)),
-                Child = new FontIcon { Glyph = KindGlyph(a.Kind), FontSize = 16, Foreground = new SolidColorBrush(Color.FromArgb(255, 0x0A, 0x84, 0xFF)) },
+                Width = 40, Height = 40, CornerRadius = new CornerRadius(20), Background = new SolidColorBrush(Pal.C(0x33, 0x0A, 0x84, 0xFF)),
+                Child = new FontIcon { Glyph = KindGlyph(a.Kind), FontSize = 16, Foreground = new SolidColorBrush(Pal.C(255, 0x0A, 0x84, 0xFF)) },
             };
         row.Children.Add(icon);
 
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
         var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        titleRow.Children.Add(new TextBlock { Text = a.Title, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 250 });
-        if (a.IsTest) titleRow.Children.Add(new Border { Background = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0x9F, 0x0A)), CornerRadius = new CornerRadius(5), Padding = new Thickness(5, 0, 5, 1), VerticalAlignment = VerticalAlignment.Center, Child = new TextBlock { Text = "prueba", FontSize = 10, Foreground = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0xB3, 0x40)) } });
+        titleRow.Children.Add(new TextBlock { Text = a.Title, Foreground = new SolidColorBrush(Pal.Fg), FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 250 });
+        if (a.IsTest) titleRow.Children.Add(new Border { Background = new SolidColorBrush(Pal.C(0x33, 0xFF, 0x9F, 0x0A)), CornerRadius = new CornerRadius(5), Padding = new Thickness(5, 0, 5, 1), VerticalAlignment = VerticalAlignment.Center, Child = new TextBlock { Text = "prueba", FontSize = 10, Foreground = new SolidColorBrush(Pal.C(255, 0xFF, 0xB3, 0x40)) } });
         text.Children.Add(titleRow);
         var sub = StateText(a);
-        if (sub.Length > 0) text.Children.Add(new TextBlock { Text = sub, Foreground = new SolidColorBrush(Color.FromArgb(255, 0x98, 0x98, 0x9D)), FontSize = 11.5, TextTrimming = TextTrimming.CharacterEllipsis });
+        if (sub.Length > 0) text.Children.Add(new TextBlock { Text = sub, Foreground = new SolidColorBrush(Pal.C(255, 0x98, 0x98, 0x9D)), FontSize = 11.5, TextTrimming = TextTrimming.CharacterEllipsis });
         if (!a.IsFinished && (a.Kind is ActivityKind.Download or ActivityKind.Transfer || (a.Kind == ActivityKind.Extension && a.Progress is not null)))   // extensions: only when they report real progress
             text.Children.Add(new ProgressBar { Minimum = 0, Maximum = 1, Value = a.Progress ?? 0, IsIndeterminate = a.Progress is null, Margin = new Thickness(0, 4, 0, 0) });
         Grid.SetColumn(text, 1); row.Children.Add(text);
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
         var supported = ActivityActions.Supported(a, canEdit: _viewModel.EditCapture is not null);
-        foreach (var (flag, glyph, tip) in new (ActivityAction, string, string)[]
+        foreach (var (flag, baseGlyph, baseTip) in new (ActivityAction, string, string)[]
         {
             (ActivityAction.PlayPause, "", "Reproducir o pausar"), (ActivityAction.Next, "", "Siguiente"),
             (ActivityAction.Open, "", "Abrir"), (ActivityAction.ShowInFolder, "", "Mostrar en la carpeta"), (ActivityAction.Edit, "\uE70F", "Editar en WinMac"), (ActivityAction.Copy, "", "Copiar"),
@@ -213,7 +213,11 @@ public sealed partial class NotchWindow
         })
         {
             if (!supported.HasFlag(flag)) continue;   // no decorative buttons: only what the Island really does
-            var b = new Button { Width = 30, Height = 30, Padding = new Thickness(0), CornerRadius = new CornerRadius(15), Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0), Content = new FontIcon { Glyph = glyph, FontSize = 13, Foreground = new SolidColorBrush(Color.FromArgb(255, 0xD1, 0xD1, 0xD6)) } };
+            // It7: the media card's Play/Pause button shows the REAL state (it used to draw the same «play» glyph while playing, unlike the player above); same glyphs everywhere.
+            bool mediaPlaying = a.State == ActivityState.Active;
+            string glyph = flag == ActivityAction.PlayPause ? NotchWin.Core.Music.MediaGlyphs.PlayPause(mediaPlaying) : baseGlyph;
+            string tip = flag == ActivityAction.PlayPause ? NotchWin.Core.Music.MediaGlyphs.PlayPauseTip(mediaPlaying) : baseTip;
+            var b = new Button { Width = 30, Height = 30, Padding = new Thickness(0), CornerRadius = new CornerRadius(15), Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0), Content = new FontIcon { Glyph = glyph, FontSize = 13, Foreground = new SolidColorBrush(Pal.C(255, 0xD1, 0xD1, 0xD6)) } };
             ToolTipService.SetToolTip(b, tip);
             b.Click += async (_, _) => await RunAction(a, flag);
             actions.Children.Add(b);
@@ -252,10 +256,10 @@ public sealed partial class NotchWindow
             var img = new Border
             {
                 Width = 146, Height = 86, CornerRadius = new CornerRadius(10), Background = Thumbnail(f.Path, 292),
-                BorderThickness = new Thickness(sel ? 2 : 1), BorderBrush = new SolidColorBrush(sel ? Color.FromArgb(255, 0x0A, 0x84, 0xFF) : Color.FromArgb(0x26, 255, 255, 255)),
+                BorderThickness = new Thickness(sel ? 2 : 1), BorderBrush = new SolidColorBrush(sel ? Pal.C(255, 0x0A, 0x84, 0xFF) : Pal.C(0x26, 255, 255, 255)),
             };
             tile.Children.Add(img);
-            tile.Children.Add(new TextBlock { Text = CaptureLibrary.When(f.ModifiedUtc.ToLocalTime(), DateTime.Now), FontSize = 11, Foreground = new SolidColorBrush(Color.FromArgb(255, 0xC7, 0xC7, 0xCC)), HorizontalAlignment = HorizontalAlignment.Center });
+            tile.Children.Add(new TextBlock { Text = CaptureLibrary.When(f.ModifiedUtc.ToLocalTime(), DateTime.Now), FontSize = 11, Foreground = new SolidColorBrush(Pal.C(255, 0xC7, 0xC7, 0xCC)), HorizontalAlignment = HorizontalAlignment.Center });
             var path = f.Path;
             tile.Tapped += (_, _) => { _selectedCapture = _selectedCapture == path ? null : path; RebuildCaptures(); RelayoutIfExpanded(); };
             ToolTipService.SetToolTip(tile, f.Name);
@@ -273,7 +277,7 @@ public sealed partial class NotchWindow
         galleryActions.AddRange([(ActivityAction.Copy, "Copiar"), (ActivityAction.ShowInFolder, "Mostrar en carpeta"), (ActivityAction.Delete, "Eliminar")]);
         foreach (var (flag, text) in galleryActions)
         {
-            var b = new Button { Content = text, FontSize = 12, Padding = new Thickness(12, 4, 12, 5), CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(Color.FromArgb(0x26, 255, 255, 255)), BorderThickness = new Thickness(0) };
+            var b = new Button { Content = text, FontSize = 12, Padding = new Thickness(12, 4, 12, 5), CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(Pal.C(0x26, 255, 255, 255)), BorderThickness = new Thickness(0) };
             b.Click += async (_, _) => { await RunAction(act, flag); if (flag == ActivityAction.Delete) { _selectedCapture = null; RebuildCaptures(); RelayoutIfExpanded(); } };
             CaptureActions.Children.Add(b);
         }
@@ -289,7 +293,7 @@ public sealed partial class NotchWindow
     private static Brush Thumbnail(string path, int decodeWidth)
     {
         try { return new ImageBrush { ImageSource = ThumbLoader.Load(path, decodeWidth), Stretch = Stretch.UniformToFill }; }
-        catch (Exception) { return new SolidColorBrush(Color.FromArgb(255, 0x2C, 0x2C, 0x2E)); }
+        catch (Exception) { return new SolidColorBrush(Pal.C(255, 0x2C, 0x2C, 0x2E)); }
     }
 
     // ───────────────────────────── actions (real implementations only)

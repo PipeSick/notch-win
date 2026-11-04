@@ -11,10 +11,10 @@ namespace NotchWin.App.Views;
 /// <summary>The expanded notch's tabs: timer, calendar, downloads, notifications and the section customizer.</summary>
 public sealed partial class NotchWindow
 {
-    private static readonly Color Dim = Color.FromArgb(255, 0x8E, 0x8E, 0x93);
-    private static readonly Color Faint = Color.FromArgb(255, 0x63, 0x63, 0x66);
+    private static Color Dim => Pal.C(255, 0x8E, 0x8E, 0x93);
+    private static Color Faint => Pal.C(255, 0x63, 0x63, 0x66);
     // Glass layers (translucent white over the glass, Liquid Glass style) instead of near-black solid cards.
-    private static readonly Color Card = Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF);
+    private static Color Card => Pal.C(0x14, 0xFF, 0xFF, 0xFF);
 
     private string _active = string.Empty;   // the first enabled tab (the user's order; «En curso» by default in WinMac 2.0)
     private bool _customizing;
@@ -110,7 +110,7 @@ public sealed partial class NotchWindow
             {
                 Glyph = SectionInfo[id].Glyph,
                 FontSize = 15,
-                Foreground = new SolidColorBrush(selected ? Colors.White : Dim),
+                Foreground = new SolidColorBrush(selected ? Colors.White : Dim),   // la pestaña elegida es azul en ambos temas: su texto siempre es blanco
                 VerticalAlignment = VerticalAlignment.Center,
             });
             if (selected)
@@ -124,7 +124,7 @@ public sealed partial class NotchWindow
             {
                 content.Children.Add(new Border
                 {
-                    Background = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0x45, 0x3A)),
+                    Background = new SolidColorBrush(Pal.C(255, 0xFF, 0x45, 0x3A)),
                     CornerRadius = new CornerRadius(7),
                     MinWidth = 14,
                     Height = 14,
@@ -136,7 +136,7 @@ public sealed partial class NotchWindow
                         Text = Math.Min(99, _viewModel.Notifications.Items.Count).ToString(),
                         FontSize = 9,
                         FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                        Foreground = new SolidColorBrush(Colors.White),
+                        Foreground = new SolidColorBrush(Colors.White),   // sobre la insignia roja
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
                     },
@@ -191,7 +191,7 @@ public sealed partial class NotchWindow
         // The tabs stay put while customizing so the notch never looks like its icons vanished;
         // none is highlighted then, and the gear lights up instead. Clicking a tab leaves customize mode.
         TabBar.Visibility = enabled.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-        GearIcon.Foreground = new SolidColorBrush(_customizing ? Colors.White : Dim);
+        GearIcon.Foreground = new SolidColorBrush(_customizing ? Pal.Fg : Dim);
     }
 
     /// <summary>At most this many tabs side by side (the mockup has five plus a few icons); the rest are under «Más».</summary>
@@ -206,9 +206,9 @@ public sealed partial class NotchWindow
     /// </summary>
     private static void TabLook(Button b, bool selected)
     {
-        Color rest = selected ? Color.FromArgb(255, 0x0A, 0x84, 0xFF) : Colors.Transparent;
-        Color over = selected ? Color.FromArgb(255, 0x33, 0x95, 0xFF) : Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF);
-        Color down = selected ? Color.FromArgb(255, 0x08, 0x6D, 0xD6) : Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF);
+        Color rest = selected ? Pal.C(255, 0x0A, 0x84, 0xFF) : Colors.Transparent;
+        Color over = selected ? Pal.C(255, 0x33, 0x95, 0xFF) : Pal.C(0x1F, 0xFF, 0xFF, 0xFF);
+        Color down = selected ? Pal.C(255, 0x08, 0x6D, 0xD6) : Pal.C(0x33, 0xFF, 0xFF, 0xFF);
         b.Resources["ButtonBackground"] = new SolidColorBrush(rest);
         b.Resources["ButtonBackgroundPointerOver"] = new SolidColorBrush(over);
         b.Resources["ButtonBackgroundPressed"] = new SolidColorBrush(down);
@@ -391,7 +391,7 @@ public sealed partial class NotchWindow
         foreach (var ev in _viewModel.CalendarToday)
         {
             var color = palette[i++ % palette.Length];
-            var accent = Color.FromArgb(255, (byte)(color >> 16), (byte)(color >> 8), (byte)color);
+            var accent = Pal.C(255, (byte)(color >> 16), (byte)(color >> 8), (byte)color);
 
             var row = new Grid { Background = new SolidColorBrush(Card), CornerRadius = new CornerRadius(12), Padding = new Thickness(8, 9, 12, 9), ColumnSpacing = 10 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
@@ -401,14 +401,14 @@ public sealed partial class NotchWindow
             row.Children.Add(new Border { Background = new SolidColorBrush(accent), CornerRadius = new CornerRadius(2) });
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(Label(ev.Title, 13, Colors.White, bold: true, trim: true));
+            text.Children.Add(Label(ev.Title, 13, Pal.Fg, bold: true, trim: true));
             text.Children.Add(Label(ev.AllDay ? "Todo el día" : $"{ev.Start:HH:mm} – {ev.End:HH:mm}", 11, Dim));
             Grid.SetColumn(text, 1);
             row.Children.Add(text);
 
             var until = ev.Start - DateTimeOffset.Now;
             var when = ev.AllDay ? string.Empty : until <= TimeSpan.Zero ? "ahora" : $"en {FormatSpan(until)}";
-            var whenText = Label(when, 11, Color.FromArgb(255, 0xFF, 0xD6, 0x0A));
+            var whenText = Label(when, 11, Pal.C(255, 0xFF, 0xD6, 0x0A));
             whenText.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(whenText, 2);
             row.Children.Add(whenText);
@@ -430,13 +430,13 @@ public sealed partial class NotchWindow
             var head = new Grid { ColumnSpacing = 8 };
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            head.Children.Add(Label(d.FileName, 12, Colors.White, bold: true, trim: true));
+            head.Children.Add(Label(d.FileName, 12, Pal.Fg, bold: true, trim: true));
             var size = Label(FormatBytes(d.Bytes) + (d.BytesPerSecond is { } bps ? " · " + (bps > 0 ? NotchWin.Core.Downloads.DownloadTracker.FormatRate(bps) : "sin avance") : ""), 12, Dim);   // measured speed; no ETA (total unknown)
             Grid.SetColumn(size, 1);
             head.Children.Add(size);
 
             card.Children.Add(head);
-            card.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 4, Foreground = new SolidColorBrush(Color.FromArgb(255, 0x0A, 0x84, 0xFF)) });
+            card.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 4, Foreground = new SolidColorBrush(Pal.C(255, 0x0A, 0x84, 0xFF)) });
             DownloadsList.Children.Add(card);
         }
     }
@@ -469,7 +469,7 @@ public sealed partial class NotchWindow
             row.Children.Add(badge);
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(Label(n.Title, 12.5, Colors.White, bold: true, trim: !open));
+            text.Children.Add(Label(n.Title, 12.5, Pal.Fg, bold: true, trim: !open));
             if (open)
             {
                 // the full text Windows gave (wraps; the list scrolls when it is long), the app's name and, when Windows says which app it is, «Abrir»
@@ -554,7 +554,7 @@ public sealed partial class NotchWindow
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var dis = NotchWin.Core.Notch.PanelLegibility.Disabled; var name = Label(SectionInfo[section.Id].Name, 13, section.Enabled ? Colors.White : Color.FromArgb(255, dis.R, dis.G, dis.B));   // WM-037: una sección desactivada también se lee
+            var dis = NotchWin.Core.Notch.PanelLegibility.Disabled; var name = Label(SectionInfo[section.Id].Name, 13, section.Enabled ? Pal.Fg : Pal.C(255, dis.R, dis.G, dis.B));   // WM-037: una sección desactivada también se lee
             name.VerticalAlignment = VerticalAlignment.Center;
             row.Children.Add(name);
 
@@ -647,13 +647,13 @@ public sealed partial class NotchWindow
 
     private static Color ColorForSource(string source) => source switch
     {
-        "Claude Code" => Color.FromArgb(255, 0xD9, 0x77, 0x57),
-        "Codex" => Color.FromArgb(255, 0x10, 0xA3, 0x7F),
-        "Copilot" => Color.FromArgb(255, 0x8B, 0x5C, 0xF6),
-        "Temporizador" => Color.FromArgb(255, 0xFF, 0xD6, 0x0A),
-        "Descargas" => Color.FromArgb(255, 0x0A, 0x84, 0xFF),
-        "OpenCode" => Color.FromArgb(255, 0x3B, 0x9C, 0xFF),
-        _ => Color.FromArgb(255, 0xE5, 0xE5, 0xEA),
+        "Claude Code" => Pal.C(255, 0xD9, 0x77, 0x57),
+        "Codex" => Pal.C(255, 0x10, 0xA3, 0x7F),
+        "Copilot" => Pal.C(255, 0x8B, 0x5C, 0xF6),
+        "Temporizador" => Pal.C(255, 0xFF, 0xD6, 0x0A),
+        "Descargas" => Pal.C(255, 0x0A, 0x84, 0xFF),
+        "OpenCode" => Pal.C(255, 0x3B, 0x9C, 0xFF),
+        _ => Pal.C(255, 0xE5, 0xE5, 0xEA),
     };
 
     private static string FormatCountdown(TimeSpan t) =>

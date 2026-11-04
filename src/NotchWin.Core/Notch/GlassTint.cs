@@ -1,15 +1,18 @@
 namespace NotchWin.Core.Notch;
 
 /// <summary>
-/// Tinte del cristal de la Isla (WM-037). Puro: lo usa <c>GlassBackdrop</c> y se prueba sin Windows.
+/// It7: ya no hay una sola Isla oscura: con el tema claro de Windows el cristal es CLARO (tinte <see cref="IslandPalette.GlassBase"/>) con texto grafito; el contrato de legibilidad es el mismo
+/// — los mínimos de opacidad siguen valiendo para que el texto se lea sobre cualquier cosa detrás (ver <see cref="IslandPalette.Surface"/> y sus pruebas).
+/// </summary>
+/// <remarks>Historia (WM-037, superada por It7 en lo de «siempre oscura»): tinte del cristal de la Isla (WM-037). Puro: lo usa <c>GlassBackdrop</c> y se prueba sin Windows.
 /// <para>La Isla es SIEMPRE oscura y con texto blanco. Con el tema oscuro de Windows lo que hay detrás suele ser oscuro y un cristal ligero basta. Con el tema claro
 /// lo que hay detrás es blanco: el mismo cristal quedaba casi transparente y el texto, ilegible (no era una transición: no se recuperaba nunca). Con el tema claro
 /// el tinte tiene un mínimo de opacidad, así que la Isla conserva su aspecto oscuro aprobado; con el tema oscuro nada cambia.</para>
-/// </summary>
+/// </remarks>
 public static class GlassTint
 {
-    /// <summary>Mínimos con el tema claro: suficientes para texto blanco sobre una ventana blanca detrás (contraste comprobado a ojo con el usuario; ajustables aquí).</summary>
-    public const float LightMinTint = 0.78f, LightMinLuminosity = 0.82f, LightMinBarTint = 0.80f, LightMinBarLuminosity = 0.80f;
+    /// <summary>Mínimos con el tema claro: suficientes para texto grafito sobre cualquier cosa detrás, hasta un fondo negro (contraste WCAG ≥ 4,5 comprobado en IslandThemeTests; ajustables aquí).</summary>
+    public const float LightMinTint = 0.86f, LightMinLuminosity = 0.88f, LightMinBarTint = 0.88f, LightMinBarLuminosity = 0.88f;
 
     /// <param name="level">Nivel del cristal elegido en Ajustes (0 = claro, 1 = casi sólido).</param>
     /// <param name="matchBar">Plegada dentro de WinMac: el tinte de la barra superior.</param>

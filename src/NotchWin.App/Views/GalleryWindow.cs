@@ -30,25 +30,26 @@ public sealed class GalleryWindow : Window
     private readonly TextBlock _folder = new() { Foreground = Gray(0x8E), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock _empty = new() { Foreground = Gray(0x8E), FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Visibility = Visibility.Collapsed };
     private readonly Image _preview = new() { Stretch = Stretch.Uniform, MaxHeight = 220, HorizontalAlignment = HorizontalAlignment.Center };
-    private readonly TextBlock _pName = new() { FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Colors.White) };
+    private readonly TextBlock _pName = new() { FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Pal.Fg) };
     private readonly TextBlock _pInfo = new() { FontSize = 12, Foreground = Gray(0x98), TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _status = new() { FontSize = 12, Foreground = Gray(0xC7), TextWrapping = TextWrapping.Wrap };
     private readonly Grid _actions = new() { ColumnSpacing = 6, RowSpacing = 6 };   // WM-028: two columns of compact buttons
-    private readonly Grid _zoom = new() { Background = new SolidColorBrush(Color.FromArgb(0xE6, 0, 0, 0)), Visibility = Visibility.Collapsed };
+    private readonly Grid _zoom = new() { Background = new SolidColorBrush(Pal.C(0xE6, 0, 0, 0)), Visibility = Visibility.Collapsed };
     private readonly Image _zoomImage = new() { Stretch = Stretch.Uniform, Margin = new Thickness(24) };
     private List<CaptureFile> _items = [];
 
     public GalleryWindow(NotchViewModel vm)
     {
         _vm = vm;
+        Pal.Set(Pal.SystemIsLight());
         Title = "Capturas — WinMac";
         // WM-028: a dark title bar like the rest of WinMac (Windows' own title bar customization; nothing drawn by hand)
         if (Microsoft.UI.Windowing.AppWindowTitleBar.IsCustomizationSupported())
         {
-            var tb = AppWindow.TitleBar; var bg = Color.FromArgb(255, 0x1C, 0x1C, 0x1E);
-            tb.BackgroundColor = bg; tb.InactiveBackgroundColor = bg; tb.ForegroundColor = Colors.White; tb.InactiveForegroundColor = Color.FromArgb(255, 0x8E, 0x8E, 0x93);
-            tb.ButtonBackgroundColor = bg; tb.ButtonInactiveBackgroundColor = bg; tb.ButtonForegroundColor = Colors.White; tb.ButtonInactiveForegroundColor = Color.FromArgb(255, 0x8E, 0x8E, 0x93);
-            tb.ButtonHoverBackgroundColor = Color.FromArgb(255, 0x3A, 0x3A, 0x3C); tb.ButtonHoverForegroundColor = Colors.White; tb.ButtonPressedBackgroundColor = Color.FromArgb(255, 0x48, 0x48, 0x4A);
+            var tb = AppWindow.TitleBar; var bg = Pal.C(255, 0x1C, 0x1C, 0x1E);
+            tb.BackgroundColor = bg; tb.InactiveBackgroundColor = bg; tb.ForegroundColor = Pal.Fg; tb.InactiveForegroundColor = Pal.C(255, 0x8E, 0x8E, 0x93);
+            tb.ButtonBackgroundColor = bg; tb.ButtonInactiveBackgroundColor = bg; tb.ButtonForegroundColor = Pal.Fg; tb.ButtonInactiveForegroundColor = Pal.C(255, 0x8E, 0x8E, 0x93);
+            tb.ButtonHoverBackgroundColor = Pal.C(255, 0x3A, 0x3A, 0x3C); tb.ButtonHoverForegroundColor = Pal.Fg; tb.ButtonPressedBackgroundColor = Pal.C(255, 0x48, 0x48, 0x4A);
         }
         // 1120×740 or 90 % of the monitor's work area, whichever is smaller, centred
         var area = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).WorkArea;
@@ -60,7 +61,7 @@ public sealed class GalleryWindow : Window
         foreach (var s in new[] { "Más recientes", "Más antiguas", "Nombre", "Tamaño" }) _sort.Items.Add(s);
         _sort.SelectedIndex = 0;
 
-        var root = new Grid { Background = new SolidColorBrush(Color.FromArgb(255, 0x1C, 0x1C, 0x1E)), RequestedTheme = ElementTheme.Dark };
+        var root = new Grid { Background = new SolidColorBrush(Pal.C(255, 0x1C, 0x1C, 0x1E)), RequestedTheme = Pal.Light ? ElementTheme.Light : ElementTheme.Dark };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -91,7 +92,7 @@ public sealed class GalleryWindow : Window
         Grid.SetRow(gridHost, 1); root.Children.Add(gridHost);
 
         var side = new StackPanel { Spacing = 10, Padding = new Thickness(16, 4, 16, 16) };
-        side.Children.Add(new Border { CornerRadius = new CornerRadius(10), Background = new SolidColorBrush(Color.FromArgb(255, 0x2C, 0x2C, 0x2E)), Padding = new Thickness(6), Child = _preview });
+        side.Children.Add(new Border { CornerRadius = new CornerRadius(10), Background = new SolidColorBrush(Pal.C(255, 0x2C, 0x2C, 0x2E)), Padding = new Thickness(6), Child = _preview });
         side.Children.Add(_pName); side.Children.Add(_pInfo); side.Children.Add(_actions); side.Children.Add(_status);
         var sideScroll = new ScrollViewer { Content = side };
         Grid.SetRow(sideScroll, 1); Grid.SetColumn(sideScroll, 1); root.Children.Add(sideScroll);
@@ -116,13 +117,13 @@ public sealed class GalleryWindow : Window
         root.Loaded += (_, _) => DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, SelfTestLog);
     }
 
-    private static SolidColorBrush Gray(byte v) => new(Color.FromArgb(255, v, v, (byte)Math.Min(255, v + 5)));
+    private static SolidColorBrush Gray(byte v) => new(Pal.C(255, v, v, (byte)Math.Min(255, v + 5)));
     private static string Quote(string p) => "\"" + p + "\"";
 
     private static Button Pill(string text, bool accent) => new()
     {
         Content = text, FontSize = 12.5, Padding = new Thickness(14, 6, 14, 7), HorizontalContentAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Stretch,
-        Background = new SolidColorBrush(accent ? Color.FromArgb(255, 0x0A, 0x84, 0xFF) : Color.FromArgb(0x26, 255, 255, 255)),
+        Background = new SolidColorBrush(accent ? Pal.C(255, 0x0A, 0x84, 0xFF) : Pal.C(0x26, 255, 255, 255)),
     };
 
     private CaptureLibrary.Sort SortOrder => _sort.SelectedIndex switch { 1 => CaptureLibrary.Sort.Oldest, 2 => CaptureLibrary.Sort.Name, 3 => CaptureLibrary.Sort.Largest, _ => CaptureLibrary.Sort.Newest };
@@ -259,7 +260,7 @@ public sealed class GalleryWindow : Window
     {
         var box = new TextBox { Text = Path.GetFileNameWithoutExtension(f.Name), SelectionStart = 0 };
         box.SelectAll();
-        var dlg = new ContentDialog { XamlRoot = Content.XamlRoot, Title = "Renombrar captura", Content = box, PrimaryButtonText = "Renombrar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Primary, RequestedTheme = ElementTheme.Dark };
+        var dlg = new ContentDialog { XamlRoot = Content.XamlRoot, Title = "Renombrar captura", Content = box, PrimaryButtonText = "Renombrar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Primary, RequestedTheme = Pal.Light ? ElementTheme.Light : ElementTheme.Dark };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
         var (target, error) = CaptureLibrary.RenameTarget(f.Path, box.Text, File.Exists);
         if (error is not null) { _status.Text = error; return; }
@@ -274,7 +275,7 @@ public sealed class GalleryWindow : Window
         var dlg = new ContentDialog
         {
             XamlRoot = Content.XamlRoot, Title = sel.Count == 1 ? "¿Mover la captura a la Papelera?" : $"¿Mover {sel.Count} capturas a la Papelera?",
-            Content = "Podrás recuperarlas desde la Papelera de reciclaje.", PrimaryButtonText = "Mover a la Papelera", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Close, RequestedTheme = ElementTheme.Dark,
+            Content = "Podrás recuperarlas desde la Papelera de reciclaje.", PrimaryButtonText = "Mover a la Papelera", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Close, RequestedTheme = Pal.Light ? ElementTheme.Light : ElementTheme.Dark,
         };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
         int done = 0;

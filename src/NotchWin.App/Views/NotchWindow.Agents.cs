@@ -60,7 +60,7 @@ public sealed partial class NotchWindow
         var body = new StackPanel { Spacing = 8 };
 
         var head = CardUi.Columns(GridLength.Auto, Star, GridLength.Auto);
-        var initial = CardUi.Text(ShortName(s.Kind)[..1], 11, Colors.White, bold: true);
+        var initial = CardUi.Text(ShortName(s.Kind)[..1], 11, Pal.Fg, bold: true);
         initial.HorizontalAlignment = HorizontalAlignment.Center;
         head.Children.Add(new Border
         {
@@ -68,7 +68,7 @@ public sealed partial class NotchWindow
         });
 
         var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, VerticalAlignment = VerticalAlignment.Center };
-        title.Children.Add(CardUi.Text(ShortName(s.Kind), 13, Colors.White, bold: true));
+        title.Children.Add(CardUi.Text(ShortName(s.Kind), 13, Pal.Fg, bold: true));
         if (s.AccountEmail is { Length: > 0 } email)
         {
             var mail = CardUi.Text("· " + email, 12, CardUi.Dim, trim: true);
@@ -83,7 +83,7 @@ public sealed partial class NotchWindow
             {
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(7, 2, 7, 2),
-                Background = CardUi.Brush(Color.FromArgb(0x33, accent.R, accent.G, accent.B)),
+                Background = CardUi.Brush(Pal.C(0x33, accent.R, accent.G, accent.B)),
                 Child = CardUi.Text(plan, 11, Lighten(accent), bold: true),
             };
             head.Children.Add(CardUi.At(badge, 2));
@@ -104,7 +104,7 @@ public sealed partial class NotchWindow
             body.Children.Add(CardUi.Text(
                 s.IsLiveWorking ? "Trabajando ahora" : s.ActiveProject ?? (s.Models.Count > 0 ? s.Models[0] : "Sin actividad"),
                 12, CardUi.Dim, trim: true));
-            body.Children.Add(CardUi.Text(FormatTokensShort(s.TokensToday.Total) + " tokens hoy", 15, Colors.White, bold: true));
+            body.Children.Add(CardUi.Text(FormatTokensShort(s.TokensToday.Total) + " tokens hoy", 15, Pal.Fg, bold: true));
             var note = CardUi.Text("El uso del plan no se puede leer en este equipo", 10, CardUi.Faint);
             note.TextWrapping = TextWrapping.Wrap;
             body.Children.Add(note);
@@ -138,7 +138,7 @@ public sealed partial class NotchWindow
         var panel = new StackPanel { Spacing = 5 };
         var row = CardUi.Columns(GridLength.Auto, Star, GridLength.Auto);
         row.ColumnSpacing = 5;
-        row.Children.Add(CardUi.Text(isSession ? "Sesión" : "Semana", 12, Colors.White, bold: true));
+        row.Children.Add(CardUi.Text(isSession ? "Sesión" : "Semana", 12, Pal.Fg, bold: true));
         if (reset is not null)
         {
             var clock = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
@@ -147,7 +147,7 @@ public sealed partial class NotchWindow
             row.Children.Add(CardUi.At(clock, 1));
         }
 
-        var pct = CardUi.Text($"{remaining:0}% restante", 12, Colors.White, bold: true);
+        var pct = CardUi.Text($"{remaining:0}% restante", 12, Pal.Fg, bold: true);
         row.Children.Add(CardUi.At(pct, 2));
         panel.Children.Add(row);
         panel.Children.Add(CardUi.Bar(remaining / 100, remaining < 15 ? CardUi.Danger : accent, elapsed));
@@ -166,12 +166,12 @@ public sealed partial class NotchWindow
         var body = new StackPanel { Spacing = 6 };
         var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         head.Children.Add(CardUi.Icon("", 12, CardUi.Dim));
-        head.Children.Add(CardUi.Text("Gasto", 13, Colors.White, bold: true));
+        head.Children.Add(CardUi.Text("Gasto", 13, Pal.Fg, bold: true));
         body.Children.Add(head);
 
         var amount = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         var anyEstimate = snapshots.Any(s => s.IsEstimate);
-        amount.Children.Add(CardUi.Text(priced ? (anyEstimate ? "~" : string.Empty) + Money(total) : "—", 26, Colors.White, bold: true));
+        amount.Children.Add(CardUi.Text(priced ? (anyEstimate ? "~" : string.Empty) + Money(total) : "—", 26, Pal.Fg, bold: true));
         var unit = CardUi.Text(priced ? "valor de API" : "sin precios del modelo", 11, CardUi.Dim);
         unit.VerticalAlignment = VerticalAlignment.Bottom;
         unit.Margin = new Thickness(0, 0, 0, 5);
@@ -211,16 +211,16 @@ public sealed partial class NotchWindow
         var body = new StackPanel { Spacing = 8 };
         var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         head.Children.Add(CardUi.Icon("", 12, CardUi.Dim));
-        head.Children.Add(CardUi.Text("Ahora", 13, Colors.White, bold: true));
+        head.Children.Add(CardUi.Text("Ahora", 13, Pal.Fg, bold: true));
         body.Children.Add(head);
 
         foreach (var s in snapshots)
         {
             var row = CardUi.Columns(GridLength.Auto, Star, GridLength.Auto);
             row.Children.Add(new Border { Width = 14, Height = 14, CornerRadius = new CornerRadius(7), Background = CardUi.Brush(AccentFor(s.Kind)), VerticalAlignment = VerticalAlignment.Center });
-            row.Children.Add(CardUi.At(CardUi.Text(ShortName(s.Kind), 13, Colors.White, bold: true, trim: true), 1));
+            row.Children.Add(CardUi.At(CardUi.Text(ShortName(s.Kind), 13, Pal.Fg, bold: true, trim: true), 1));
             var when = s.IsLiveWorking
-                ? CardUi.Text("trabajando", 12, Color.FromArgb(255, 0x30, 0xD1, 0x58))
+                ? CardUi.Text("trabajando", 12, Pal.C(255, 0x30, 0xD1, 0x58))
                 : CardUi.Text(s.LastActivityUtc is { } at ? "hace " + FormatAgoShort(DateTimeOffset.UtcNow - at) : "sin actividad", 12, CardUi.Dim);
             row.Children.Add(CardUi.At(when, 2));
             body.Children.Add(row);
@@ -239,7 +239,7 @@ public sealed partial class NotchWindow
         var head = CardUi.Columns(GridLength.Auto, Star, GridLength.Auto);
         head.ColumnSpacing = 6;
         head.Children.Add(CardUi.Icon("", 12, CardUi.Dim));
-        head.Children.Add(CardUi.At(CardUi.Text("Tendencia", 13, Colors.White, bold: true), 1));
+        head.Children.Add(CardUi.At(CardUi.Text("Tendencia", 13, Pal.Fg, bold: true), 1));
         head.Children.Add(CardUi.At(CardUi.Text("Hoy · " + Money(todayCost), 12, CardUi.Dim), 2));
         body.Children.Add(head);
 
@@ -257,7 +257,7 @@ public sealed partial class NotchWindow
             {
                 Height = height,
                 CornerRadius = new CornerRadius(3),
-                Background = CardUi.Brush(isToday ? AccentFor(AgentKind.ClaudeCode) : Color.FromArgb(0x55, 0xD9, 0x77, 0x57)),
+                Background = CardUi.Brush(isToday ? AccentFor(AgentKind.ClaudeCode) : Pal.C(0x55, 0xD9, 0x77, 0x57)),
                 VerticalAlignment = VerticalAlignment.Bottom,
             });
             chart.Children.Add(CardUi.At(column, i));
@@ -278,7 +278,7 @@ public sealed partial class NotchWindow
         _ => kind.ToString(),
     };
 
-    private static Color Lighten(Color c) => Color.FromArgb(255, (byte)Math.Min(255, c.R + 40), (byte)Math.Min(255, c.G + 40), (byte)Math.Min(255, c.B + 40));
+    private static Color Lighten(Color c) => Pal.C(255, (byte)Math.Min(255, c.R + 40), (byte)Math.Min(255, c.G + 40), (byte)Math.Min(255, c.B + 40));
 
     private static string Money(decimal amount) => "$" + amount.ToString("0.00", CultureInfo.CurrentCulture);
 

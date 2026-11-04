@@ -170,9 +170,9 @@ public sealed partial class NotchWindow
         HudIcon.Glyph = item.Glyph;
         HudText.Text = item.LevelText;
         bool muted = item.Kind == PillKind.Volume && item.Muted;
-        var dim = new SolidColorBrush(Color.FromArgb(255, 0x8E, 0x8E, 0x93));
-        HudIcon.Foreground = muted ? dim : new SolidColorBrush(Microsoft.UI.Colors.White);
-        HudFill.Background = muted ? dim : new SolidColorBrush(Microsoft.UI.Colors.White);
+        var dim = new SolidColorBrush(Pal.C(255, 0x8E, 0x8E, 0x93));
+        HudIcon.Foreground = muted ? dim : new SolidColorBrush(Pal.Fg);
+        HudFill.Background = muted ? dim : new SolidColorBrush(Pal.Fg);
         _hudLevel = item.Level / 100.0;
         HudBar.Visibility = Visibility.Visible;
         UpdateHudFill();

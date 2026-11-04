@@ -25,7 +25,14 @@ public sealed partial class NotchWindow
     private int _systemSamples;
     private bool _sampling;
 
-    private static readonly Color BarColor = Color.FromArgb(255, 0xF2, 0xF2, 0xF7);
+    private static Color BarColor => Pal.C(255, 0xF2, 0xF2, 0xF7);
+
+    /// <summary>It7: vuelve a dibujar las tarjetas del sistema con los colores del tema vigente (se llenan solas en la siguiente lectura).</summary>
+    private void RebuildSystemCards()
+    {
+        SystemGrid.Children.Clear(); SystemGrid.ColumnDefinitions.Clear(); SystemGrid.RowDefinitions.Clear(); _metrics.Clear();
+        BuildSystemCards();
+    }
 
     private void BuildSystemCards()
     {
@@ -57,7 +64,7 @@ public sealed partial class NotchWindow
         head.Children.Add(CardUi.Text(label, 12, CardUi.Dim, bold: true, trim: true));
         body.Children.Add(head);
 
-        var value = CardUi.Text("—", withSub ? 19 : 26, Colors.White, bold: true);
+        var value = CardUi.Text("—", withSub ? 19 : 26, Pal.Fg, bold: true);
         body.Children.Add(value);
 
         TextBlock? sub = null;

@@ -39,12 +39,6 @@ public sealed partial class NotchWindow : Window
     private readonly GlassBackdrop _glass;
     private readonly Windows.UI.ViewManagement.UISettings _uiSettings = new();
 
-    /// <summary>Windows' app theme is light (its background colour is bright). Any failure counts as light: the safer, darker glass.</summary>
-    private bool WindowsIsLight()
-    {
-        try { var c = _uiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background); return c.R + c.G + c.B > 3 * 128; }
-        catch (Exception) { return true; }
-    }
     private readonly DispatcherQueueTimer _glassSaveTimer;
     private NotchWindowController? _controller;
     private NowPlayingInfo? _info;
@@ -57,17 +51,19 @@ public sealed partial class NotchWindow : Window
     public NotchWindow(NotchViewModel viewModel)
     {
         _viewModel = viewModel;
+        Pal.Set(Pal.SystemIsLight());   // It7: el tema de las aplicaciones de Windows manda, también al arrancar
         InitializeComponent();
+        RootGrid.RequestedTheme = Pal.Light ? ElementTheme.Light : ElementTheme.Dark;
         CollapsedBar.Height = CollapsedHeight; ToastBar.Height = CollapsedHeight; HudBar.Height = CollapsedHeight;   // the XAML says 32; inside WinMac it matches the bar
         _eqBars = [Eq0, Eq1, Eq2, Eq3];
         _musicEqBars = [XEq0, XEq1, XEq2, XEq3];
 
         var scrim = NotchWin.Core.Notch.PanelLegibility.Scrim;   // WM-037: el panel «Personalizar» es legible con cualquier nivel de cristal y cualquier cosa detrás
-        CustomizePane.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(scrim.A, scrim.R, scrim.G, scrim.B));
-        _glass = new GlassBackdrop { Level = _viewModel.GlassLevel / 100.0, LightSurroundings = WindowsIsLight() };
+        CustomizePane.Background = new SolidColorBrush(Pal.C(scrim.A, scrim.R, scrim.G, scrim.B));
+        _glass = new GlassBackdrop { Level = _viewModel.GlassLevel / 100.0, LightSurroundings = Pal.Light };
         SystemBackdrop = _glass;
-        // WM-037: the island stays dark in Windows' light theme too. Theme changes made while it runs are followed (the event comes on another thread).
-        _uiSettings.ColorValuesChanged += (_, _) => DispatcherQueue.TryEnqueue(() => _glass.LightSurroundings = WindowsIsLight());
+        // It7: the Island follows Windows' app theme (light or dark) and changes made while it runs (the event comes on another thread).
+        _uiSettings.ColorValuesChanged += (_, _) => DispatcherQueue.TryEnqueue(() => ApplyTheme(Pal.SystemIsLight()));
         GlassSlider.Value = _viewModel.GlassLevel;
         _glassSaveTimer = DispatcherQueue.CreateTimer();
         _glassSaveTimer.Interval = TimeSpan.FromMilliseconds(400);
@@ -262,8 +258,8 @@ public sealed partial class NotchWindow : Window
     /// </summary>
     private void UpdateSurface()
     {
-        _rimBrush ??= GlassRim.BorderBrush; _rootBrush ??= RootGrid.Background;
-        bool barLook = Program.Hosted is not null && !_expanded && !SystemUsesLightTheme();
+        _darkRim ??= GlassRim.BorderBrush; _rimBrush ??= Pal.Light ? LightRim() : _darkRim; _rootBrush ??= new SolidColorBrush(Pal.C(0x1F, 0, 0, 0));
+        bool barLook = Program.Hosted is not null && !_expanded;
         _glass.MatchBar = barLook;
         RootGrid.Background = barLook ? new SolidColorBrush(Microsoft.UI.Colors.Transparent) : _rootBrush;
         GlassHighlight.Visibility = barLook ? Visibility.Collapsed : Visibility.Visible;
@@ -272,17 +268,40 @@ public sealed partial class NotchWindow : Window
         GlassRim.CornerRadius = new CornerRadius(0, 0, r, r);
         GlassRim.Margin = new Thickness(s, -1, s, 0);   // the body sits between the shoulders; -1 hides the rim's top edge against the screen edge
         BarShade.Margin = new Thickness(s + r / 2, 0, s + r / 2, 0);
-        GlassRim.BorderBrush = barLook ? new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)) : _rimBrush;
+        GlassRim.BorderBrush = barLook ? new SolidColorBrush(Pal.C(0x1F, 0xFF, 0xFF, 0xFF)) : _rimBrush;
     }
 
-    private static bool SystemUsesLightTheme()
+    private Brush? _darkRim;
+
+    /// <summary>Contorno del cristal claro: el brillo blanco de siempre no se ve sobre claro, así que un filo gris tenue lo separa de la página que haya detrás.</summary>
+    private static Brush LightRim()
     {
-        try
-        {
-            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
-            return key?.GetValue("AppsUseLightTheme") is int v && v != 0;
-        }
-        catch (Exception) { return false; }
+        var g = new LinearGradientBrush { StartPoint = new Windows.Foundation.Point(0.5, 0), EndPoint = new Windows.Foundation.Point(0.5, 1) };
+        g.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(0x38, 0, 0, 0), Offset = 0 });
+        g.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(0x1A, 0, 0, 0), Offset = 0.22 });
+        g.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(0x10, 0, 0, 0), Offset = 0.6 });
+        g.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(0x2A, 0, 0, 0), Offset = 1 });
+        return g;
+    }
+
+    /// <summary>
+    /// It7: cambia entre el tema claro y el oscuro EN CALIENTE (sin reiniciar la Isla). La geometría, las animaciones, el cristal y las funciones no cambian: se recolorean los recursos por tema
+    /// del XAML (RequestedTheme) y se reconstruyen las vistas que el código dibuja (pestañas, tarjetas, listas), con los mismos datos.
+    /// </summary>
+    private void ApplyTheme(bool light)
+    {
+        if (_closed || !Pal.Set(light)) return;
+        _rimBrush = null; _rootBrush = null;
+        RootGrid.RequestedTheme = light ? ElementTheme.Light : ElementTheme.Dark;
+        _glass.LightSurroundings = light;
+        var scrim = NotchWin.Core.Notch.PanelLegibility.Scrim;
+        CustomizePane.Background = new SolidColorBrush(Pal.C(scrim.A, scrim.R, scrim.G, scrim.B));
+        RebuildTabs(); RefreshPanes(); RebuildAgents(); RebuildClipboard(); RebuildSystemCards();
+        ShowActivePane();
+        if (_customizing) RebuildCustomize();
+        _ = UpdateNowPlayingUiAsync(_info);
+        if (_expanded) UpdateNowHeader();
+        UpdateSurface();
     }
 
     /// <summary>Works out the size the window should have for its current content and moves the controller there.</summary>
@@ -423,7 +442,7 @@ public sealed partial class NotchWindow : Window
     private static void SetArt(Border target, ImageSource? source, FontIcon? placeholder)
     {
         target.Background = source is null
-            ? new SolidColorBrush(Color.FromArgb(255, 0x1C, 0x1C, 0x1E))
+            ? new SolidColorBrush(Pal.C(255, 0x1C, 0x1C, 0x1E))
             : new ImageBrush { ImageSource = source, Stretch = Stretch.UniformToFill };
         if (placeholder is not null)
         {
@@ -532,10 +551,10 @@ public sealed partial class NotchWindow : Window
 
     private static Color AccentFor(AgentKind kind) => kind switch
     {
-        AgentKind.ClaudeCode => Color.FromArgb(255, 0xD9, 0x77, 0x57),
-        AgentKind.Codex => Color.FromArgb(255, 0x10, 0xA3, 0x7F),
-        AgentKind.OpenCode => Color.FromArgb(255, 0x3B, 0x9C, 0xFF),
-        _ => Color.FromArgb(255, 0x8B, 0x5C, 0xF6),
+        AgentKind.ClaudeCode => Pal.C(255, 0xD9, 0x77, 0x57),
+        AgentKind.Codex => Pal.C(255, 0x10, 0xA3, 0x7F),
+        AgentKind.OpenCode => Pal.C(255, 0x3B, 0x9C, 0xFF),
+        _ => Pal.C(255, 0x8B, 0x5C, 0xF6),
     };
 
     private static string FormatTokens(long n) => n switch
