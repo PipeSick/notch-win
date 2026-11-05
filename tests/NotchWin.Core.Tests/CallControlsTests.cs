@@ -59,7 +59,14 @@ public class CallControlsTests
 
     [Fact] public void Only_the_known_commands_can_be_sent()
     {
-        Assert.Equal(["answer", "reject", "hangup", "mute"], NotchWin.Core.Hosting.HostedSession.CallCommands);
+        Assert.Equal(["answer", "reject", "hangup", "mute", "route"], NotchWin.Core.Hosting.HostedSession.CallCommands);
         Assert.Equal("connect.callcmd", NotchWin.Core.Hosting.HostedSession.CallCommandTopic);
+    }
+
+    [Fact] public void The_route_button_exists_only_for_an_active_call_whose_audio_is_still_on_the_phone()
+    {
+        var p = PillFeed.Parse(J("""{"kind":"call","state":"active","since":1,"audioOnPc":false,"controls":{"hangup":true,"route":true}}"""))!;
+        Assert.True(p.Controls!.Value.Route); Assert.Contains("Audio en el teléfono", PillFeed.ActiveSubtitle(p.CallSinceMs, p.AudioOnPc, false, 5000));
+        Assert.False(PillFeed.Parse(J("""{"kind":"call","state":"active","since":1,"audioOnPc":true,"controls":{"hangup":true,"mute":true}}"""))!.Controls!.Value.Route);
     }
 }

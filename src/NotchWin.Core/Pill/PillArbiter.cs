@@ -76,9 +76,9 @@ public sealed record PillItem(PillKind Kind, string Title, string? Subtitle = nu
 /// <summary>How one kind behaves. <paramref name="Coalesce"/>: a new item of this kind replaces the one on screen (or waiting) instead of queueing behind it.
 /// <paramref name="Resumable"/>: if something more important interrupts it, it comes back afterwards with the time it had left.</summary>
 /// <summary>Which call buttons are available (all false = just a notice).</summary>
-public readonly record struct CallControls(bool Answer, bool Reject, bool Hangup, bool Mute)
+public readonly record struct CallControls(bool Answer, bool Reject, bool Hangup, bool Mute, bool Route = false)
 {
-    public bool Any => Answer || Reject || Hangup || Mute;
+    public bool Any => Answer || Reject || Hangup || Mute || Route;
 }
 
 public sealed record PillRule(int Priority, TimeSpan Duration, bool Coalesce, bool Resumable, bool Enabled = true);

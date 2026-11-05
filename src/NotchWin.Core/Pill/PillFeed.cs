@@ -63,7 +63,7 @@ public static class PillFeed
         string? state = Str(e, "state")?.ToLowerInvariant(), caller = Short(Str(e, "caller"), MaxTitle), device = Short(Str(e, "device"), 24) ?? "Teléfono", notice = Short(Str(e, "notice"), MaxBody);
         long? since = Long(e, "since"); bool pc = Bool(e, "audioOnPc"), muted = Bool(e, "muted");
         CallControls ctl = default;
-        if (e.TryGetProperty("controls", out var c) && c.ValueKind == JsonValueKind.Object) ctl = new(Bool(c, "answer"), Bool(c, "reject"), Bool(c, "hangup"), Bool(c, "mute"));
+        if (e.TryGetProperty("controls", out var c) && c.ValueKind == JsonValueKind.Object) ctl = new(Bool(c, "answer"), Bool(c, "reject"), Bool(c, "hangup"), Bool(c, "mute"), Bool(c, "route"));
         switch (state)
         {
             case "ringing":

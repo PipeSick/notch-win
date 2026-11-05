@@ -158,6 +158,10 @@
             </StackPanel>
             <!-- Docs/60: call buttons. Each one is visible ONLY when Hatsu Connect says it works right now (answer / reject / hang up / mute); a call without controls is just a notice. -->
             <StackPanel x:Name="CallButtons" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Visibility="Collapsed">
+                <Button x:Name="CallRouteButton" Click="OnCallRoute" Width="30" Height="30" Padding="0" CornerRadius="15" BorderThickness="0" Background="#FF0A84FF"
+                        ToolTipService.ToolTip="Pasar el audio de la llamada al PC" Visibility="Collapsed">
+                    <FontIcon Glyph="&#xE7F6;" FontSize="13" Foreground="#FFFFFFFF" />
+                </Button>
                 <Button x:Name="CallMuteButton" Click="OnCallMute" Width="30" Height="30" Padding="0" CornerRadius="15" BorderThickness="0" Background="#FF3A3A3C"
                         ToolTipService.ToolTip="Silenciar el micrófono" Visibility="Collapsed">
                     <FontIcon Glyph="&#xE720;" FontSize="13" Foreground="#FFFFFFFF" />

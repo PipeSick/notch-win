@@ -215,6 +215,7 @@ public sealed partial class NotchWindow
         CallRejectButton.Visibility = c.Reject ? Visibility.Visible : Visibility.Collapsed;
         CallHangupButton.Visibility = c.Hangup ? Visibility.Visible : Visibility.Collapsed;
         CallMuteButton.Visibility = c.Mute ? Visibility.Visible : Visibility.Collapsed;
+        CallRouteButton.Visibility = c.Route ? Visibility.Visible : Visibility.Collapsed;
         CallButtons.Visibility = c.Any ? Visibility.Visible : Visibility.Collapsed;
         NotifBar.IsHitTestVisible = c.Any;   // a plain notification stays click-through; only a call with working buttons takes clicks
         if (item.IsActiveCall && !item.HasNotice)
@@ -247,6 +248,7 @@ public sealed partial class NotchWindow
     private void OnCallReject(object sender, RoutedEventArgs e) => SendCall("reject");
     private void OnCallHangup(object sender, RoutedEventArgs e) => SendCall("hangup");
     private void OnCallMute(object sender, RoutedEventArgs e) => SendCall("mute");
+    private void OnCallRoute(object sender, RoutedEventArgs e) => SendCall("route");
 
     private static void SendCall(string cmd)
     {
