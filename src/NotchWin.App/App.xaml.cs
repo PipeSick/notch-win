@@ -114,7 +114,7 @@ public partial class App : Application
         if (_hosted is null)
         {
             // Standalone: NotchWin has its own tray icon. Inside WinMac the tray belongs to WinMac, so there is none here.
-            _trayIcon = new TrayIconService("NotchWin");
+            _trayIcon = new TrayIconService("Hatsu Notch");
             _trayIcon.SettingsRequested += () => dispatcherQueue.TryEnqueue(OpenSettingsWindow);
             _trayIcon.ExitRequested += () => dispatcherQueue.TryEnqueue(ExitApp);
         }
@@ -510,7 +510,7 @@ public partial class App : Application
     private static NeteaseLyricsClient CreateLyricsClient()
     {
         var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("NotchWin/0.1 (https://github.com/pipesick/notch-win)");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("HatsuNotch/0.1 (https://github.com/pipesick/notch-win)");
         return new NeteaseLyricsClient(http, new LrclibLyricsClient(http));   // WM-008: LRCLIB only when NetEase has nothing or refuses
     }
 
@@ -570,13 +570,13 @@ public partial class App : Application
     {
         if (snapshots.Count == 0)
         {
-            return "NotchWin";
+            return "Hatsu Notch";
         }
 
         var parts = snapshots
             .Where(s => s.Error is null)
             .Select(s => $"{s.Kind}: {s.TokensToday.Total} tok");
-        return "NotchWin — " + string.Join(" · ", parts);
+        return "Hatsu Notch — " + string.Join(" · ", parts);
     }
 
     // ---------- hosted by WinMac ----------

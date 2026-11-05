@@ -6,7 +6,8 @@ public sealed class AppSettings
 {
     public bool NotchModuleEnabled { get; set; } = true;
     public bool MusicModuleEnabled { get; set; } = true;
-    public bool AiAgentsModuleEnabled { get; set; } = true;
+    /// <summary>Off by default (Hatsu Desktop Store build): the module reads other tools'' session files in the user''s profile, so the user turns it on. Existing settings files keep their saved value; the host (Hatsu Desktop) always sends the effective value.</summary>
+    public bool AiAgentsModuleEnabled { get; set; }
 
     public int PollIntervalSeconds { get; set; } = 30;
 

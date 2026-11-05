@@ -24,7 +24,7 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.True(settings.NotchModuleEnabled);
         Assert.True(settings.MusicModuleEnabled);
-        Assert.True(settings.AiAgentsModuleEnabled);
+        Assert.False(settings.AiAgentsModuleEnabled);   // desactivado de fábrica; un archivo guardado conserva su valor
         Assert.Empty(settings.AdditionalCodexHomes);
     }
 

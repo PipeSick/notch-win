@@ -7,7 +7,7 @@
 
     <ScrollViewer Padding="20">
         <StackPanel Spacing="16" MaxWidth="480">
-            <TextBlock Text="NotchWin — Ajustes" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="Hatsu Notch — Ajustes" FontSize="20" FontWeight="SemiBold" />
 
             <TextBlock x:Name="HostedNote" Visibility="Collapsed" TextWrapping="Wrap"
                        Text="Dentro de WinMac, las opciones del notch (módulos, reproductor, letras, intervalo, vidrio, pestañas) se cambian en «Ajustes de WinMac». Aquí solo quedan las rutas y los datos locales." />

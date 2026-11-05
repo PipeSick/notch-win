@@ -44,7 +44,7 @@ public sealed partial class NotchWindow
         var items = _viewModel.Clipboard.View(ClipSearch.Text);
         ClipboardEmpty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         ClipboardEmpty.Text = string.IsNullOrWhiteSpace(ClipSearch.Text)
-            ? "Aquí aparecerá lo que copies mientras NotchWin esté abierto"
+            ? "Aquí aparecerá lo que copies mientras Hatsu Notch esté abierto"
             : "Nada coincide con la búsqueda";
         if (_viewModel.Clipboard.Skipped > 0)
         {

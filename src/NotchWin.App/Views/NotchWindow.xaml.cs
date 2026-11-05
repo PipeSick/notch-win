@@ -513,7 +513,7 @@ public sealed partial class NotchWindow : Window
         }
 
         name = name.Replace(".exe", string.Empty, StringComparison.OrdinalIgnoreCase);
-        return name.Length == 0 ? "NotchWin" : char.ToUpperInvariant(name[0]) + name[1..];
+        return name.Length == 0 ? "Hatsu Notch" : char.ToUpperInvariant(name[0]) + name[1..];
     }
 
     private async void OnPlayPauseClicked(object sender, RoutedEventArgs e) => await RunControl(c => c.TogglePlayPauseAsync());

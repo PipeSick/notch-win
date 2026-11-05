@@ -266,7 +266,7 @@ public sealed partial class NotchWindow
             ? "Personalizar"
             : _active == NotchSections.Music && _sourceName is not null
                 ? _sourceName
-                : SectionInfo.TryGetValue(_active, out var info) ? info.Name : "NotchWin";
+                : SectionInfo.TryGetValue(_active, out var info) ? info.Name : "Hatsu Notch";
     }
 
     private void RelayoutIfExpanded()
