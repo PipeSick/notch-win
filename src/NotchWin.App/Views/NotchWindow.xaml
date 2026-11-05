@@ -144,6 +144,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Grid Width="28" Height="28" VerticalAlignment="Center">
                 <Border x:Name="NotifInitialBack" CornerRadius="7" Background="{ThemeResource NW_FF3A3A3C}">
@@ -154,6 +155,25 @@
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
                 <TextBlock x:Name="NotifTitle" Foreground="{ThemeResource NW_FFFFFFFF}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                 <TextBlock x:Name="NotifBody" Foreground="{ThemeResource NW_FFB4B4BA}" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
+            </StackPanel>
+            <!-- Docs/60: call buttons. Each one is visible ONLY when Hatsu Connect says it works right now (answer / reject / hang up / mute); a call without controls is just a notice. -->
+            <StackPanel x:Name="CallButtons" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Visibility="Collapsed">
+                <Button x:Name="CallMuteButton" Click="OnCallMute" Width="30" Height="30" Padding="0" CornerRadius="15" BorderThickness="0" Background="#FF3A3A3C"
+                        ToolTipService.ToolTip="Silenciar el micrófono" Visibility="Collapsed">
+                    <FontIcon Glyph="&#xE720;" FontSize="13" Foreground="#FFFFFFFF" />
+                </Button>
+                <Button x:Name="CallRejectButton" Click="OnCallReject" Width="30" Height="30" Padding="0" CornerRadius="15" BorderThickness="0" Background="#FFFF3B30"
+                        ToolTipService.ToolTip="Rechazar" Visibility="Collapsed">
+                    <FontIcon Glyph="&#xE778;" FontSize="13" Foreground="#FFFFFFFF" />
+                </Button>
+                <Button x:Name="CallHangupButton" Click="OnCallHangup" Width="30" Height="30" Padding="0" CornerRadius="15" BorderThickness="0" Background="#FFFF3B30"
+                        ToolTipService.ToolTip="Colgar" Visibility="Collapsed">
+                    <FontIcon Glyph="&#xE778;" FontSize="13" Foreground="#FFFFFFFF" />
+                </Button>
+                <Button x:Name="CallAnswerButton" Click="OnCallAnswer" Width="30" Height="30" Padding="0" CornerRadius="15" BorderThickness="0" Background="#FF34C759"
+                        ToolTipService.ToolTip="Contestar (el audio pasa al PC)" Visibility="Collapsed">
+                    <FontIcon Glyph="&#xE717;" FontSize="13" Foreground="#FFFFFFFF" />
+                </Button>
             </StackPanel>
         </Grid>
 

@@ -49,6 +49,16 @@ public sealed class HostedSession : IAsyncDisposable
     public event Action<string?>? CaptureFolderReceived;
 
     /// <summary>Asks WinMac's bar to open its capture editor on this file (the bar validates it again).</summary>
+    /// <summary>Docs/60: the user pressed a call button on the pill. Hatsu Connect (a separate module) receives it and only acts if Windows can really do it at that moment.</summary>
+    public const string CallCommandTopic = "connect.callcmd";
+    public static readonly string[] CallCommands = ["answer", "reject", "hangup", "mute"];
+    public bool SendCallCommand(string cmd)
+    {
+        if (!CallCommands.Contains(cmd)) return false;
+        _link.Event(CallCommandTopic, new { cmd });
+        return true;
+    }
+
     public void RequestEdit(string path) => _link.Event(EditTopic, new { path });
 
     private void OnBar(JsonElement? data)

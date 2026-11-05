@@ -37,6 +37,21 @@ public sealed record PillItem(PillKind Kind, string Title, string? Subtitle = nu
     /// <summary>WM-038: not something to show but «take the current item of this kind away» (the call ended).</summary>
     public bool Withdraw { get; init; }
 
+    /// <summary>Docs/60: the call controls Hatsu Connect says WORK right now (computed there from what Windows allows). A button is drawn only when its flag is true.</summary>
+    public CallControls? Controls { get; init; }
+
+    /// <summary>True for a call confirmed active by the phone system: it lasts, and a notification or volume/brightness indicator may interrupt it without destroying it.</summary>
+    public bool IsActiveCall { get; init; }
+
+    /// <summary>Start of the active call (Unix ms), to draw the duration.</summary>
+    public long? CallSinceMs { get; init; }
+
+    /// <summary>The subtitle is a notice from Hatsu Connect (e.g. the audio did not move to the PC): the duration clock must not overwrite it.</summary>
+    public bool HasNotice { get; init; }
+
+    public bool AudioOnPc { get; init; }
+    public bool CallMuted { get; init; }
+
     /// <summary>Image file shown as a small thumbnail (a saved screenshot). Decoded at thumbnail size, never in full.</summary>
     public string? ImagePath { get; init; }
 
@@ -60,6 +75,12 @@ public sealed record PillItem(PillKind Kind, string Title, string? Subtitle = nu
 
 /// <summary>How one kind behaves. <paramref name="Coalesce"/>: a new item of this kind replaces the one on screen (or waiting) instead of queueing behind it.
 /// <paramref name="Resumable"/>: if something more important interrupts it, it comes back afterwards with the time it had left.</summary>
+/// <summary>Which call buttons are available (all false = just a notice).</summary>
+public readonly record struct CallControls(bool Answer, bool Reject, bool Hangup, bool Mute)
+{
+    public bool Any => Answer || Reject || Hangup || Mute;
+}
+
 public sealed record PillRule(int Priority, TimeSpan Duration, bool Coalesce, bool Resumable, bool Enabled = true);
 
 /// <summary>
@@ -168,7 +189,9 @@ public sealed class PillArbiter
         if (rule.Coalesce && _current.Item.Kind == item.Kind) { Show(entry, now); return true; }   // e.g. holding the volume key: same indicator, new level, timer restarts
 
         var currentRule = Policy.Rule(_current.Item.Kind);
-        if (rule.Priority > currentRule.Priority)
+        // An active call is long-lived: a Windows notification or the volume/brightness indicator may take the pill for its few seconds and the call comes back with the time it had left.
+        bool interruptsActiveCall = _current.Item.IsActiveCall && item.Kind is PillKind.Notification or PillKind.Volume or PillKind.Brightness;
+        if (rule.Priority > currentRule.Priority || interruptsActiveCall)
         {
             if (currentRule.Resumable) Requeue(_current, _until - now);
             Show(entry, now);

@@ -34,7 +34,7 @@ public static class PillFeed
                 // Title line: the notification's own title, or the app when it has none. Second line: the text (or the app, so it is never empty).
                 return new PillItem(PillKind.Notification, title ?? app!, body ?? (title is null ? null : app), 0, false, icon, w, h) { App = app, NotificationKey = Long(e, "id") is { } id ? "win:" + id : null };
             case "call":
-                return Call(Str(e, "state"), Short(Str(e, "caller"), MaxTitle));
+                return CallFull(e);
             default:
                 return null;
         }
@@ -52,6 +52,43 @@ public static class PillFeed
         "none" => new PillItem(PillKind.Call, "") { Withdraw = true },
         _ => null,
     };
+
+    /// <summary>
+    /// Docs/60: the full call event from Hatsu Connect:
+    /// <c>{ "kind":"call", "state":"ringing|active|missed|ended|none", "caller":"Mamá", "device":"iPhone", "since":1730600000000, "controls":{"answer":true,"reject":true,"hangup":false,"mute":false}, "audioOnPc":true, "muted":false, "notice":"…" }</c>.
+    /// Untrusted like everything else: unknown fields are ignored, missing controls mean no buttons, an active call without a start time is shown without duration.
+    /// </summary>
+    public static PillItem? CallFull(JsonElement e)
+    {
+        string? state = Str(e, "state")?.ToLowerInvariant(), caller = Short(Str(e, "caller"), MaxTitle), device = Short(Str(e, "device"), 24) ?? "Teléfono", notice = Short(Str(e, "notice"), MaxBody);
+        long? since = Long(e, "since"); bool pc = Bool(e, "audioOnPc"), muted = Bool(e, "muted");
+        CallControls ctl = default;
+        if (e.TryGetProperty("controls", out var c) && c.ValueKind == JsonValueKind.Object) ctl = new(Bool(c, "answer"), Bool(c, "reject"), Bool(c, "hangup"), Bool(c, "mute"));
+        switch (state)
+        {
+            case "ringing":
+                return new PillItem(PillKind.Call, caller is null ? "Llamada entrante" : "Llamada de " + caller, notice ?? device) { App = caller ?? "Teléfono", Controls = ctl };
+            case "active":
+                return new PillItem(PillKind.Call, caller is null ? "En llamada" : "En llamada · " + caller, notice ?? ActiveSubtitle(since, pc, muted, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()))
+                { App = caller ?? "Teléfono", Controls = ctl, IsActiveCall = true, HasNotice = notice is not null, CallSinceMs = since, AudioOnPc = pc, CallMuted = muted, Duration = TimeSpan.FromHours(6) };
+            case "missed": case "ended": case "none":
+                return Call(state, caller) is { } p ? (state == "none" ? p : p with { Subtitle = state == "missed" ? caller ?? device : device }) : null;
+            default: return null;
+        }
+    }
+
+    /// <summary>«03:25 · Audio en el PC». The duration only if the start is known; where the audio is, always (so the user knows whether to speak to the PC).</summary>
+    public static string ActiveSubtitle(long? sinceMs, bool audioOnPc, bool muted, long nowMs)
+    {
+        string audio = audioOnPc ? "Audio en el PC" : "Audio en el teléfono";
+        if (muted) audio += " · Silenciado";
+        if (sinceMs is not { } s || nowMs < s) return audio;
+        var d = TimeSpan.FromMilliseconds(nowMs - s);
+        string t = d.TotalHours >= 1 ? $"{(int)d.TotalHours}:{d.Minutes:00}:{d.Seconds:00}" : $"{d.Minutes:00}:{d.Seconds:00}";
+        return t + " · " + audio;
+    }
+
+    private static bool Bool(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
 
     public const int MaxSnapshot = 60, MaxFullBody = 2000;
 

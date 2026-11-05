@@ -18,10 +18,12 @@ public sealed partial class NotchWindow
     private const int HudWidth = 280;
     private const int NotifWidth = 380;
     private const int NotifHeight = 52;
+    private const int CallWidth = 440;   // docs/60: room for the call buttons
 
     private PillArbiter _pill = null!;
     private DispatcherQueueTimer _pillTimer = null!;
     private PillItem? _shownPill;
+    private DispatcherQueueTimer? _callClock;   // docs/60: the active call's duration
 
     private void InitPill()
     {
@@ -60,6 +62,7 @@ public sealed partial class NotchWindow
     private (int Width, int Height) PillSize() => _expanded || _shownPill is null ? (0, 0) : _shownPill.Kind switch
     {
         PillKind.Volume or PillKind.Brightness => (HudWidth, CollapsedHeight),
+        PillKind.Call when _shownPill.Controls?.Any == true => (CallWidth, Math.Max(NotifHeight, CollapsedHeight)),
         PillKind.Notification or PillKind.Call => (NotifWidth, Math.Max(NotifHeight, CollapsedHeight)),
         _ => (ToastWidth, CollapsedHeight),
     };
@@ -156,6 +159,8 @@ public sealed partial class NotchWindow
 
     private void HidePillBars()
     {
+        _callClock?.Stop();
+        NotifBar.IsHitTestVisible = false;
         ToastBar.Visibility = Visibility.Collapsed;
         HudBar.Visibility = Visibility.Collapsed;
         NotifBar.Visibility = Visibility.Collapsed;
@@ -198,7 +203,61 @@ public sealed partial class NotchWindow
         var name = item.App ?? item.Title;
         NotifInitial.Text = string.IsNullOrWhiteSpace(name) ? "?" : char.ToUpperInvariant(name.Trim()[0]).ToString();
         NotifBar.Height = Math.Max(NotifHeight, CollapsedHeight);
+        ShowCallButtons(item);
         NotifBar.Visibility = Visibility.Visible;
+    }
+
+    // ── Docs/60: call buttons and duration ──
+    private void ShowCallButtons(PillItem item)
+    {
+        var c = item.Controls ?? default;
+        CallAnswerButton.Visibility = c.Answer ? Visibility.Visible : Visibility.Collapsed;
+        CallRejectButton.Visibility = c.Reject ? Visibility.Visible : Visibility.Collapsed;
+        CallHangupButton.Visibility = c.Hangup ? Visibility.Visible : Visibility.Collapsed;
+        CallMuteButton.Visibility = c.Mute ? Visibility.Visible : Visibility.Collapsed;
+        CallButtons.Visibility = c.Any ? Visibility.Visible : Visibility.Collapsed;
+        NotifBar.IsHitTestVisible = c.Any;   // a plain notification stays click-through; only a call with working buttons takes clicks
+        if (item.IsActiveCall && !item.HasNotice)
+        {
+            _callClock ??= CreateCallClock();
+            _callClock.Start();
+        }
+        else
+        {
+            _callClock?.Stop();
+        }
+    }
+
+    private DispatcherQueueTimer CreateCallClock()
+    {
+        var t = DispatcherQueue.CreateTimer();
+        t.Interval = TimeSpan.FromSeconds(1);
+        t.IsRepeating = true;
+        t.Tick += (_, _) =>
+        {
+            if (_shownPill is { IsActiveCall: true, HasNotice: false } p)
+            {
+                NotifBody.Text = PillFeed.ActiveSubtitle(p.CallSinceMs, p.AudioOnPc, p.CallMuted, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            }
+        };
+        return t;
+    }
+
+    private void OnCallAnswer(object sender, RoutedEventArgs e) => SendCall("answer");
+    private void OnCallReject(object sender, RoutedEventArgs e) => SendCall("reject");
+    private void OnCallHangup(object sender, RoutedEventArgs e) => SendCall("hangup");
+    private void OnCallMute(object sender, RoutedEventArgs e) => SendCall("mute");
+
+    private static void SendCall(string cmd)
+    {
+        try
+        {
+            Program.Hosted?.SendCallCommand(cmd);   // Hatsu Connect checks that Windows can really do it at that moment
+        }
+        catch (Exception)
+        {
+            // the link may be down: nothing to do, the buttons come back with the next call state
+        }
     }
 
     private void ShowBanner(PillItem item)
