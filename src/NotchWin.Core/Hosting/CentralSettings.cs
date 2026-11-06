@@ -19,6 +19,7 @@ public enum CentralChanges
     Poll = 128,
     Pill = 256,
     Clipboard = 512,
+    Shelf = 1024,
 }
 
 /// <summary>
@@ -40,6 +41,7 @@ public sealed class CentralSettings
     public bool LyricsEnabled { get; set; }
     public bool LyricsInPill { get; set; }
     public int PollIntervalSeconds { get; set; } = 30;
+    public int ShelfMaxItems { get; set; } = NotchWin.Core.Shelf.ShelfStore.DefaultMax;
 
     // What the collapsed notch shows for a moment (relayed by WinMac's top bar). Only meaningful inside WinMac.
     public bool PillVolume { get; set; } = true;
@@ -67,6 +69,7 @@ public sealed class CentralSettings
         LyricsEnabled = s.LyricsEnabled,
         LyricsInPill = s.LyricsInPill,
         PollIntervalSeconds = s.PollIntervalSeconds,
+        ShelfMaxItems = NotchWin.Core.Shelf.ShelfStore.ClampMax(s.ShelfMaxItems),
     };
 
     /// <summary>Copies the central fields into the local settings object (it never writes the file: in hosted mode the host persists them).</summary>
@@ -82,6 +85,7 @@ public sealed class CentralSettings
         s.LyricsEnabled = LyricsEnabled;
         s.LyricsInPill = LyricsInPill;
         s.PollIntervalSeconds = PollIntervalSeconds;
+        s.ShelfMaxItems = NotchWin.Core.Shelf.ShelfStore.ClampMax(ShelfMaxItems);
     }
 
     /// <summary>Parses the host's message; unknown fields are ignored and invalid values keep the default. Returns null when it is not an object.</summary>
@@ -125,6 +129,7 @@ public sealed class CentralSettings
                 case "pollintervalseconds" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var s):
                     c.PollIntervalSeconds = Math.Clamp(s, 5, 3600);
                     break;
+                case "shelfmaxitems" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var sm): c.ShelfMaxItems = NotchWin.Core.Shelf.ShelfStore.ClampMax(sm); break;
                 case "pillvolume" when IsBool(v): c.PillVolume = v.GetBoolean(); break;
                 case "pillbrightness" when IsBool(v): c.PillBrightness = v.GetBoolean(); break;
                 case "pillnotifications" when IsBool(v): c.PillNotifications = v.GetBoolean(); break;
@@ -169,6 +174,7 @@ public sealed class CentralSettings
         if (a.MusicPlayer != b.MusicPlayer || a.CustomPlayerPath != b.CustomPlayerPath) r |= CentralChanges.Player;
         if (a.LyricsEnabled != b.LyricsEnabled || a.LyricsInPill != b.LyricsInPill) r |= CentralChanges.Lyrics;
         if (a.PollIntervalSeconds != b.PollIntervalSeconds) r |= CentralChanges.Poll;
+        if (a.ShelfMaxItems != b.ShelfMaxItems) r |= CentralChanges.Shelf;
         if (a.PillVolume != b.PillVolume || a.PillBrightness != b.PillBrightness || a.PillNotifications != b.PillNotifications || a.PillHudSeconds != b.PillHudSeconds
             || a.PillNotifySeconds != b.PillNotifySeconds || a.PillAnimations != b.PillAnimations) r |= CentralChanges.Pill;
         if (a.Clipboard.Limit != b.Clipboard.Limit || a.Clipboard.Persist != b.Clipboard.Persist || a.Clipboard.SkipSecrets != b.Clipboard.SkipSecrets

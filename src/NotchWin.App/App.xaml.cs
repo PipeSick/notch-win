@@ -109,6 +109,8 @@ public partial class App : Application
         WatchDisplays();
 
         StartClock(dispatcherQueue);
+        _viewModel.Shelf.CleanLeftovers();                    // the shelf is temporary: copies left by the last session are removed (only inside its own folder)
+        _viewModel.Shelf.SetMax(_settings.ShelfMaxItems);
         ApplyClipboardSetting();
 
         if (_hosted is null)
@@ -609,6 +611,14 @@ public partial class App : Application
         // WinMac 2.0: internal activity API (only WinMac's modules reach the pipe)
         _hosted.ActivityReceived += cmd => _uiQueue?.TryEnqueue(() => { if (_viewModel is not null) Core.Activities.ActivityFeed.Apply(_viewModel.Activities, cmd); });
         _hosted.ClearClipboardRequested += () => _uiQueue?.TryEnqueue(() => _viewModel?.Clipboard.ClearAll());
+        // Shelf+: Hatsu (Spotlight action, Live Text) opens the shelf or sends it a text
+        _hosted.ShelfOpenRequested += () => _uiQueue?.TryEnqueue(() => { if (_notches.Values.FirstOrDefault().Window is { } w) w.ShowSection(NotchSections.Shelf); });
+        _hosted.ShelfAddTextRequested += text => _uiQueue?.TryEnqueue(() =>
+        {
+            if (_viewModel is null) return;
+            _viewModel.Shelf.DeleteOwnedCopies(_viewModel.Shelf.AddText(text, out var gone) == NotchWin.Core.Shelf.AddResult.Added ? gone : []);
+            _viewModel.RaiseDataChanged();
+        });
         _hosted.ClipQuery += (req, q) => { ClipDiag($"recibida req={req}"); if (_uiQueue?.TryEnqueue(() => OnClipQuery(req, q)) != true) ClipDiag("no se pudo encolar"); };
         _hosted.ClipAction += (id, op) => _uiQueue?.TryEnqueue(() => OnClipAction(id, op));
         _hosted.CollapseRequested += () => _uiQueue?.TryEnqueue(() => { foreach (var (w, _) in _notches.Values.ToList()) w.CollapseIfExpanded(); });
@@ -660,6 +670,12 @@ public partial class App : Application
         if (changes.HasFlag(CentralChanges.Clipboard))
         {
             ApplyClipboardOptions(next.Clipboard);
+        }
+
+        if (changes.HasFlag(CentralChanges.Shelf))
+        {
+            _viewModel.Shelf.DeleteOwnedCopies(_viewModel.Shelf.SetMax(next.ShelfMaxItems));
+            _viewModel.RaiseDataChanged();
         }
 
         if (changes.HasFlag(CentralChanges.Sections))

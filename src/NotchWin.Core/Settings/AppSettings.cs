@@ -11,6 +11,9 @@ public sealed class AppSettings
 
     public int PollIntervalSeconds { get; set; } = 30;
 
+    /// <summary>Shelf+: how many items the shelf keeps (the oldest goes first).</summary>
+    public int ShelfMaxItems { get; set; } = NotchWin.Core.Shelf.ShelfStore.DefaultMax;
+
     /// <summary>Override for the Claude Code home dir; null uses the default (~/.claude).</summary>
     public string? ClaudeHomeOverride { get; set; }
 

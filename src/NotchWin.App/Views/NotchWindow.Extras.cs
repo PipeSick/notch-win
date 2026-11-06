@@ -1,7 +1,9 @@
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using NotchWin.App.Modules.Camera;
+using NotchWin.App.ViewModels;
 using NotchWin.Core.Lyrics;
 using NotchWin.Core.Music;
 using NotchWin.Core.Settings;
@@ -21,13 +23,16 @@ public sealed partial class NotchWindow
     private int _cameraGeneration;
     private IReadOnlyList<LyricLine>? _lyrics;
 
-    // ---------- shelf ----------
+    // ---------- shelf (Shelf+) ----------
 
     private bool ShelfEnabled => _viewModel.Sections.Any(s => s.Id == NotchSections.Shelf && s.Enabled);
 
+    private static bool Accepts(DataPackageView v) =>
+        v.Contains(StandardDataFormats.StorageItems) || v.Contains(StandardDataFormats.Bitmap) || v.Contains(StandardDataFormats.Text);
+
     private void OnRootDragEnter(object sender, DragEventArgs e)
     {
-        if (!ShelfEnabled || !e.DataView.Contains(StandardDataFormats.StorageItems))
+        if (!ShelfEnabled || !Accepts(e.DataView))
         {
             return;
         }
@@ -37,16 +42,27 @@ public sealed partial class NotchWindow
         // Dragging something toward the notch opens the shelf, so the drop target is already there.
         if (!_expanded)
         {
-            _active = NotchSections.Shelf;
-            _customizing = false;
-            RebuildTabs();
-            SetExpanded(true);
+            ShowSection(NotchSections.Shelf);
         }
+    }
+
+    /// <summary>Opens the notch on a tab (used by the shelf drag and by Hatsu's Spotlight action).</summary>
+    public void ShowSection(string id)
+    {
+        if (_viewModel.Sections.All(s => s.Id != id || !s.Enabled))
+        {
+            return;
+        }
+
+        _active = id;
+        _customizing = false;
+        RebuildTabs();
+        SetExpanded(true);
     }
 
     private void OnRootDragOver(object sender, DragEventArgs e)
     {
-        if (ShelfEnabled && e.DataView.Contains(StandardDataFormats.StorageItems))
+        if (ShelfEnabled && Accepts(e.DataView))
         {
             e.AcceptedOperation = DataPackageOperation.Copy;
             e.DragUIOverride.Caption = "Guardar en la estantería";
@@ -55,23 +71,35 @@ public sealed partial class NotchWindow
 
     private async void OnRootDrop(object sender, DragEventArgs e)
     {
-        if (!ShelfEnabled || !e.DataView.Contains(StandardDataFormats.StorageItems))
+        if (!ShelfEnabled || !Accepts(e.DataView))
         {
             return;
         }
 
         var deferral = e.GetDeferral();
+        var shelf = _viewModel.Shelf;
         try
         {
-            foreach (var item in await e.DataView.GetStorageItemsAsync())
+            var view = e.DataView;
+            if (view.Contains(StandardDataFormats.StorageItems))
             {
-                if (!string.IsNullOrEmpty(item.Path) && !_viewModel.ShelfFiles.Contains(item.Path))
+                // Files and folders are added by reference: nothing is copied, moved or deleted.
+                foreach (var item in await view.GetStorageItemsAsync())
                 {
-                    _viewModel.ShelfFiles.Add(item.Path);
+                    shelf.DeleteOwnedCopies(Added(shelf.AddPath(item.Path, item.IsOfType(StorageItemTypes.Folder), out var gone), gone));
                 }
             }
+            else if (view.Contains(StandardDataFormats.Bitmap))
+            {
+                await AddDroppedBitmapAsync(view);
+            }
+            else if (view.Contains(StandardDataFormats.Text))
+            {
+                var text = await view.GetTextAsync();
+                shelf.DeleteOwnedCopies(Added(shelf.AddText(text, out var gone), gone));
+            }
         }
-        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException or IOException)
         {
             // The source app withdrew the data mid-drop; keep whatever was added before.
         }
@@ -83,55 +111,133 @@ public sealed partial class NotchWindow
         _viewModel.RaiseDataChanged();
     }
 
+    private static IReadOnlyList<string> Added(NotchWin.Core.Shelf.AddResult result, IReadOnlyList<string> toDelete) => result == NotchWin.Core.Shelf.AddResult.Added ? toDelete : [];
+
+    /// <summary>An image with no file (dragged from a browser, say) becomes the shelf's own PNG copy, inside the shelf folder, removed when the item is.</summary>
+    private async Task AddDroppedBitmapAsync(DataPackageView view)
+    {
+        var reference = await view.GetBitmapAsync();
+        using var stream = await reference.OpenReadAsync();
+        var decoder = await Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(stream);
+        using var software = await decoder.GetSoftwareBitmapAsync();
+        using var png = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+        var encoder = await Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(Windows.Graphics.Imaging.BitmapEncoder.PngEncoderId, png);
+        encoder.SetSoftwareBitmap(software);
+        await encoder.FlushAsync();
+        Directory.CreateDirectory(NotchViewModel.ShelfDir);
+        var path = Path.Combine(NotchViewModel.ShelfDir, Guid.NewGuid().ToString("N") + ".png");
+        png.Seek(0);
+        await using (var file = File.Create(path))
+        {
+            await png.AsStreamForRead().CopyToAsync(file);
+        }
+
+        var shelf = _viewModel.Shelf;
+        var result = shelf.AddOwnedImage(path, out var gone);
+        shelf.DeleteOwnedCopies(result == NotchWin.Core.Shelf.AddResult.Added ? gone : [path]);
+    }
+
+    private static string KindGlyph(NotchWin.Core.Shelf.ShelfKind kind) => kind switch
+    {
+        NotchWin.Core.Shelf.ShelfKind.Folder => "\uE8B7",
+        NotchWin.Core.Shelf.ShelfKind.Text => "\uE8C8",
+        NotchWin.Core.Shelf.ShelfKind.Image => "\uE91B",
+        _ => "\uE7C3",
+    };
+
     private void RebuildShelf()
     {
+        var shelf = _viewModel.Shelf;
         ShelfList.Children.Clear();
-        ShelfHint.Visibility = _viewModel.ShelfFiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-
-        foreach (var path in _viewModel.ShelfFiles.ToList())
+        ShelfHint.Visibility = shelf.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ShelfHint.Text = "Suelta archivos, carpetas, imágenes o texto aquí, o arrástralos hacia el notch desde cualquier app";
+        if (shelf.Items.Count == 0)
         {
+            return;
+        }
+
+        // header: how many of the limit, and clear all (removes the shelf's own copies only; referenced originals are untouched)
+        var header = new Grid { ColumnSpacing = 8 };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.Children.Add(Label($"{shelf.Items.Count} de {shelf.Max}", 11, Dim));
+        var clear = new Button { Content = Label("Vaciar", 11, Pal.Fg), Padding = new Thickness(10, 2, 10, 2), Background = new SolidColorBrush(Colors.Transparent) };
+        clear.Click += (_, _) => { shelf.DeleteOwnedCopies(shelf.Clear()); _viewModel.RaiseDataChanged(); };
+        Grid.SetColumn(clear, 1);
+        header.Children.Add(clear);
+        ShelfList.Children.Add(header);
+
+        foreach (var item in shelf.Items.Reverse().ToList())
+        {
+            var missing = shelf.StatusOf(item) == NotchWin.Core.Shelf.ShelfStatus.Missing;
             var row = new Grid
             {
                 Background = new SolidColorBrush(Card),
                 CornerRadius = new CornerRadius(10),
                 Padding = new Thickness(10, 4, 4, 4),
                 ColumnSpacing = 8,
-                CanDrag = true,
+                CanDrag = !missing,
             };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            row.Children.Add(new FontIcon { Glyph = "", FontSize = 14, Foreground = new SolidColorBrush(Dim), VerticalAlignment = VerticalAlignment.Center });
+            row.Children.Add(new FontIcon { Glyph = KindGlyph(item.Kind), FontSize = 14, Foreground = new SolidColorBrush(Dim), VerticalAlignment = VerticalAlignment.Center });
 
-            var name = Label(Path.GetFileName(path), 12, Pal.Fg, trim: true);
+            var name = Label(missing ? item.Title + " (no encontrado)" : item.Title, 12, missing ? Dim : Pal.Fg, trim: true);
             name.VerticalAlignment = VerticalAlignment.Center;
-            ToolTipService.SetToolTip(name, path);
+            ToolTipService.SetToolTip(name, item.Path ?? item.Text ?? item.Title);
             Grid.SetColumn(name, 1);
             row.Children.Add(name);
 
-            var remove = SmallButton("", () =>
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+            if (!missing && item.Kind is NotchWin.Core.Shelf.ShelfKind.File or NotchWin.Core.Shelf.ShelfKind.Folder && item.Path is { } shown)
             {
-                _viewModel.ShelfFiles.Remove(path);
+                buttons.Children.Add(SmallButton("\uE838", () => ShowInExplorer(shown)));
+            }
+
+            if (!missing && item.Kind is NotchWin.Core.Shelf.ShelfKind.Text or NotchWin.Core.Shelf.ShelfKind.Image)
+            {
+                buttons.Children.Add(SmallButton("\uE8C8", () => CopyShelfItem(item)));
+            }
+
+            buttons.Children.Add(SmallButton("\uE711", () =>
+            {
+                shelf.DeleteOwnedCopies([shelf.Remove(item.Id)]);
                 _viewModel.RaiseDataChanged();
-            });
-            Grid.SetColumn(remove, 2);
-            row.Children.Add(remove);
+            }));
+            Grid.SetColumn(buttons, 2);
+            row.Children.Add(buttons);
 
             row.DragStarting += async (_, args) =>
             {
                 var deferral = args.GetDeferral();
                 try
                 {
-                    IStorageItem item = File.Exists(path)
-                        ? await StorageFile.GetFileFromPathAsync(path)
-                        : await StorageFolder.GetFolderFromPathAsync(path);
-                    args.Data.SetStorageItems([item]);
+                    switch (item.Kind)
+                    {
+                        case NotchWin.Core.Shelf.ShelfKind.Text:
+                            args.Data.SetText(item.Text ?? string.Empty);
+                            break;
+                        case NotchWin.Core.Shelf.ShelfKind.Image:
+                            var image = await StorageFile.GetFileFromPathAsync(item.OwnedPath!);
+                            args.Data.SetStorageItems([image]);
+                            args.Data.SetBitmap(Windows.Storage.Streams.RandomAccessStreamReference.CreateFromFile(image));
+                            break;
+                        default:
+                            IStorageItem original = item.Kind == NotchWin.Core.Shelf.ShelfKind.File
+                                ? await StorageFile.GetFileFromPathAsync(item.Path!)
+                                : await StorageFolder.GetFolderFromPathAsync(item.Path!);
+                            args.Data.SetStorageItems([original]);
+                            break;
+                    }
+
                     args.Data.RequestedOperation = DataPackageOperation.Copy;
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or System.Runtime.InteropServices.COMException)
                 {
-                    args.Cancel = true; // file moved or deleted since it was shelved
+                    args.Cancel = true; // the original was moved or deleted since it was shelved: the row stays, marked, until the user removes it
+                    _viewModel.RaiseDataChanged();
                 }
                 finally
                 {
@@ -140,6 +246,42 @@ public sealed partial class NotchWindow
             };
 
             ShelfList.Children.Add(row);
+        }
+    }
+
+    private static void ShowInExplorer(string path)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe") { ArgumentList = { "/select,", path }, UseShellExecute = false })?.Dispose();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            // Explorer unavailable: nothing to do.
+        }
+    }
+
+    /// <summary>Copies a text or image item to the Windows clipboard (the Island's clipboard history picks it up like any other copy: no second history).</summary>
+    private static async void CopyShelfItem(NotchWin.Core.Shelf.ShelfItem item)
+    {
+        try
+        {
+            var package = new DataPackage();
+            if (item.Kind == NotchWin.Core.Shelf.ShelfKind.Text)
+            {
+                package.SetText(item.Text ?? string.Empty);
+            }
+            else if (item.OwnedPath is { } path)
+            {
+                var file = await StorageFile.GetFileFromPathAsync(path);
+                package.SetBitmap(Windows.Storage.Streams.RandomAccessStreamReference.CreateFromFile(file));
+            }
+
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Runtime.InteropServices.COMException)
+        {
+            // The clipboard is busy or the copy vanished: ignore.
         }
     }
 

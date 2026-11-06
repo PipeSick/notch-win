@@ -154,6 +154,12 @@ public sealed class HostedSession : IAsyncDisposable
     /// <summary>Settings › Isla › «Borrar el historial del portapapeles» (pinned included). Raised on a worker thread.</summary>
     public event Action? ClearClipboardRequested;
 
+    /// <summary>Hatsu pide abrir la estantería (acción de Spotlight, gesto). Raised on a worker thread.</summary>
+    public event Action? ShelfOpenRequested;
+
+    /// <summary>Hatsu manda un texto a la estantería (p. ej. el resultado de Live Text). Raised on a worker thread.</summary>
+    public event Action<string>? ShelfAddTextRequested;
+
     private void OnCommand(JsonElement? data)
     {
         if (data is not { ValueKind: JsonValueKind.Object } d || !d.TryGetProperty("cmd", out var cmd) || cmd.ValueKind != JsonValueKind.String) return;
@@ -162,6 +168,8 @@ public sealed class HostedSession : IAsyncDisposable
             case "open-local-settings": OpenLocalSettingsRequested?.Invoke(); break;
             case "collapse": CollapseRequested?.Invoke(); break;
             case "clear-clipboard": ClearClipboardRequested?.Invoke(); break;
+            case "shelf-open": ShelfOpenRequested?.Invoke(); break;
+            case "shelf-add-text" when d.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String && t.GetString() is { Length: > 0 and <= 200_000 } text: ShelfAddTextRequested?.Invoke(text); break;
         }
     }
 

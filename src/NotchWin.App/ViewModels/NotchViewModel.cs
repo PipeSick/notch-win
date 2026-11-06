@@ -28,8 +28,10 @@ public sealed class NotchViewModel : ObservableObject
 
     public CountdownTimer Timer { get; } = new();
 
-    /// <summary>Files on the shelf (full paths). Kept for the session only; the originals are never copied or moved.</summary>
-    public List<string> ShelfFiles { get; } = [];
+    /// <summary>Shelf+ (docs/hatsu-modulos): files and folders by REFERENCE (the originals are never copied, moved or deleted), text, and images kept as the shelf's own copy. Kept for the session only.</summary>
+    public static string ShelfDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NotchWin", "shelf");
+
+    public NotchWin.Core.Shelf.ShelfStore Shelf { get; } = new(ShelfDir);
 
     /// <summary>Null unless the user turned lyrics on in Settings.</summary>
     public NeteaseLyricsClient? Lyrics { get; set; }
