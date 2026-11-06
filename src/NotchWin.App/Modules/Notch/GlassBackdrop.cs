@@ -61,6 +61,23 @@ internal sealed class GlassBackdrop : SystemBackdrop
         Apply();
     }
 
+    /// <summary>
+    /// Windows changes the default backdrop configuration (transparency effects, power saver, contrast, session lock…). The base class can throw
+    /// «ArgumentException: target» / a COMException while it re-applies it to a target that is already going away; that used to end the whole Island
+    /// (crash.log, 3–4 Nov). Losing one refresh of the glass is harmless: the next configuration change or the next Apply() sets it again.
+    /// </summary>
+    protected override void OnDefaultSystemBackdropConfigurationChanged(ICompositionSupportsSystemBackdrop target, XamlRoot xamlRoot)
+    {
+        try
+        {
+            base.OnDefaultSystemBackdropConfigurationChanged(target, xamlRoot);
+        }
+        catch (Exception ex) when (ex is ArgumentException or System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            // keep the Island alive
+        }
+    }
+
     protected override void OnTargetDisconnected(ICompositionSupportsSystemBackdrop disconnectedTarget)
     {
         base.OnTargetDisconnected(disconnectedTarget);

@@ -479,7 +479,7 @@ public sealed partial class NotchWindow
                 if (n.AppId is { Length: > 0 } aumid)
                 {
                     var openApp = new Button { Content = "Abrir " + n.Source, FontSize = 11, Padding = new Thickness(10, 2, 10, 3), CornerRadius = new CornerRadius(10) };
-                    openApp.Click += (_, _) => OpenNotificationApp(aumid);
+                    openApp.Click += (_, _) => _ = OpenNotificationApp(aumid);
                     foot.Children.Add(openApp);
                 }
 
@@ -508,10 +508,23 @@ public sealed partial class NotchWindow
     }
 
     /// <summary>Opens the app that sent a notification (its AUMID in the Shell's apps folder), as Windows' own centre does.</summary>
-    private static void OpenNotificationApp(string aumid)
+    private static bool OpenNotificationApp(string aumid)
     {
-        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"shell:AppsFolder\\" + aumid + "\"") { UseShellExecute = false })?.Dispose(); }
-        catch (Exception) { /* the app cannot be opened from outside: nothing else to do */ }
+        // The AUMID comes from Windows, but it ends up in a command line: only the characters an AUMID can have (no quotes or control characters).
+        if (aumid.Length > 256 || aumid.Any(c => c is '"' or '\'' or '<' or '>' or '|' or '%' || char.IsControl(c)))
+        {
+            return false;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"shell:AppsFolder\\" + aumid + "\"") { UseShellExecute = false })?.Dispose();
+            return true;
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return false;   // the app cannot be opened from outside: the caller falls back
+        }
     }
 
     /// <summary>WM-025: a click on the notification pill opens the Island on the Notifications tab with that notification in full.</summary>

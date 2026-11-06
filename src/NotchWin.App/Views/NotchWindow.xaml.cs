@@ -175,7 +175,18 @@ public sealed partial class NotchWindow : Window
 
     private void OnBarTapped(object sender, TappedRoutedEventArgs e)
     {
-        if (!_expanded && _shownPill is { Kind: NotchWin.Core.Pill.PillKind.Notification } np) OpenNotificationFromPill(np.NotificationKey);   // WM-025
+        if (!_expanded && _shownPill is { Kind: NotchWin.Core.Pill.PillKind.Notification } np)
+        {
+            // A click on a notification opens the app that sent it (when Windows told us which: the AUMID of the matching entry in the notification list);
+            // without it, WM-025's behaviour: the Island opens on that notification in full.
+            if (np.NotificationKey is { } key && _viewModel.Notifications.Items.FirstOrDefault(n => n.Key == key)?.AppId is { Length: > 0 } aumid && OpenNotificationApp(aumid))
+            {
+                return;
+            }
+
+            OpenNotificationFromPill(np.NotificationKey);   // WM-025
+        }
+
         SetExpanded(!_expanded);
         if (_expanded) KeyboardOn();   // opened by the user's click: the keyboard works in it until it closes
     }

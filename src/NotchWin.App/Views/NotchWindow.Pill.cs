@@ -1,5 +1,6 @@
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NotchWin.Core.Pill;
@@ -64,7 +65,7 @@ public sealed partial class NotchWindow
         PillKind.Volume or PillKind.Brightness => (HudWidth, CollapsedHeight),
         PillKind.Call when _shownPill.Controls?.Any == true => (CallWidth, Math.Max(NotifHeight, CollapsedHeight)),
         PillKind.Notification or PillKind.Call => (NotifWidth, Math.Max(NotifHeight, CollapsedHeight)),
-        _ => (ToastWidth, CollapsedHeight),
+        _ => (_toastWidth, CollapsedHeight),
     };
 
     private void OnPillChanged()
@@ -262,12 +263,37 @@ public sealed partial class NotchWindow
         }
     }
 
+    private readonly TextBlock _toastTitleMeasurer = new() { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
+    private readonly TextBlock _toastSubMeasurer = new() { FontSize = 12 };
+    private int _toastWidth = ToastWidth;
+
+    /// <summary>Padding (14 + 14), cover (20), spacing (8 + 8) and a little air: what the banner needs around its two lines of text.</summary>
+    private const int ToastChrome = 14 + 14 + 20 + 8 + 8 + 12;
+
+    /// <summary>The banner is as wide as its text needs (title + detail), up to 40% of the monitor (never above 720): «Sin confirmar 291470 · 263,9 MB · 2,0 MB/s · Chrome» used to be cut at fixed 170 + 100 px.</summary>
+    private void FitBannerWidth()
+    {
+        _toastTitleMeasurer.Text = ToastTitle.Text;
+        _toastSubMeasurer.Text = ToastArtist.Text;
+        _toastTitleMeasurer.Measure(new Windows.Foundation.Size(double.PositiveInfinity, 32));
+        _toastSubMeasurer.Measure(new Windows.Foundation.Size(double.PositiveInfinity, 32));
+        var titleW = (int)Math.Ceiling(_toastTitleMeasurer.DesiredSize.Width);
+        var subW = string.IsNullOrEmpty(ToastArtist.Text) ? 0 : (int)Math.Ceiling(_toastSubMeasurer.DesiredSize.Width);
+        var cap = Math.Clamp((int)((_controller?.MonitorWidthDip ?? 1920) * 0.4), ToastWidth, MaxLyricPillWidth);
+        var wanted = ToastChrome + titleW + subW + (subW > 0 ? 8 : 0);
+        _toastWidth = Math.Clamp((wanted + 19) / 20 * 20, ToastWidth, cap);   // rounded up so tiny differences do not make the notch twitch
+        var room = _toastWidth - ToastChrome;
+        ToastTitle.MaxWidth = subW > 0 ? Math.Max(120, Math.Min(titleW, room - Math.Min(subW, room / 2))) : room;
+        ToastArtist.MaxWidth = Math.Max(60, room - Math.Min(titleW, ToastTitle.MaxWidth) - 8);
+    }
+
     private void ShowBanner(PillItem item)
     {
         HudBar.Visibility = Visibility.Collapsed;
         NotifBar.Visibility = Visibility.Collapsed;
         ToastTitle.Text = item.Title;
         ToastArtist.Text = item.Subtitle ?? "";
+        FitBannerWidth();
         ToastArt.Background = item.Kind == PillKind.Activity
             ? new SolidColorBrush(ColorForSource(item.App ?? ""))
             : item.Kind == PillKind.Capture && item.ImagePath is { } img ? Thumbnail(img, 48)   // the saved screenshot, decoded small
