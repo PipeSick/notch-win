@@ -32,7 +32,6 @@ public sealed partial class SettingsWindow : Window
     {
         NotchModuleCheckBox.IsChecked = settings.NotchModuleEnabled;
         MusicModuleCheckBox.IsChecked = settings.MusicModuleEnabled;
-        AiAgentsModuleCheckBox.IsChecked = settings.AiAgentsModuleEnabled;
         PlayerCombo.SelectedIndex = (int)settings.MusicPlayer;
         PlayerPathBox.Text = settings.CustomPlayerPath ?? string.Empty;
         PollIntervalBox.Value = settings.PollIntervalSeconds;
@@ -54,7 +53,6 @@ public sealed partial class SettingsWindow : Window
         {
             settings.NotchModuleEnabled = NotchModuleCheckBox.IsChecked ?? true;
             settings.MusicModuleEnabled = MusicModuleCheckBox.IsChecked ?? true;
-            settings.AiAgentsModuleEnabled = AiAgentsModuleCheckBox.IsChecked ?? true;
             settings.MusicPlayer = (MusicPlayerKind)Math.Max(0, PlayerCombo.SelectedIndex);
             settings.CustomPlayerPath = string.IsNullOrWhiteSpace(PlayerPathBox.Text) ? null : PlayerPathBox.Text.Trim().Trim('"');
             settings.PollIntervalSeconds = double.IsNaN(PollIntervalBox.Value) ? 30 : (int)PollIntervalBox.Value;

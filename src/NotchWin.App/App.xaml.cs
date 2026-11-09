@@ -126,10 +126,6 @@ public partial class App : Application
             StartMusicModule(dispatcherQueue);
         }
 
-        if (_settings.AiAgentsModuleEnabled)
-        {
-            StartAgentPolling(dispatcherQueue);
-        }
     }
 
     // ---------- one notch per monitor, following monitors as they come and go ----------
@@ -331,48 +327,6 @@ public partial class App : Application
         _ = _mediaProvider.InitializeAsync();
     }
 
-    private void StartAgentPolling(DispatcherQueue dispatcherQueue)
-    {
-        var pricing = PricingCatalog.LoadFrom(Path.Combine(
-            Path.GetDirectoryName(_settingsStore.FilePath) ?? ".", "pricing.json"));
-
-        var providers = new List<IAgentUsageProvider>
-        {
-            new ClaudeCodeUsageProvider(_settings.ClaudeHomeOverride, pricing),
-            new CodexUsageProvider(_settings.AdditionalCodexHomes, pricing),
-            new CopilotUsageProvider(_settings.CopilotHomeOverride),
-            new OpenCodeUsageProvider(_settings.OpenCodeDataOverride),
-        };
-
-        _agentPolling = new AgentPollingService(providers, dispatcherQueue, TimeSpan.FromSeconds(_settings.PollIntervalSeconds));
-        _agentPolling.SnapshotsUpdated += snapshots =>
-        {
-            // Record today's spend first so the trend chart drawn by the snapshot update already includes it.
-            _viewModel?.History?.Record(
-                DateOnly.FromDateTime(DateTime.Now), snapshots.Where(s => s.Error is null).Sum(s => s.EstimatedCostUsdToday ?? 0));
-            _viewModel?.ReplaceAgentSnapshots(snapshots);
-            foreach (var done in _completion.Observe(snapshots))
-            {
-                _viewModel?.Notifications.Add(
-                    AgentName(done.Kind),
-                    "Terminó una tarea",
-                    $"Trabajó {(done.WorkedFor.TotalMinutes >= 1 ? $"{(int)done.WorkedFor.TotalMinutes} min" : $"{(int)done.WorkedFor.TotalSeconds} s")}");
-            }
-
-            _trayIcon?.UpdateTooltip(BuildTooltip(snapshots));
-        };
-        _agentPolling.Start();
-    }
-
-    private static string AgentName(AgentKind kind) => kind switch
-    {
-        AgentKind.ClaudeCode => "Claude Code",
-        AgentKind.Codex => "Codex",
-        AgentKind.Copilot => "Copilot",
-        AgentKind.OpenCode => "OpenCode",
-        _ => kind.ToString(),
-    };
-
     private void PersistSections()
     {
         _settings.NotchSections = _viewModel?.Sections ?? NotchSections.Defaults();
@@ -568,19 +522,6 @@ public partial class App : Application
         _viewModel.RaiseDataChanged();
     }
 
-    private static string BuildTooltip(IReadOnlyList<AgentUsageSnapshot> snapshots)
-    {
-        if (snapshots.Count == 0)
-        {
-            return "Hatsu Notch";
-        }
-
-        var parts = snapshots
-            .Where(s => s.Error is null)
-            .Select(s => $"{s.Kind}: {s.TokensToday.Total} tok");
-        return "Hatsu Notch — " + string.Join(" · ", parts);
-    }
-
     // ---------- hosted by WinMac ----------
 
     /// <summary>
@@ -708,15 +649,6 @@ public partial class App : Application
             if (_settings.MusicModuleEnabled)
             {
                 StartMusicModule(_uiQueue);
-            }
-        }
-
-        if (changes.HasFlag(CentralChanges.AgentsModule) || changes.HasFlag(CentralChanges.Poll))
-        {
-            StopAgentPolling();
-            if (_settings.AiAgentsModuleEnabled)
-            {
-                StartAgentPolling(_uiQueue);
             }
         }
 

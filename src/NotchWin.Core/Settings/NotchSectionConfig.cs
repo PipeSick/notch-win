@@ -12,6 +12,7 @@ public sealed class NotchSectionConfig
 public static class NotchSections
 {
     public const string Music = "music";
+    /// <summary>Removed in 2.0.10 (the AI-agent monitor): kept only so old code paths compile; it is not in <see cref="AllIds"/>, so a saved layout loses it.</summary>
     public const string Agents = "agents";
     public const string Timer = "timer";
     public const string Calendar = "calendar";
@@ -29,7 +30,7 @@ public static class NotchSections
     /// <summary>Default order as in the approved WinMac 2.0 mockup (En curso · Capturas · Portapapeles · Descargas · Historial), then the rest. The music tab
     /// (with the synced lyrics) stays on. Someone with a saved order keeps it; new sections are appended (<see cref="Normalize"/>).</summary>
     public static IReadOnlyList<string> AllIds { get; } =
-        [Activity, Captures, Clipboard, Downloads, History, Music, Agents, Timer, Calendar, Notifications, Shelf, Camera, Resources];
+        [Activity, Captures, Clipboard, Downloads, History, Music, Timer, Calendar, Notifications, Shelf, Camera, Resources];
 
     /// <summary>The camera stays off until the user turns it on, since it opens the webcam.</summary>
     private static bool DefaultEnabled(string id) => id != Camera;
