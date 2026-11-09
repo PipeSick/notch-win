@@ -179,9 +179,14 @@ public sealed partial class NotchWindow : Window
         {
             // A click on a notification opens the app that sent it (when Windows told us which: the AUMID of the matching entry in the notification list);
             // without it, WM-025's behaviour: the Island opens on that notification in full.
-            if (np.NotificationKey is { } key && _viewModel.Notifications.Items.FirstOrDefault(n => n.Key == key)?.AppId is { Length: > 0 } aumid && OpenNotificationApp(aumid))
+            var match = np.NotificationKey is { } key ? _viewModel.Notifications.Items.FirstOrDefault(n => n.Key == key) : null;
+            if (match?.AppId is { Length: > 0 } aumid)
             {
-                return;
+                if (OpenNotificationApp(aumid)) { return; }
+            }
+            else
+            {
+                AppActivator.LogMissing(np.NotificationKey is null ? "la notificación no trae clave: se abre la Isla" : match is null ? "la notificación no está en la lista de Windows todavía: se abre la Isla" : "Windows no indicó qué app la envió: se abre la Isla");
             }
 
             OpenNotificationFromPill(np.NotificationKey);   // WM-025
