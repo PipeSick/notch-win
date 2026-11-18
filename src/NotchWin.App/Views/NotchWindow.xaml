@@ -231,9 +231,11 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Name="NowElapsed" Foreground="{ThemeResource NW_FF98989D}" FontSize="10.5" VerticalAlignment="Center" />
-                        <Border x:Name="NowTrack" Grid.Column="1" Height="4" CornerRadius="2" Background="{ThemeResource NW_33FFFFFF}" VerticalAlignment="Center">
-                            <Border x:Name="NowFill" HorizontalAlignment="Left" CornerRadius="2" Background="{ThemeResource NW_FFFFFFFF}" Width="0" />
-                        </Border>
+                        <Grid x:Name="NowHit" Grid.Column="1" Height="18" Background="Transparent" VerticalAlignment="Center" PointerPressed="OnSeekPressed">
+                            <Border x:Name="NowTrack" Height="4" CornerRadius="2" IsHitTestVisible="False" Background="{ThemeResource NW_33FFFFFF}" VerticalAlignment="Center">
+                                <Border x:Name="NowFill" HorizontalAlignment="Left" CornerRadius="2" Background="{ThemeResource NW_FFFFFFFF}" Width="0" />
+                            </Border>
+                        </Grid>
                         <TextBlock x:Name="NowTotal" Grid.Column="2" Foreground="{ThemeResource NW_FF98989D}" FontSize="10.5" VerticalAlignment="Center" />
                     </Grid>
                 </StackPanel>
@@ -301,13 +303,14 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Name="ElapsedText" Foreground="{ThemeResource NW_FF8E8E93}" FontSize="10" VerticalAlignment="Center" Text="0:00" />
-                        <Grid Grid.Column="1" Height="4" VerticalAlignment="Center">
+                        <!-- Click anywhere on the bar to jump there. The hit area is 18 px tall so it is easy to hit; the bar itself stays 4 px. -->
+                        <Grid x:Name="ProgressHit" Grid.Column="1" Height="18" Background="Transparent" VerticalAlignment="Center" PointerPressed="OnSeekPressed">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition x:Name="ProgressDone" Width="0*" />
                                 <ColumnDefinition x:Name="ProgressRest" Width="1*" />
                             </Grid.ColumnDefinitions>
-                            <Border Grid.ColumnSpan="2" Background="{ThemeResource NW_FF3A3A3C}" CornerRadius="2" />
-                            <Border Background="{ThemeResource NW_FFFFFFFF}" CornerRadius="2" />
+                            <Border Grid.ColumnSpan="2" Height="4" VerticalAlignment="Center" IsHitTestVisible="False" Background="{ThemeResource NW_FF3A3A3C}" CornerRadius="2" />
+                            <Border Height="4" VerticalAlignment="Center" IsHitTestVisible="False" Background="{ThemeResource NW_FFFFFFFF}" CornerRadius="2" />
                         </Grid>
                         <TextBlock x:Name="DurationText" Grid.Column="2" Foreground="{ThemeResource NW_FF8E8E93}" FontSize="10"
                                    VerticalAlignment="Center" Text="0:00" />

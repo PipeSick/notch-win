@@ -538,6 +538,26 @@ public sealed partial class NotchWindow : Window
 
     private async void OnPreviousClicked(object sender, RoutedEventArgs e) => await RunControl(c => c.PreviousAsync());
 
+    /// <summary>Click on a progress bar (music pane or header): jump to that point of the track. The bar moves at once; the real position is read back after the player answers.</summary>
+    private async void OnSeekPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement bar || _info is null || NotchWin.Core.Music.SeekMath.PositionAt(e.GetCurrentPoint(bar).Position.X, bar.ActualWidth, _info.Duration) is not { } target)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        _info = _info with { Position = target };
+        _infoAtUtc = DateTime.UtcNow;
+        UpdateProgress();
+        if (NowHeader.Visibility == Visibility.Visible)
+        {
+            UpdateNowHeader();
+        }
+
+        await RunControl(c => c.SeekAsync(target));
+    }
+
     private async Task RunControl(Func<Modules.Music.IMediaControls, Task> action)
     {
         try

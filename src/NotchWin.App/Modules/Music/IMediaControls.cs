@@ -9,6 +9,9 @@ public interface IMediaControls
 
     Task PreviousAsync();
 
+    /// <summary>Jump to a position in the current track (click on the progress bar). The player may refuse it; the views re-read the real position afterwards.</summary>
+    Task SeekAsync(TimeSpan position);
+
     /// <summary>WM-031: there is a media session to send commands to (a player is open, playing or paused).</summary>
     bool HasSession { get; }
 }

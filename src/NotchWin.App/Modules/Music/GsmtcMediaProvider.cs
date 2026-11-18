@@ -65,6 +65,8 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
 
     public Task PreviousAsync() => TransportAsync(s => s.TrySkipPreviousAsync());
 
+    public Task SeekAsync(TimeSpan position) => TransportAsync(s => s.TryChangePlaybackPositionAsync(position.Ticks));
+
     /// <summary>
     /// It7: a transport command is a REQUEST, not a fact: the UI never assumes it worked. Whatever the answer (accepted, refused, or the player closed meanwhile),
     /// the real state is read again a moment later (players take a while to change, and some never raise the event), so every view ends up showing what the player does.
