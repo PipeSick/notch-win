@@ -90,7 +90,7 @@ public sealed partial class NotchWindow
     /// <summary>Called by the 1 s clock; only does work while the tab is on screen, so the app is idle otherwise.</summary>
     private async void UpdateSystemCards()
     {
-        if (!_expanded || _customizing || _active != NotchSections.Resources || _sampling)
+        if (!SamplingWanted() || _sampling)
         {
             return;
         }
@@ -107,7 +107,7 @@ public sealed partial class NotchWindow
             _sampling = false;
         }
 
-        if (!_expanded || _customizing || _active != NotchSections.Resources)
+        if (!SamplingWanted())
         {
             return; // the user left the tab while the reading was being taken
         }
@@ -141,7 +141,14 @@ public sealed partial class NotchWindow
 
         _metrics["power"].Value.Text = s.PowerWatts is { } w ? $"{w:0}W" : "—";
         _metrics["dev"].Value.Text = s.ConnectedDevices is { } n ? n.ToString(CultureInfo.CurrentCulture) : "—";
+        _homeSnap = s;
+        if (HomePane.Visibility == Visibility.Visible) RebuildHome();   // Inicio: la tarjeta de Recursos usa la misma lectura
     }
+
+    /// <summary>Se mide el sistema con el módulo Recursos abierto y también con Inicio abierto (su tarjeta de Recursos), nunca cerrado.</summary>
+    private bool SamplingWanted() => _expanded && !_customizing && (_active == NotchSections.Resources || (_active == NotchSections.Home && SectionOn(NotchSections.Resources)));
+
+    private SystemSnapshot? _homeSnap;
 
     private void SetPercent(string key, double? value)
     {

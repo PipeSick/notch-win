@@ -241,7 +241,7 @@ public sealed partial class NotchWindow
         UpdateNowHeader();
         DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, SelfTestLogTabs);
         CustomizePane.Visibility = Show(_customizing || empty);
-        if (SystemPane.Visibility == Visibility.Visible)
+        if (SystemPane.Visibility == Visibility.Visible || (HomePane.Visibility == Visibility.Visible && SectionOn(NotchSections.Resources)))
         {
             _sampler.Reset();
             _systemSamples = 0;

@@ -18,7 +18,7 @@ namespace NotchWin.App.Modules.Notch;
 /// </summary>
 public sealed class NotchWindowController : IDisposable
 {
-    private const int AnimationMs = 260;
+    private int _durationMs = 260; private bool _growing;
 
     private readonly IntPtr _hwnd;
     private readonly AppWindow _appWindow;
@@ -158,6 +158,8 @@ public sealed class NotchWindowController : IDisposable
         _fromH = _curH;
         _toW = widthDip * scale;
         _toH = heightDip * scale;
+        _growing = _toW > _fromW || _toH > _fromH;   // abrir: resorte con un poco de rebote; plegar: sin rebote (NotchEasing)
+        _durationMs = NotchWin.Core.Notch.NotchEasing.DurationMs(_growing);
         _startedUtc = DateTime.UtcNow;
         _onCompleted = completed;
         UpdateFootprint(animating: true);
@@ -213,9 +215,8 @@ public sealed class NotchWindowController : IDisposable
 
     private void OnTick()
     {
-        var t = Math.Clamp((DateTime.UtcNow - _startedUtc).TotalMilliseconds / AnimationMs, 0, 1);
-        // Ease-out-quint: fast out of the gate, settles softly — reads as "snappy but smooth".
-        var e = 1 - Math.Pow(1 - t, 5);
+        var t = Math.Clamp((DateTime.UtcNow - _startedUtc).TotalMilliseconds / _durationMs, 0, 1);
+        var e = NotchWin.Core.Notch.NotchEasing.Eased(t, _growing);   // abrir: resorte; plegar: ease-out quint (antes siempre este último)
         _curW = _fromW + (_toW - _fromW) * e;
         _curH = _fromH + (_toH - _fromH) * e;
         ApplyFrame();

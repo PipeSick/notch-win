@@ -114,6 +114,30 @@ public static class PillFeed
         return list;
     }
 
+    public const int MaxPeripherals = 8;
+    private static readonly HashSet<string> PeripheralTypes = ["mouse", "keyboard", "headset", "gamepad", "other"];
+
+    /// <summary>
+    /// Inicio (A+B): batería de los periféricos que la Barra ya leyó, para la tarjeta «Periféricos». Formato:
+    /// <c>{ "kind": "peripherals", "items": [ { "name": "Keris II Origin", "type": "mouse", "percent": 74, "charging": true } ] }</c>.
+    /// Solo llegan dispositivos conectados con porcentaje actual; aquí se descarta lo inválido y se acota. Null si <paramref name="e"/> no es de este tipo.
+    /// </summary>
+    public static IReadOnlyList<NotchPeripheral>? ParsePeripherals(JsonElement e)
+    {
+        if (e.ValueKind != JsonValueKind.Object || !string.Equals(Str(e, "kind"), "peripherals", StringComparison.OrdinalIgnoreCase)) return null;
+        var list = new List<NotchPeripheral>();
+        if (!e.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array) return list;
+        foreach (var it in items.EnumerateArray())
+        {
+            if (list.Count >= MaxPeripherals || it.ValueKind != JsonValueKind.Object) continue;
+            if (Short(Str(it, "name"), MaxTitle) is not { Length: > 0 } name || Int(it, "percent") is not { } pct) continue;
+            var type = Str(it, "type")?.ToLowerInvariant() is { } t && PeripheralTypes.Contains(t) ? t : "other";
+            list.Add(new NotchPeripheral(name, type, Math.Clamp(pct, 0, 100), it.TryGetProperty("charging", out var c) && c.ValueKind == JsonValueKind.True));
+        }
+
+        return list;
+    }
+
     private static long? Long(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var l) ? l : null;
 
     private static (byte[]? Px, int W, int H) Icon(JsonElement e)
@@ -141,3 +165,6 @@ public static class PillFeed
         return s.Length == 0 ? null : s.Length > max ? s[..(max - 1)].TrimEnd() + "…" : s;
     }
 }
+
+/// <summary>Un periférico con batería para la tarjeta de Inicio (tipo: mouse, keyboard, headset, gamepad u other).</summary>
+public sealed record NotchPeripheral(string Name, string Type, int Percent, bool Charging);

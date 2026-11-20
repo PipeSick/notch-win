@@ -33,7 +33,7 @@ public sealed partial class NotchWindow
         var clip = _viewModel.Clipboard.All.FirstOrDefault(e => e.Kind == NotchWin.Core.Clipboard.ClipboardItemKind.Text && !string.IsNullOrWhiteSpace(e.Text));
         var pos = _info is { } i0 ? i0.Position + (i0.IsPlaying ? DateTime.UtcNow - _infoAtUtc : TimeSpan.Zero) : TimeSpan.Zero;
         var sig = string.Join("|", _info?.Title, _info?.Artist, _info?.IsPlaying, (int)(pos.TotalSeconds / 3), CurrentLyric(), FormatCountdown(timer.Remaining), timer.IsRunning,
-            notifs.Count, notifs.FirstOrDefault()?.Title, dl.Count, dl.FirstOrDefault()?.FileName, dl.FirstOrDefault()?.Bytes / 1048576, ev?.Title, clip?.Text, string.Join(",", EnabledSections().Select(s => s.Id)));
+            notifs.Count, notifs.FirstOrDefault()?.Title, string.Join(",", _viewModel.Peripherals.Select(d => d.Name + d.Percent + d.Charging)), _homeSnap is { } hs ? $"{hs.Cpu:0}/{hs.Gpu:0}/{hs.Memory:0}/{hs.FreeDiskGb:0}" : "", dl.Count, dl.FirstOrDefault()?.FileName, dl.FirstOrDefault()?.Bytes / 1048576, ev?.Title, clip?.Text, string.Join(",", EnabledSections().Select(s => s.Id)));
         if (!force && sig == _homeSignature) return;
         _homeSignature = sig;
 
@@ -43,11 +43,14 @@ public sealed partial class NotchWindow
 
         var small = new List<(string Id, Border Card)>();
         if (SectionOn(NotchSections.Timer)) small.Add((NotchSections.Timer, HomeCard("TEMPORIZADOR", TimerCardBody(), NotchSections.Timer)));
+        // Periféricos: solo si la Barra mandó lecturas (módulo activo y con batería actual); su tarjeta lleva a Recursos, donde está «Dispositivos conectados»
+        if (_viewModel.Peripherals.Count > 0 && SectionOn(NotchSections.Resources)) small.Add((NotchSections.Resources, HomeCard("PERIFÉRICOS", PeripheralsCardBody(), NotchSections.Resources)));
         if (SectionOn(NotchSections.Notifications)) small.Add((NotchSections.Notifications, HomeCard("NOTIFICACIONES" + (notifs.Count > 0 ? "  " + notifs.Count : ""), NotificationsCardBody(), NotchSections.Notifications)));
         if (SectionOn(NotchSections.Downloads)) small.Add((NotchSections.Downloads, HomeCard("DESCARGAS", DownloadsCardBody(), NotchSections.Downloads)));
         if (SectionOn(NotchSections.Calendar)) small.Add((NotchSections.Calendar, HomeCard("PRÓXIMO", CalendarCardBody(ev), NotchSections.Calendar)));
         if (SectionOn(NotchSections.Clipboard)) small.Add((NotchSections.Clipboard, HomeCard("PORTAPAPELES", ClipboardCardBody(clip?.Text), NotchSections.Clipboard)));
 
+        var wide = SectionOn(NotchSections.Resources) ? HomeCard("RECURSOS", ResourcesCardBody(), NotchSections.Resources) : null;
         int row = 0, k = 0;
         if (SectionOn(NotchSections.Music))
         {
@@ -56,6 +59,12 @@ public sealed partial class NotchWindow
             for (var r = 0; r < 2; r++) HomeGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             for (; k < Math.Min(2, small.Count); k++) { var c = small[k].Card; Grid.SetRow(c, k); Grid.SetColumn(c, 1); HomeGrid.Children.Add(c); }
             row = 2;
+        }
+
+        if (wide is not null)
+        {
+            HomeGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetRow(wide, row); Grid.SetColumn(wide, 0); Grid.SetColumnSpan(wide, 2); HomeGrid.Children.Add(wide); row++;
         }
 
         while (k < small.Count)
@@ -134,6 +143,49 @@ public sealed partial class NotchWindow
         b.Tapped += (_, e) => e.Handled = true;   // un clic en un control no abre el módulo de la tarjeta
         b.Click += async (_, _) => await act();
         return b;
+    }
+
+    private static string DeviceGlyph(string type) => type switch { "mouse" => "\uE962", "keyboard" => "\uE765", "headset" => "\uE7F6", "gamepad" => "\uE7FC", _ => "\uE772" };
+
+    private UIElement PeripheralsCardBody()
+    {
+        var s = new StackPanel { Spacing = 4 };
+        foreach (var d in _viewModel.Peripherals.Take(4))
+        {
+            var row = new Grid { ColumnSpacing = 6 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(CardUi.Icon(DeviceGlyph(d.Type), 12, CardUi.Dim));
+            var name = Line(d.Name, 12, Pal.Fg); Grid.SetColumn(name, 1); row.Children.Add(name);
+            var pct = Line(d.Percent + " %" + (d.Charging ? " ⚡" : ""), 12, d.Percent <= 15 && !d.Charging ? CardUi.Danger : Pal.Fg, bold: true); Grid.SetColumn(pct, 2); row.Children.Add(pct);
+            s.Children.Add(row);
+        }
+
+        return s;
+    }
+
+    private UIElement ResourcesCardBody()
+    {
+        if (_homeSnap is not { } snap) return Line("Midiendo…", 12, CardUi.Dim);
+        var grid = new Grid { ColumnSpacing = 14 };
+        void Col(int i, string label, string value, double fraction)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var cell = new StackPanel { Spacing = 4 };
+            var head = new Grid();
+            head.Children.Add(Line(label, 11.5, CardUi.Dim));
+            var v = Line(value, 11.5, Pal.Fg, bold: true); v.HorizontalAlignment = HorizontalAlignment.Right; head.Children.Add(v);
+            cell.Children.Add(head);
+            cell.Children.Add(CardUi.Bar(Math.Clamp(fraction, 0, 1), BarColor, height: 4));
+            Grid.SetColumn(cell, i); grid.Children.Add(cell);
+        }
+
+        Col(0, "CPU", $"{snap.Cpu:0}%", snap.Cpu / 100);
+        Col(1, "GPU", snap.Gpu is { } g ? $"{g:0}%" : "—", (snap.Gpu ?? 0) / 100);
+        Col(2, "Memoria", $"{snap.Memory:0}%", snap.Memory / 100);
+        Col(3, "Disco", $"{snap.FreeDiskGb:0} GB", DiskFreeFraction());
+        return grid;
     }
 
     private UIElement TimerCardBody()

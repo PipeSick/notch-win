@@ -123,8 +123,17 @@ public sealed class HostedSession : IAsyncDisposable
     /// <summary>WM-025: a snapshot of Windows' notification centre (sent by WinMac's bar when it changes). Raised on a worker thread.</summary>
     public event Action<IReadOnlyList<Notifications.NotchNotification>>? NotificationsReceived;
 
+    /// <summary>Inicio: batería de los periféricos que la barra ya leyó (tarjeta «Periféricos»). Raised on a worker thread.</summary>
+    public event Action<IReadOnlyList<Pill.NotchPeripheral>>? PeripheralsReceived;
+
     private void OnFeed(JsonElement? data)
     {
+        if (data is { } p && Pill.PillFeed.ParsePeripherals(p) is { } periph)
+        {
+            PeripheralsReceived?.Invoke(periph);
+            return;
+        }
+
         if (data is { } s && Pill.PillFeed.ParseSnapshot(s) is { } snap)
         {
             NotificationsReceived?.Invoke(snap);

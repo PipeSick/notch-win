@@ -64,3 +64,44 @@ public sealed class HomeSectionTests
         Assert.Equal(NotchSections.Music, saved[0].Id); Assert.Equal(NotchSections.Home, saved[1].Id); Assert.False(saved[1].Enabled);
     }
 }
+
+public sealed class PeripheralsFeedTests
+{
+    private static System.Text.Json.JsonElement J(string s) => System.Text.Json.JsonDocument.Parse(s).RootElement.Clone();
+
+    [Fact]
+    public void Parses_connected_devices_clamps_and_drops_invalid_ones()
+    {
+        var l = NotchWin.Core.Pill.PillFeed.ParsePeripherals(J("""{"kind":"peripherals","items":[{"name":"Keris II","type":"mouse","percent":74,"charging":true},{"name":"X","type":"toaster","percent":300},{"type":"mouse","percent":5},{"name":"Sin porcentaje","type":"mouse"}]}"""))!;
+        Assert.Equal(2, l.Count);
+        Assert.Equal(("Keris II", "mouse", 74, true), (l[0].Name, l[0].Type, l[0].Percent, l[0].Charging));
+        Assert.Equal(("other", 100, false), (l[1].Type, l[1].Percent, l[1].Charging));
+    }
+
+    [Fact]
+    public void Other_kinds_are_not_peripherals_and_the_list_is_bounded()
+    {
+        Assert.Null(NotchWin.Core.Pill.PillFeed.ParsePeripherals(J("""{"kind":"notifications","items":[]}""")));
+        var many = "{\"kind\":\"peripherals\",\"items\":[" + string.Join(",", Enumerable.Range(0, 30).Select(i => $"{{\"name\":\"D{i}\",\"type\":\"mouse\",\"percent\":{i}}}")) + "]}";
+        Assert.Equal(NotchWin.Core.Pill.PillFeed.MaxPeripherals, NotchWin.Core.Pill.PillFeed.ParsePeripherals(J(many))!.Count);
+    }
+}
+
+public sealed class NotchEasingTests
+{
+    [Fact]
+    public void Both_curves_start_at_zero_and_land_exactly_on_one()
+    {
+        foreach (var growing in new[] { true, false }) { Assert.Equal(0, NotchWin.Core.Notch.NotchEasing.Eased(0, growing), 9); Assert.Equal(1, NotchWin.Core.Notch.NotchEasing.Eased(1, growing), 9); }
+    }
+
+    [Fact]
+    public void Opening_overshoots_a_little_but_closing_never_goes_past_the_target()
+    {
+        double maxOpen = 0, maxClose = 0;
+        for (double t = 0; t <= 1; t += 0.01) { maxOpen = Math.Max(maxOpen, NotchWin.Core.Notch.NotchEasing.Eased(t, true)); maxClose = Math.Max(maxClose, NotchWin.Core.Notch.NotchEasing.Eased(t, false)); }
+        Assert.InRange(maxOpen, 1.03, 1.12);   // rebote suave
+        Assert.True(maxClose <= 1.0000001);
+        Assert.True(NotchWin.Core.Notch.NotchEasing.DurationMs(true) > NotchWin.Core.Notch.NotchEasing.DurationMs(false));
+    }
+}

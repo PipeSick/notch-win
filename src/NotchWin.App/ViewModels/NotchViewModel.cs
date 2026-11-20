@@ -38,6 +38,9 @@ public sealed class NotchViewModel : ObservableObject
 
     public NotificationLog Notifications { get; } = new();
 
+    /// <summary>Inicio: batería de periféricos que Hatsu (la barra) ya leyó; vacío si no hay o el módulo está apagado.</summary>
+    public IReadOnlyList<NotchWin.Core.Pill.NotchPeripheral> Peripherals { get; set; } = [];
+
     public IReadOnlyList<ActiveDownload> Downloads { get; set; } = [];
 
     public IReadOnlyList<CalendarEvent> CalendarToday { get; set; } = [];
