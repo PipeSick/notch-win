@@ -25,12 +25,14 @@ public sealed class NotchSectionsTests
         var result = NotchSections.Normalize(saved);
 
         Assert.Equal(NotchSections.AllIds.Count, result.Count);
-        Assert.Equal(NotchSections.Timer, result[0].Id);
-        Assert.False(result[0].Enabled);
-        Assert.Equal(NotchSections.Music, result[1].Id);
+        Assert.Equal(NotchSections.Home, result[0].Id);   // Inicio (nueva) va primera aunque el orden guardado sea anterior
+        Assert.True(result[0].Enabled);
+        Assert.Equal(NotchSections.Timer, result[1].Id);
+        Assert.False(result[1].Enabled);
+        Assert.Equal(NotchSections.Music, result[2].Id);
         Assert.DoesNotContain(result, r => r.Id == "removed-in-a-later-version");
         // Sections the saved layout lacked come in at their default: everything on except the camera.
-        Assert.All(result.Skip(2), r => Assert.Equal(r.Id != NotchSections.Camera, r.Enabled));
+        Assert.All(result.Skip(3), r => Assert.Equal(r.Id != NotchSections.Camera, r.Enabled));
     }
 
     [Fact]

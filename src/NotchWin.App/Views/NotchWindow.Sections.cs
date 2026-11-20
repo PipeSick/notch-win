@@ -220,6 +220,7 @@ public sealed partial class NotchWindow
     private void ShowActivePane()
     {
         var empty = EnabledSections().Count == 0;
+        HomePane.Visibility = Show(!_customizing && _active == NotchSections.Home && !empty);
         MusicPane.Visibility = Show(!_customizing && _active == NotchSections.Music && !empty);
         AgentsPane.Visibility = Show(!_customizing && _active == NotchSections.Agents && !empty);
         TimerPane.Visibility = Show(!_customizing && _active == NotchSections.Timer && !empty);
@@ -233,6 +234,7 @@ public sealed partial class NotchWindow
         ActivityPane.Visibility = Show(!_customizing && _active == NotchSections.Activity && !empty);
         CapturesPane.Visibility = Show(!_customizing && _active == NotchSections.Captures && !empty);
         HistoryPane.Visibility = Show(!_customizing && _active == NotchSections.History && !empty);
+        if (HomePane.Visibility == Visibility.Visible) RebuildHome(force: true);
         if (ActivityPane.Visibility == Visibility.Visible) RebuildActivities();
         if (CapturesPane.Visibility == Visibility.Visible) RebuildCaptures();
         if (HistoryPane.Visibility == Visibility.Visible) RebuildHistory();
@@ -299,6 +301,7 @@ public sealed partial class NotchWindow
 
         UpdateTimerUi();
         UpdateSystemCards();
+        if (_expanded && HomePane.Visibility == Visibility.Visible) RebuildHome();   // solo se reconstruye si cambió algo visible
     }
 
     private void OnDataChanged()
@@ -365,6 +368,7 @@ public sealed partial class NotchWindow
 
     private void RefreshPanes()
     {
+        if (HomePane.Visibility == Visibility.Visible) RebuildHome();
         RebuildCalendar();
         RebuildDownloads();
         RebuildNotifications();

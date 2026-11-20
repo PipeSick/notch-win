@@ -73,6 +73,9 @@
     </Grid.Resources>
 
 
+        <!-- Propuesta A: resplandor con el color de la carátula, solo con la Isla abierta (se pinta en código: NotchWindow.UpdateTintVisuals). -->
+        <Rectangle x:Name="TintGlow" IsHitTestVisible="False" Visibility="Collapsed" />
+
         <!-- Collapsed pill: mini cover + title on the left; running timer and equalizer on the right. -->
         <Grid x:Name="CollapsedBar" Height="32" VerticalAlignment="Top" Background="Transparent"
               Padding="14,0" ColumnSpacing="8" Tapped="OnBarTapped">
@@ -255,6 +258,13 @@
             <Grid x:Name="TabBar" Background="{ThemeResource NW_14FFFFFF}" BorderBrush="{ThemeResource NW_1FFFFFFF}" BorderThickness="1" CornerRadius="12" Padding="3" ColumnSpacing="2" />
 
             <Grid x:Name="PaneHost" MinHeight="168">
+
+                <!-- Inicio (A+B): tablero de tarjetas; se llena en NotchWindow.Home.cs -->
+                <StackPanel x:Name="HomePane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
+                    <Grid x:Name="HomeGrid" RowSpacing="8" ColumnSpacing="8" />
+                    <TextBlock x:Name="HomeEmpty" Foreground="{ThemeResource NW_FF8E8E93}" FontSize="12.5" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,30,0,0" Visibility="Collapsed"
+                               Text="Activa módulos con el engranaje y aquí verás un resumen de cada uno." />
+                </StackPanel>
 
                 <!-- Music -->
                 <StackPanel x:Name="MusicPane" Spacing="12" VerticalAlignment="Top">

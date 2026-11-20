@@ -25,7 +25,8 @@ public class CentralSettingsTests
         Assert.Equal("C:\\x.exe", c.CustomPlayerPath);
         Assert.True(c.LyricsEnabled && c.LyricsInPill);
         Assert.Equal(45, c.PollIntervalSeconds);
-        Assert.Equal("timer", c.Sections[0].Id);
+        Assert.Equal("home", c.Sections[0].Id);   // Inicio (nueva) va primera
+        Assert.Equal("timer", c.Sections[1].Id);
         Assert.DoesNotContain(c.Sections, s => s.Id == "ghost");
         Assert.Equal(NotchSections.AllIds.Count, c.Sections.Count);
     }

@@ -11,6 +11,8 @@ public sealed class NotchSectionConfig
 /// <summary>The known notch sections and the default order/visibility, plus merging of a saved layout with them.</summary>
 public static class NotchSections
 {
+    /// <summary>Inicio (A+B): tablero con una tarjeta por módulo; cada tarjeta abre su módulo. Es la primera pestaña, también para quien ya tenía un orden guardado.</summary>
+    public const string Home = "home";
     public const string Music = "music";
     /// <summary>Removed in 2.0.10 (the AI-agent monitor): kept only so old code paths compile; it is not in <see cref="AllIds"/>, so a saved layout loses it.</summary>
     public const string Agents = "agents";
@@ -30,7 +32,7 @@ public static class NotchSections
     /// <summary>Default order as in the approved WinMac 2.0 mockup (En curso · Capturas · Portapapeles · Descargas · Historial), then the rest. The music tab
     /// (with the synced lyrics) stays on. Someone with a saved order keeps it; new sections are appended (<see cref="Normalize"/>).</summary>
     public static IReadOnlyList<string> AllIds { get; } =
-        [Activity, Captures, Clipboard, Downloads, History, Music, Timer, Calendar, Notifications, Shelf, Camera, Resources];
+        [Home, Activity, Captures, Clipboard, Downloads, History, Music, Timer, Calendar, Notifications, Shelf, Camera, Resources];
 
     /// <summary>The camera stays off until the user turns it on, since it opens the webcam.</summary>
     private static bool DefaultEnabled(string id) => id != Camera;
@@ -55,6 +57,9 @@ public static class NotchSections
                 result.Add(new NotchSectionConfig { Id = item.Id, Enabled = item.Enabled });
             }
         }
+
+        // Inicio es nueva en esta versión: quien ya tenía un orden guardado la recibe PRIMERA (si no, quedaría escondida en «Más»).
+        if (!seen.Contains(Home)) { result.Insert(0, new NotchSectionConfig { Id = Home, Enabled = true }); seen.Add(Home); }
 
         foreach (var id in AllIds.Where(id => !seen.Contains(id)))
         {

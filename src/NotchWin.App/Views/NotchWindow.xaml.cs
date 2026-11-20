@@ -285,7 +285,8 @@ public sealed partial class NotchWindow : Window
         GlassRim.CornerRadius = new CornerRadius(0, 0, r, r);
         GlassRim.Margin = new Thickness(s, -1, s, 0);   // the body sits between the shoulders; -1 hides the rim's top edge against the screen edge
         BarShade.Margin = new Thickness(s + r / 2, 0, s + r / 2, 0);
-        GlassRim.BorderBrush = barLook ? new SolidColorBrush(Pal.C(0x1F, 0xFF, 0xFF, 0xFF)) : _rimBrush;
+        GlassRim.BorderBrush = TintRim(barLook) ?? (barLook ? new SolidColorBrush(Pal.C(0x1F, 0xFF, 0xFF, 0xFF)) : _rimBrush);
+        UpdateTintVisuals();
     }
 
     private Brush? _darkRim;
@@ -443,6 +444,7 @@ public sealed partial class NotchWindow : Window
         SetArt(ArtBorder, art, ArtPlaceholder);
         SetArt(MiniArt, art, null);
         SetArt(ToastArt, art, null);
+        await UpdateTintAsync(info?.AlbumArt is { Length: > 0 } tintBytes ? tintBytes : null);   // propuesta A: borde y barras con el color de la carátula
 
         if (trackChanged && !_expanded)
         {

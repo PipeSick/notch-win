@@ -82,7 +82,7 @@ public sealed partial class NotchWindow
     private void UpdateNowHeader()
     {
         // WM-007: the Música tab already shows cover, title, progress, controls and lyrics: the compact header is not repeated above it
-        if (!_expanded || (_active == NotchSections.Music && !_customizing)) { NowHeader.Visibility = Visibility.Collapsed; return; }
+        if (!_expanded || ((_active == NotchSections.Music || (_active == NotchSections.Home && SectionOn(NotchSections.Music))) && !_customizing)) { NowHeader.Visibility = Visibility.Collapsed; return; }
         var test = _info is null ? _viewModel.Activities.Current.FirstOrDefault(a => a.Kind == ActivityKind.Media && a.IsTest) : null;
         if (_info is null && test is null)
         {
