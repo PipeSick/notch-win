@@ -105,3 +105,14 @@ public sealed class NotchEasingTests
         Assert.True(NotchWin.Core.Notch.NotchEasing.DurationMs(true) > NotchWin.Core.Notch.NotchEasing.DurationMs(false));
     }
 }
+
+public sealed class NotchResumeTests
+{
+    [Fact]
+    public void A_long_gap_between_guard_ticks_means_the_pc_was_suspended_and_a_normal_one_does_not()
+    {
+        Assert.False(NotchWin.Core.Notch.NotchPlacement.LooksLikeResume(TimeSpan.FromMilliseconds(NotchWin.Core.Notch.NotchPlacement.GuardIntervalMs)));
+        Assert.False(NotchWin.Core.Notch.NotchPlacement.LooksLikeResume(TimeSpan.FromSeconds(8)));   // la interfaz ocupada o una pausa corta no es una suspensión
+        Assert.True(NotchWin.Core.Notch.NotchPlacement.LooksLikeResume(TimeSpan.FromMinutes(20)));
+    }
+}

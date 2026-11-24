@@ -32,6 +32,12 @@ public static class NotchPlacement
     /// </summary>
     public const int GuardIntervalMs = 3000;
 
+    /// <summary>
+    /// El guardián corre cada <see cref="GuardIntervalMs"/>; si pasó mucho más entre dos vueltas, el equipo estuvo suspendido (los temporizadores se detienen). Al reanudar, Windows
+    /// tarda en acomodar pantallas y el fondo translúcido de cada Isla puede quedar sin pintar: hay que recolocar y reconectar el cristal.
+    /// </summary>
+    public static bool LooksLikeResume(TimeSpan sinceLastGuardTick) => sinceLastGuardTick > TimeSpan.FromMilliseconds(Math.Max(15000, GuardIntervalMs * 5));
+
     /// <summary>A notch needs repairing when the layout is not settled, or its window is not where it was put (someone else moved or resized it).</summary>
     public static bool NeedsRepair(bool settled, PixelRect expected, PixelRect actual) =>
         !settled || (!expected.IsEmpty && expected != actual);

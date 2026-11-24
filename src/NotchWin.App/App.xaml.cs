@@ -198,8 +198,34 @@ public partial class App : Application
         _guardTimer.Start();
     }
 
+    private DateTime _lastGuardUtc = DateTime.UtcNow;
+
+    /// <summary>El equipo reanudó de la suspensión (lo delata un hueco grande entre dos vueltas del guardián): recolocar y reconectar el cristal ahora y un par de veces más.</summary>
+    private void OnResumed()
+    {
+        try
+        {
+            ResyncDisplays();
+            foreach (var (window, controller) in _notches.Values.ToList()) { window.RefreshAfterResume(); controller.Reassert(); }
+            ScheduleDisplayResync();
+            if (_uiQueue is null) return;
+            foreach (var delay in new[] { 3, 10 })
+            {
+                var t = _uiQueue.CreateTimer(); t.Interval = TimeSpan.FromSeconds(delay); t.IsRepeating = false;
+                t.Tick += (_, _) => { t.Stop(); try { foreach (var (w, c) in _notches.Values.ToList()) { w.RefreshAfterResume(); c.Reassert(); } } catch (Exception) { } };
+                t.Start();
+            }
+        }
+        catch (Exception)
+        {
+            // un diseño de pantallas a medias puede lanzar; el guardián lo vuelve a intentar
+        }
+    }
+
     private void GuardDisplays()
     {
+        var nowUtc = DateTime.UtcNow; var gap = nowUtc - _lastGuardUtc; _lastGuardUtc = nowUtc;
+        if (NotchPlacement.LooksLikeResume(gap)) OnResumed();
         try
         {
             bool settled = DisplaysSettled(), resynced = false;

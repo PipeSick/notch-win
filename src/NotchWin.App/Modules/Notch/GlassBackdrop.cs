@@ -13,6 +13,7 @@ namespace NotchWin.App.Modules.Notch;
 internal sealed class GlassBackdrop : SystemBackdrop
 {
     private DesktopAcrylicController? _controller;
+    private ICompositionSupportsSystemBackdrop? _target;
     private SystemBackdropConfiguration? _configuration;
     private double _level = 0.6;
     private bool _matchBar;
@@ -55,6 +56,7 @@ internal sealed class GlassBackdrop : SystemBackdrop
     {
         base.OnTargetConnected(connectedTarget, xamlRoot);
         _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = _light ? SystemBackdropTheme.Light : SystemBackdropTheme.Dark };
+        _target = connectedTarget;
         _controller = new DesktopAcrylicController();
         _controller.AddSystemBackdropTarget(connectedTarget);
         _controller.SetSystemBackdropConfiguration(_configuration);
@@ -85,6 +87,29 @@ internal sealed class GlassBackdrop : SystemBackdrop
         _controller?.Dispose();
         _controller = null;
         _configuration = null;
+        _target = null;
+    }
+
+    /// <summary>
+    /// Tras suspender, el acrílico de una Isla (sobre todo en el segundo monitor) puede quedar sin pintar o plano. Se recrea el controlador sobre el mismo destino;
+    /// si algo falla se conserva lo que había (la Isla sigue viva, igual que en <see cref="OnDefaultSystemBackdropConfigurationChanged"/>).
+    /// </summary>
+    public void Reconnect()
+    {
+        if (_target is null || _configuration is null) return;
+        try
+        {
+            _controller?.RemoveSystemBackdropTarget(_target);
+            _controller?.Dispose();
+            _controller = new DesktopAcrylicController();
+            _controller.AddSystemBackdropTarget(_target);
+            _controller.SetSystemBackdropConfiguration(_configuration);
+            Apply();
+        }
+        catch (Exception ex) when (ex is ArgumentException or System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            // keep the Island alive
+        }
     }
 
     private void Apply()
