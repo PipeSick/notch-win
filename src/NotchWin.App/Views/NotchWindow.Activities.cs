@@ -243,44 +243,77 @@ public sealed partial class NotchWindow
     };
 
     // ───────────────────────────── «Capturas»
+    private CaptureLibrary.Sort _capSort = CaptureLibrary.Sort.Newest;
+    private string _capFilter = "";
+    private TextBox? _capSearch;
+
     private void RebuildCaptures()
     {
-        var files = CaptureLibrary.List(_viewModel.CaptureFolder, 6);
-        CapturesGrid.Children.Clear();
-        CapturesEmpty.Visibility = files.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        // V3: galería con miniaturas reales, orden y búsqueda por nombre (CaptureLibrary.Query, el mismo motor de siempre), vista previa ampliada y acciones. Nada de editor completo aquí.
+        var files = CaptureLibrary.Query(_viewModel.CaptureFolder, _capFilter, _capSort, 9);
+        var any = files.Count > 0 || !string.IsNullOrEmpty(_capFilter);
+        CapturesTop.Children.Clear(); CapturesGrid.Children.Clear(); CaptureActions.Children.Clear();
+        CapturesEmpty.Visibility = Visibility.Collapsed; CapturesCaption.Text = _capSort == CaptureLibrary.Sort.Newest ? "RECIENTES" : _capSort == CaptureLibrary.Sort.Oldest ? "MÁS ANTIGUAS" : _capSort == CaptureLibrary.Sort.Name ? "POR NOMBRE" : "POR TAMAÑO";
+        if (!any)
+        {
+            CapturesTop.Children.Add(V3.V3Ui.EmptyState("\uE722", "Todavía no hay capturas", "Las capturas de Windows (Win+Impr Pant) y las de Hatsu aparecerán aquí."));
+            CapturePreviewHost.Visibility = Visibility.Collapsed; CaptureActions.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var order = new[] { "Recientes", "Antiguas", "Nombre", "Tamaño" };
+        CapturesTop.Children.Add(V3.V3Ui.SegmentedControl(order, (int)_capSort, i => { _capSort = (CaptureLibrary.Sort)i; RebuildCaptures(); RelayoutIfExpanded(); }));
+        if (_capSearch is null)
+        {   // el cuadro se crea UNA vez: reconstruir la vista al teclear le quitaría el foco en cada letra
+            _capSearch = new TextBox { PlaceholderText = "Buscar por nombre", CornerRadius = new CornerRadius(10) };
+            _capSearch.TextChanged += (_, _) => { if (_capSearch.Text == _capFilter) return; _capFilter = _capSearch.Text; RebuildCaptures(); RelayoutIfExpanded(); };
+        }
+
+        if (_capSearch.Text != _capFilter) _capSearch.Text = _capFilter;
+        CapturesTop.Children.Add(_capSearch);
+
         if (_selectedCapture is not null && !files.Any(f => f.Path == _selectedCapture)) _selectedCapture = null;
+        if (files.Count == 0) CapturesTop.Children.Add(V3.V3Ui.EmptyState("\uE71C", "Ninguna captura coincide", "Prueba con otro nombre."));
         foreach (var f in files)
         {
             bool sel = f.Path == _selectedCapture;
             var tile = new StackPanel { Spacing = 4, Margin = new Thickness(4) };
             var img = new Border
             {
-                Width = 146, Height = 86, CornerRadius = new CornerRadius(10), Background = Thumbnail(f.Path, 292),
-                BorderThickness = new Thickness(sel ? 2 : 1), BorderBrush = new SolidColorBrush(sel ? Pal.C(255, 0x0A, 0x84, 0xFF) : Pal.C(0x26, 255, 255, 255)),
+                Width = 146, Height = 82, CornerRadius = new CornerRadius(12), Background = Thumbnail(f.Path, 292),
+                BorderThickness = new Thickness(sel ? 2 : 1), BorderBrush = new SolidColorBrush(sel ? V3.V3Ui.AccentText : Pal.C(0x26, 255, 255, 255)),
             };
             tile.Children.Add(img);
-            tile.Children.Add(new TextBlock { Text = CaptureLibrary.When(f.ModifiedUtc.ToLocalTime(), DateTime.Now), FontSize = 11, Foreground = new SolidColorBrush(Pal.C(255, 0xC7, 0xC7, 0xCC)), HorizontalAlignment = HorizontalAlignment.Center });
+            tile.Children.Add(new TextBlock { Text = CaptureLibrary.When(f.ModifiedUtc.ToLocalTime(), DateTime.Now), FontSize = 11, Foreground = new SolidColorBrush(sel ? V3.V3Ui.AccentText : CardUi.Dim), TextTrimming = TextTrimming.CharacterEllipsis });
             var path = f.Path;
             tile.Tapped += (_, _) => { _selectedCapture = _selectedCapture == path ? null : path; RebuildCaptures(); RelayoutIfExpanded(); };
-            ToolTipService.SetToolTip(tile, f.Name);
+            ToolTipService.SetToolTip(tile, f.Name); Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tile, (sel ? "Elegida: " : "") + f.Name);
             CapturesGrid.Children.Add(tile);
         }
 
         CapturesAll.Visibility = _viewModel.OpenGallery is null ? Visibility.Collapsed : Visibility.Visible;
         if (!string.IsNullOrEmpty(SelfTestPath)) DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, SelfTestLogTabs);
-        CaptureActions.Children.Clear();
         CaptureActions.Visibility = _selectedCapture is null ? Visibility.Collapsed : Visibility.Visible;
+        CapturePreviewHost.Visibility = _selectedCapture is null ? Visibility.Collapsed : Visibility.Visible;
         if (_selectedCapture is not { } chosen) return;
+
+        // vista previa ampliada: decodificada al tamaño en que se dibuja, nunca la imagen completa en memoria
+        CapturePreviewHost.Child = new Border { Height = 150, CornerRadius = new CornerRadius(14), Background = Thumbnail(chosen, 700), BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Pal.C(0x26, 255, 255, 255)) };
         var act = new Activity("gallery:" + chosen, ActivityKind.Capture, Path.GetFileName(chosen)) { Path = chosen, State = ActivityState.Completed };
-        var galleryActions = new List<(ActivityAction, string)> { (ActivityAction.Open, "Abrir") };
-        if (_viewModel.EditCapture is not null) galleryActions.Add((ActivityAction.Edit, "Editar"));
-        galleryActions.AddRange([(ActivityAction.Copy, "Copiar"), (ActivityAction.ShowInFolder, "Mostrar en carpeta"), (ActivityAction.Delete, "Eliminar")]);
-        foreach (var (flag, text) in galleryActions)
+        var galleryActions = new List<(ActivityAction, string, bool)> { (ActivityAction.Open, "Abrir", false) };
+        if (_viewModel.EditCapture is not null) galleryActions.Add((ActivityAction.Edit, "Editar", false));
+        galleryActions.AddRange([(ActivityAction.Copy, "Copiar", false), (ActivityAction.ShowInFolder, "Abrir ubicación", false), (ActivityAction.Delete, "Eliminar", true)]);
+        foreach (var (flag, text, danger) in galleryActions)
         {
-            var b = new Button { Content = text, FontSize = 12, Padding = new Thickness(12, 4, 12, 5), CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(Pal.C(0x26, 255, 255, 255)), BorderThickness = new Thickness(0) };
-            b.Click += async (_, _) => { await RunAction(act, flag); if (flag == ActivityAction.Delete) { _selectedCapture = null; RebuildCaptures(); RelayoutIfExpanded(); } };
+            var action = flag; var b = V3.V3Ui.TextButton(text, () => _ = RunGalleryAction(act, action), danger ? V3.ActionStyle.Danger : V3.ActionStyle.Secondary);
             CaptureActions.Children.Add(b);
         }
+    }
+
+    private async Task RunGalleryAction(Activity act, ActivityAction flag)
+    {
+        await RunAction(act, flag);
+        if (flag == ActivityAction.Delete) { _selectedCapture = null; RebuildCaptures(); RelayoutIfExpanded(); }
     }
 
     /// <summary>WinMac asked (capture, editor, recording): close the open Island so it never covers them or takes their clicks.</summary>
