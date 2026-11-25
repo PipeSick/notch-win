@@ -540,12 +540,13 @@ public partial class App : Application
         var path = _settings.CalendarIcsPath;
         _viewModel.CalendarConfigured = !string.IsNullOrWhiteSpace(path);
 
-        var today = new List<CalendarEvent>();
+        var today = new List<CalendarEvent>(); var all = new List<CalendarEvent>();
         if (_viewModel.CalendarConfigured)
         {
             try
             {
-                today = IcsParser.UpcomingToday(IcsParser.Parse(File.ReadAllText(path!)), DateTimeOffset.Now);
+                all = IcsParser.Parse(File.ReadAllText(path!));
+                today = IcsParser.UpcomingToday(all, DateTimeOffset.Now);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -553,7 +554,14 @@ public partial class App : Application
             }
         }
 
-        _viewModel.CalendarToday = today;
+        _viewModel.CalendarToday = today; _viewModel.CalendarAll = all;
+        if (_viewModel.LocalCalendar is null)
+        {   // V3: calendario local editable (solo en este equipo; nada se sincroniza)
+            var local = new NotchWin.Core.Calendar.LocalCalendarStore(Path.Combine(Path.GetDirectoryName(_settingsStore.FilePath) ?? Environment.CurrentDirectory, "local-calendar.json"));
+            local.Changed += () => _uiQueue?.TryEnqueue(() => _viewModel?.RaiseDataChanged());
+            _viewModel.LocalCalendar = local;
+        }
+
         _viewModel.RaiseDataChanged();
     }
 

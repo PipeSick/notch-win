@@ -380,15 +380,8 @@
                 <!-- Timer (V3): lo arma NotchWindow.TimerV3 (anillo, presets y botones según el estado real) -->
                 <StackPanel x:Name="TimerPane" Spacing="12" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Top" />
 
-                <!-- Calendar -->
-                <StackPanel x:Name="CalendarPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
-                    <TextBlock x:Name="CalendarHeader" Foreground="{ThemeResource NW_FF636366}" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
-                    <TextBlock x:Name="CalendarEmpty" Foreground="{ThemeResource NW_FF636366}" FontSize="12" HorizontalAlignment="Center"
-                               TextAlignment="Center" TextWrapping="Wrap" Margin="0,34,0,0" />
-                    <ScrollViewer MaxHeight="190" VerticalScrollBarVisibility="Hidden">
-                        <StackPanel x:Name="CalendarList" Spacing="8" />
-                    </ScrollViewer>
-                </StackPanel>
+                <!-- Calendar (V3): mes + agenda; lo arma NotchWindow.CalendarV3 -->
+                <StackPanel x:Name="CalendarPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top" />
 
                 <!-- Downloads -->
                 <StackPanel x:Name="DownloadsPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">

@@ -60,6 +60,12 @@ public sealed class NotchViewModel : ObservableObject
 
     public IReadOnlyList<CalendarEvent> CalendarToday { get; set; } = [];
 
+    /// <summary>V3: todos los eventos del .ics configurado (solo lectura), para el calendario mensual y la agenda de cualquier día.</summary>
+    public IReadOnlyList<CalendarEvent> CalendarAll { get; set; } = [];
+
+    /// <summary>V3: calendario LOCAL de Hatsu (la única fuente editable); null hasta que App lo crea.</summary>
+    public NotchWin.Core.Calendar.LocalCalendarStore? LocalCalendar { get; set; }
+
     /// <summary>False until the user points Settings at an .ics file, so the tab can say how to set it up.</summary>
     public bool CalendarConfigured { get; set; }
 

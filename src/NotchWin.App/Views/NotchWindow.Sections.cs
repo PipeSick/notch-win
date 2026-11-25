@@ -349,51 +349,7 @@ public sealed partial class NotchWindow
         RebuildShelf();
     }
 
-    private void RebuildCalendar()
-    {
-        CalendarList.Children.Clear();
-        CalendarHeader.Text = $"HOY · {DateTime.Now:dddd d}".ToUpperInvariant();
-
-        if (!_viewModel.CalendarConfigured)
-        {
-            CalendarEmpty.Text = "Elige un archivo .ics en Ajustes para ver tus eventos aquí.";
-            CalendarEmpty.Visibility = Visibility.Visible;
-            return;
-        }
-
-        CalendarEmpty.Text = "Nada más por hoy";
-        CalendarEmpty.Visibility = _viewModel.CalendarToday.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-
-        var palette = new[] { 0xFF9F0A, 0x0A84FF, 0x30D158, 0xBF5AF2, 0xFF375F };
-        var i = 0;
-        foreach (var ev in _viewModel.CalendarToday)
-        {
-            var color = palette[i++ % palette.Length];
-            var accent = Pal.C(255, (byte)(color >> 16), (byte)(color >> 8), (byte)color);
-
-            var row = new Grid { Background = new SolidColorBrush(Card), CornerRadius = new CornerRadius(12), Padding = new Thickness(8, 9, 12, 9), ColumnSpacing = 10 };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-            row.Children.Add(new Border { Background = new SolidColorBrush(accent), CornerRadius = new CornerRadius(2) });
-
-            var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(Label(ev.Title, 13, Pal.Fg, bold: true, trim: true));
-            text.Children.Add(Label(ev.AllDay ? "Todo el día" : $"{ev.Start:HH:mm} – {ev.End:HH:mm}", 11, Dim));
-            Grid.SetColumn(text, 1);
-            row.Children.Add(text);
-
-            var until = ev.Start - DateTimeOffset.Now;
-            var when = ev.AllDay ? string.Empty : until <= TimeSpan.Zero ? "ahora" : $"en {FormatSpan(until)}";
-            var whenText = Label(when, 11, Pal.C(255, 0xFF, 0xD6, 0x0A));
-            whenText.VerticalAlignment = VerticalAlignment.Center;
-            Grid.SetColumn(whenText, 2);
-            row.Children.Add(whenText);
-
-            CalendarList.Children.Add(row);
-        }
-    }
+    private void RebuildCalendar() => RebuildCalendarV3();
 
     private void RebuildDownloads()
     {
