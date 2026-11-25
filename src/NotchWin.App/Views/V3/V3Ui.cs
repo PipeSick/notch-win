@@ -173,4 +173,32 @@ internal static class V3Ui
     };
 
     public static string ClipGlyph(ClipKind k) => k switch { ClipKind.Link => "", ClipKind.Code => "", ClipKind.Path => "", ClipKind.Image => "", _ => "" };
+
+    /// <summary>Anillo de progreso con el tiempo (u otro texto) al centro. <paramref name="fraction"/> 0–1 es lo que QUEDA o lo que lleva, según quien lo use.</summary>
+    public static Grid Ring(double fraction, double size, string centerText, string? caption = null)
+    {
+        var g = new Grid { Width = size, Height = size, HorizontalAlignment = HorizontalAlignment.Center };
+        g.Children.Add(new ProgressRing { IsIndeterminate = false, Minimum = 0, Maximum = 100, Value = Math.Clamp(fraction, 0, 1) * 100, Width = size, Height = size, Foreground = new SolidColorBrush(Col(K.GradientFrom)), Background = Br(K.Track) });
+        var c = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
+        c.Children.Add(new TextBlock { Text = centerText, FontSize = size * 0.22, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Pal.Fg), HorizontalAlignment = HorizontalAlignment.Center });
+        if (!string.IsNullOrEmpty(caption)) c.Children.Add(new TextBlock { Text = caption, FontSize = 11, Foreground = new SolidColorBrush(Dim), HorizontalAlignment = HorizontalAlignment.Center });
+        g.Children.Add(c);
+        return g;
+    }
+
+    /// <summary>Acceso rápido: ficha con icono y nombre debajo. Accesible por teclado y con tooltip.</summary>
+    public static Button QuickTile(string glyph, string label, Action onClick)
+    {
+        var s = new StackPanel { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
+        s.Children.Add(CardUi.Icon(glyph, 18, Pal.Fg));
+        s.Children.Add(new TextBlock { Text = label, FontSize = 11, Foreground = new SolidColorBrush(Pal.Fg), TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, MaxLines = 2, TextTrimming = TextTrimming.CharacterEllipsis });
+        var b = new Button { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, Padding = new Thickness(6, 10, 6, 9), CornerRadius = new CornerRadius(V3Palette.RadiusControl), BorderThickness = new Thickness(0), UseSystemFocusVisuals = true, Content = s };
+        Style(b, ActionStyle.Secondary, Colors.White);
+        ToolTipService.SetToolTip(b, label); Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(b, label);
+        b.Click += (_, _) => onClick();
+        return b;
+    }
+
+    /// <summary>mm:ss (o h:mm:ss) para tiempos de reproducción y de temporizador.</summary>
+    public static string Clock(TimeSpan t) => t.TotalHours >= 1 ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}" : $"{(int)t.TotalMinutes}:{t.Seconds:00}";
 }

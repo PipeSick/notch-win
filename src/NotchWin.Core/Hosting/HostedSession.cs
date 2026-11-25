@@ -129,8 +129,25 @@ public sealed class HostedSession : IAsyncDisposable
     /// <summary>Inicio: batería de los periféricos que la barra ya leyó (tarjeta «Periféricos»). Raised on a worker thread.</summary>
     public event Action<IReadOnlyList<Pill.NotchPeripheral>>? PeripheralsReceived;
 
+    /// <summary>V3: qué accesos rápidos de Hatsu están disponibles ahora (la Barra lo declara según sus módulos). Raised on a worker thread.</summary>
+    public event Action<IReadOnlyList<string>>? QuickAvailabilityReceived;
+
+    /// <summary>V3: pide a Hatsu ejecutar un acceso rápido de la LISTA CERRADA (<see cref="Notch.V3.QuickActions"/>); un identificador que no esté en ella no sale de aquí.</summary>
+    public bool SendQuick(string id)
+    {
+        if (Notch.V3.QuickActions.ById(id) is not { LocalOnly: false }) return false;
+        _link.Event(Notch.V3.QuickActions.Topic, new { id });
+        return true;
+    }
+
     private void OnFeed(JsonElement? data)
     {
+        if (data is { } q && Notch.V3.QuickActions.ParseAvailable(q) is { } quick)
+        {
+            QuickAvailabilityReceived?.Invoke(quick);
+            return;
+        }
+
         if (data is { } p && Pill.PillFeed.ParsePeripherals(p) is { } periph)
         {
             PeripheralsReceived?.Invoke(periph);

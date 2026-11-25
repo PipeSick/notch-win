@@ -61,6 +61,7 @@ public sealed partial class NotchWindow
             return;
         }
 
+        _viewModel.Inbox.Observe(_viewModel.Notifications.Items);   // V3: lo que sale del centro de Windows pasa al historial de la sesión
         RebuildTabs();
         RefreshPanes();
         RelayoutIfExpanded();
@@ -236,7 +237,7 @@ public sealed partial class NotchWindow
         ActivityPane.Visibility = Show(!_customizing && _active == NotchSections.Activity && !empty);
         CapturesPane.Visibility = Show(!_customizing && _active == NotchSections.Captures && !empty);
         HistoryPane.Visibility = Show(!_customizing && _active == NotchSections.History && !empty);
-        if (HomePane.Visibility == Visibility.Visible) { RebuildHome(force: true); AskPeripheralsIfDue(); }
+        if (HomePane.Visibility == Visibility.Visible) RebuildHome(force: true);
         if (ActivityPane.Visibility == Visibility.Visible) RebuildActivities();
         if (CapturesPane.Visibility == Visibility.Visible) RebuildCaptures();
         if (HistoryPane.Visibility == Visibility.Visible) RebuildHistory();

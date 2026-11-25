@@ -38,6 +38,18 @@ public sealed class NotchViewModel : ObservableObject
 
     public NotificationLog Notifications { get; } = new();
 
+    /// <summary>V3: estado LOCAL de «visto» e historial de la sesión de las notificaciones (Windows no informa qué leíste).</summary>
+    public NotchWin.Core.Notch.V3.NotificationInbox Inbox { get; } = new();
+
+    /// <summary>V3: descargas ADMINISTRADAS por Hatsu (con total, pausa y cancelación reales); null si aún no se creó el gestor.</summary>
+    public NotchWin.Core.Downloads.DownloadManager? Managed { get; set; }
+
+    /// <summary>V3: accesos rápidos de Hatsu que la Barra declaró disponibles (lista cerrada de <see cref="NotchWin.Core.Notch.V3.QuickActions"/>); vacío fuera de Hatsu.</summary>
+    public IReadOnlyList<string> QuickAvailable { get; set; } = [];
+
+    /// <summary>V3: ejecuta un acceso rápido de Hatsu; null fuera de Hatsu.</summary>
+    public Func<string, bool>? RunQuick { get; set; }
+
     /// <summary>Inicio: batería de periféricos que Hatsu (la barra) ya leyó; vacío si no hay o el módulo está apagado.</summary>
     public IReadOnlyList<NotchWin.Core.Pill.NotchPeripheral> Peripherals { get; set; } = [];
 

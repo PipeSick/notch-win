@@ -86,6 +86,7 @@ public partial class App : Application
         {
             Sections = NotchSections.Normalize(_settings.NotchSections),
             PersistSections = PersistSections,
+            RunQuick = id => _hosted?.SendQuick(id) ?? false,
             RequestPeripheralsRefresh = () => { try { _hosted?.RequestPeripheralsRefresh(); } catch (Exception) { } },   // Inicio pide periféricos frescos a la barra (el enlace se crea antes; se lee al llamar)
             GlassLevel = _settings.GlassLevel,
             PersistGlass = PersistGlass,
@@ -487,6 +488,13 @@ public partial class App : Application
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads")
             : _settings.DownloadsFolder;
         _downloads = new DownloadTracker(folder);
+        if (_viewModel.Managed is null)
+        {   // V3: descargas administradas por Hatsu (solo cuando el usuario lo pide). Se crea una vez: recrearlo al cambiar ajustes cortaría las que estén en curso.
+            var managed = new NotchWin.Core.Downloads.DownloadManager(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }, folder);
+            managed.Changed += () => _uiQueue?.TryEnqueue(() => _viewModel?.RaiseDataChanged());
+            _viewModel.Managed = managed;
+        }
+
         ReloadCalendar();
     }
 
@@ -576,6 +584,8 @@ public partial class App : Application
         _hosted.PillReceived += item => _uiQueue?.TryEnqueue(() => _viewModel?.PostPill(item));
         // WM-025: what Windows' notification centre holds (read by WinMac's bar) fills the Notifications tab
         _hosted.NotificationsReceived += list => _uiQueue?.TryEnqueue(() => _viewModel?.Notifications.SetWindows(list));
+        // V3: accesos rápidos de Hatsu que la Barra declara disponibles
+        _hosted.QuickAvailabilityReceived += list => _uiQueue?.TryEnqueue(() => { if (_viewModel is null) return; _viewModel.QuickAvailable = list; _viewModel.RaiseDataChanged(); });
         // Inicio: batería de periféricos (leída por la barra) para la tarjeta del tablero
         _hosted.PeripheralsReceived += list => _uiQueue?.TryEnqueue(() => { if (_viewModel is null) return; _viewModel.Peripherals = list; _viewModel.RaiseDataChanged(); });
         // WinMac 2.0: internal activity API (only WinMac's modules reach the pipe)
