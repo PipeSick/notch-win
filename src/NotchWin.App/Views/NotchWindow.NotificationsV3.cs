@@ -18,6 +18,7 @@ public sealed partial class NotchWindow
 {
     private NotificationFilter _notifFilter = NotificationFilter.All;
     private bool _notifHistory;
+    private string? _openNotif;   // clave de la notificación abierta en detalle (también la fija OpenNotificationFromPill)
 
     private void RebuildNotificationsV3()
     {
