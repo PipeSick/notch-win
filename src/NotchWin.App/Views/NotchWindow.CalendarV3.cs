@@ -33,7 +33,7 @@ public sealed partial class NotchWindow
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(236) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         root.Children.Add(CalendarMonthView(entries, today));
-        var agenda = _calAdding ? CalendarAddForm() : CalendarAgendaView(entries, today); Grid.SetColumn(agenda, 1); root.Children.Add(agenda);
+        var agenda = (FrameworkElement)(_calAdding ? CalendarAddForm() : CalendarAgendaView(entries, today)); Grid.SetColumn(agenda, 1); root.Children.Add(agenda);
         CalendarPane.Children.Add(root);
     }
 
