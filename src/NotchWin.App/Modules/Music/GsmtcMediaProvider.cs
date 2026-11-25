@@ -67,6 +67,42 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
 
     public Task SeekAsync(TimeSpan position) => TransportAsync(s => s.TryChangePlaybackPositionAsync(position.Ticks));
 
+    public Task SetShuffleAsync(bool active) => TransportAsync(s => s.TryChangeShuffleActiveAsync(active));
+
+    public Task SetRepeatAsync(RepeatMode mode) => TransportAsync(s => s.TryChangeAutoRepeatModeAsync(mode switch
+    {
+        RepeatMode.Track => Windows.Media.MediaPlaybackAutoRepeatMode.Track,
+        RepeatMode.List => Windows.Media.MediaPlaybackAutoRepeatMode.List,
+        _ => Windows.Media.MediaPlaybackAutoRepeatMode.None,
+    }));
+
+    /// <summary>
+    /// V3: what THIS session really lets us do and its extra data. Windows reports it per session: shuffle and repeat exist only if the player enables them; there is no
+    /// queue and no «favorite» in this API (those need a provider that talks to the player's own service).
+    /// </summary>
+    private static MediaExtras BuildExtras(GlobalSystemMediaTransportControlsSessionPlaybackInfo playback, GlobalSystemMediaTransportControlsSessionMediaProperties props)
+    {
+        var c = playback.Controls; var caps = MediaCapabilities.None;
+        if (c.IsPlayPauseToggleEnabled || c.IsPlayEnabled || c.IsPauseEnabled) caps |= MediaCapabilities.PlayPause;
+        if (c.IsNextEnabled) caps |= MediaCapabilities.Next;
+        if (c.IsPreviousEnabled) caps |= MediaCapabilities.Previous;
+        if (c.IsPlaybackPositionEnabled) caps |= MediaCapabilities.Seek;
+        if (c.IsShuffleEnabled) caps |= MediaCapabilities.Shuffle;
+        if (c.IsRepeatEnabled) caps |= MediaCapabilities.Repeat;
+        RepeatMode? repeat = playback.AutoRepeatMode switch
+        {
+            Windows.Media.MediaPlaybackAutoRepeatMode.Track => RepeatMode.Track,
+            Windows.Media.MediaPlaybackAutoRepeatMode.List => RepeatMode.List,
+            Windows.Media.MediaPlaybackAutoRepeatMode.None => RepeatMode.Off,
+            _ => null,
+        };
+        return new MediaExtras(caps, playback.IsShuffleActive, repeat,
+            string.IsNullOrWhiteSpace(props.AlbumArtist) ? null : props.AlbumArtist,
+            props.TrackNumber is > 0 ? props.TrackNumber : null,
+            props.AlbumTrackCount is > 0 ? props.AlbumTrackCount : null,
+            props.Genres is { Count: > 0 } g ? g.ToList() : null);
+    }
+
     /// <summary>
     /// It7: a transport command is a REQUEST, not a fact: the UI never assumes it worked. Whatever the answer (accepted, refused, or the player closed meanwhile),
     /// the real state is read again a moment later (players take a while to change, and some never raise the event), so every view ends up showing what the player does.
@@ -198,7 +234,8 @@ public sealed class GsmtcMediaProvider : INowPlayingSource, IMediaControls, IDis
             Duration: duration,
             SourceAppName: session.SourceAppUserModelId ?? string.Empty,
             AlbumArt: art,
-            Album: string.IsNullOrWhiteSpace(props.AlbumTitle) ? null : props.AlbumTitle);
+            Album: string.IsNullOrWhiteSpace(props.AlbumTitle) ? null : props.AlbumTitle,
+            Extras: BuildExtras(playback, props));
     }
 
     private static async Task<byte[]?> ReadThumbnailAsync(IRandomAccessStreamReference thumbnail)
