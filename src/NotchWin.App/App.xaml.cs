@@ -673,6 +673,12 @@ public partial class App : Application
             ApplyClipboardSetting();
         }
 
+        if (changes.HasFlag(CentralChanges.Accent))
+        {
+            NotchWin.Core.Notch.V3.V3Palette.AccentName = next.AccentColor;
+            foreach (var (window, _) in _notches.Values.ToList()) window.ApplyAccent();
+        }
+
         if (changes.HasFlag(CentralChanges.Glass))
         {
             _viewModel.GlassLevel = _settings.GlassLevel;

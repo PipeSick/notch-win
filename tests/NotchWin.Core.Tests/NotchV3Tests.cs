@@ -264,6 +264,26 @@ public sealed class V3PaletteTests
         foreach (var status in new[] { c.Success, c.Warning, c.Danger }) Assert.True(NotchWin.Core.Notch.IslandPalette.Contrast(status, glass) >= 3, "los estados además van con texto o icono, no solo color (3:1 para elementos gráficos)");
     }
 
+    [Theory]
+    [InlineData("Violet", false)] [InlineData("Violet", true)] [InlineData("Blue", false)] [InlineData("Blue", true)] [InlineData("Green", false)] [InlineData("Green", true)]
+    [InlineData("Pink", false)] [InlineData("Pink", true)] [InlineData("Orange", false)] [InlineData("Orange", true)] [InlineData("Graphite", false)] [InlineData("Graphite", true)]
+    public void Every_accent_keeps_its_text_pairs_readable(string accent, bool light)
+    {
+        var c = NotchWin.Core.Notch.V3.V3Palette.For(light, accent); var glass = NotchWin.Core.Notch.IslandPalette.GlassFallback(light, false);
+        Assert.True(NotchWin.Core.Notch.IslandPalette.Contrast(c.OnAccent, c.Accent) >= 4.5, accent + ": texto sobre el relleno");
+        Assert.True(NotchWin.Core.Notch.IslandPalette.Contrast(c.AccentText, glass) >= 4.5, accent + ": texto de acento sobre el cristal");
+    }
+
+    [Fact]
+    public void Unknown_accent_falls_back_to_violet_and_the_central_message_carries_it()
+    {
+        Assert.Equal("Violet", NotchWin.Core.Notch.V3.V3Palette.NormalizeAccent("rojo-fuego"));
+        Assert.Equal(NotchWin.Core.Notch.V3.V3Palette.For(false, "Violet"), NotchWin.Core.Notch.V3.V3Palette.For(false, null!));
+        var c = NotchWin.Core.Hosting.CentralSettings.FromJson(System.Text.Json.JsonDocument.Parse("{\"accentColor\":\"blue\"}").RootElement)!;
+        Assert.Equal("Blue", c.AccentColor);
+        Assert.True(NotchWin.Core.Hosting.CentralSettings.Diff(new NotchWin.Core.Hosting.CentralSettings(), c).HasFlag(NotchWin.Core.Hosting.CentralChanges.Accent));
+    }
+
     [Fact]
     public void The_accent_is_violet_the_surface_is_translucent_and_the_radii_are_one_system()
     {

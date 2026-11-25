@@ -20,6 +20,7 @@ public enum CentralChanges
     Pill = 256,
     Clipboard = 512,
     Shelf = 1024,
+    Accent = 2048,
 }
 
 /// <summary>
@@ -33,6 +34,8 @@ public sealed class CentralSettings
 
     public NotchPosition Position { get; set; } = NotchPosition.TopCenter;
     public int GlassLevel { get; set; } = 60;
+    /// <summary>Color de acento de la Isla (nombre de <see cref="NotchWin.Core.Notch.V3.V3Palette.AccentNames"/>; «Violet» = el de siempre).</summary>
+    public string AccentColor { get; set; } = "Violet";
     public List<NotchSectionConfig> Sections { get; set; } = NotchSections.Defaults();
     public bool MusicEnabled { get; set; } = true;
     public bool AgentsEnabled { get; set; } = true;
@@ -108,6 +111,9 @@ public sealed class CentralSettings
                 case "glasslevel" when v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var g):
                     c.GlassLevel = Math.Clamp(g, 0, 100);
                     break;
+                case "accentcolor" when v.ValueKind == JsonValueKind.String:
+                    c.AccentColor = NotchWin.Core.Notch.V3.V3Palette.NormalizeAccent(v.GetString());
+                    break;
                 case "musicenabled" when IsBool(v):
                     c.MusicEnabled = v.GetBoolean();
                     break;
@@ -168,6 +174,7 @@ public sealed class CentralSettings
         var r = CentralChanges.None;
         if (a.Position != b.Position) r |= CentralChanges.Position;
         if (a.GlassLevel != b.GlassLevel) r |= CentralChanges.Glass;
+        if (!string.Equals(a.AccentColor, b.AccentColor, StringComparison.OrdinalIgnoreCase)) r |= CentralChanges.Accent;
         if (a.Sections.Count != b.Sections.Count || a.Sections.Zip(b.Sections).Any(p => p.First.Id != p.Second.Id || p.First.Enabled != p.Second.Enabled)) r |= CentralChanges.Sections;
         if (a.MusicEnabled != b.MusicEnabled) r |= CentralChanges.MusicModule;
         if (a.AgentsEnabled != b.AgentsEnabled) r |= CentralChanges.AgentsModule;

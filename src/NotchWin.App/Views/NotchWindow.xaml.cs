@@ -321,9 +321,12 @@ public sealed partial class NotchWindow : Window
     /// It7: cambia entre el tema claro y el oscuro EN CALIENTE (sin reiniciar la Isla). La geometría, las animaciones, el cristal y las funciones no cambian: se recolorean los recursos por tema
     /// del XAML (RequestedTheme) y se reconstruyen las vistas que el código dibuja (pestañas, tarjetas, listas), con los mismos datos.
     /// </summary>
-    private void ApplyTheme(bool light)
+    /// <summary>Cambió el color de acento (Ajustes): se reconstruye todo con el tema vigente, que ya lleva el acento nuevo.</summary>
+    public void ApplyAccent() => ApplyTheme(Pal.Light, force: true);
+
+    private void ApplyTheme(bool light, bool force = false)
     {
-        if (_closed || !Pal.Set(light)) return;
+        if (_closed || (!Pal.Set(light) && !force)) return;
         _rimBrush = null; _rootBrush = null;
         RootGrid.RequestedTheme = light ? ElementTheme.Light : ElementTheme.Dark;
         _glass.LightSurroundings = light;
