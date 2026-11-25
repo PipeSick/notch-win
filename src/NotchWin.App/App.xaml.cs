@@ -86,6 +86,7 @@ public partial class App : Application
         {
             Sections = NotchSections.Normalize(_settings.NotchSections),
             PersistSections = PersistSections,
+            RequestPeripheralsRefresh = () => { try { _hosted?.RequestPeripheralsRefresh(); } catch (Exception) { } },   // Inicio pide periféricos frescos a la barra (el enlace se crea antes; se lee al llamar)
             GlassLevel = _settings.GlassLevel,
             PersistGlass = PersistGlass,
             PlayerName = MusicPlayerLauncher.DisplayName(_settings.MusicPlayer, _settings.CustomPlayerPath),

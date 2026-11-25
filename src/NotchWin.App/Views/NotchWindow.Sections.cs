@@ -234,7 +234,7 @@ public sealed partial class NotchWindow
         ActivityPane.Visibility = Show(!_customizing && _active == NotchSections.Activity && !empty);
         CapturesPane.Visibility = Show(!_customizing && _active == NotchSections.Captures && !empty);
         HistoryPane.Visibility = Show(!_customizing && _active == NotchSections.History && !empty);
-        if (HomePane.Visibility == Visibility.Visible) RebuildHome(force: true);
+        if (HomePane.Visibility == Visibility.Visible) { RebuildHome(force: true); AskPeripheralsIfDue(); }
         if (ActivityPane.Visibility == Visibility.Visible) RebuildActivities();
         if (CapturesPane.Visibility == Visibility.Visible) RebuildCaptures();
         if (HistoryPane.Visibility == Visibility.Visible) RebuildHistory();

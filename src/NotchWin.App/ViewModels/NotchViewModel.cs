@@ -41,6 +41,9 @@ public sealed class NotchViewModel : ObservableObject
     /// <summary>Inicio: batería de periféricos que Hatsu (la barra) ya leyó; vacío si no hay o el módulo está apagado.</summary>
     public IReadOnlyList<NotchWin.Core.Pill.NotchPeripheral> Peripherals { get; set; } = [];
 
+    /// <summary>Pide a Hatsu (la barra) lecturas frescas de periféricos; null fuera de Hatsu. La ventana lo limita a una vez por minuto.</summary>
+    public Action? RequestPeripheralsRefresh { get; set; }
+
     public IReadOnlyList<ActiveDownload> Downloads { get; set; } = [];
 
     public IReadOnlyList<CalendarEvent> CalendarToday { get; set; } = [];

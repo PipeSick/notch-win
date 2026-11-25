@@ -14,6 +14,14 @@ namespace NotchWin.App.Views;
 public sealed partial class NotchWindow
 {
     private string _homeSignature = "";
+    private DateTime _lastPeriphAsk = DateTime.MinValue;
+
+    /// <summary>Al abrir Inicio se piden lecturas frescas de periféricos (como mucho una vez por minuto; la Barra respeta además su propio mínimo).</summary>
+    private void AskPeripheralsIfDue()
+    {
+        if (_viewModel.RequestPeripheralsRefresh is not { } ask || DateTime.UtcNow - _lastPeriphAsk < TimeSpan.FromSeconds(60)) return;
+        _lastPeriphAsk = DateTime.UtcNow; ask();
+    }
 
     private void OpenSection(string id)
     {

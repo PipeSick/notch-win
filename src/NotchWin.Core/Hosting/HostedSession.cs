@@ -43,7 +43,10 @@ public sealed class HostedSession : IAsyncDisposable
     private static long? Num(JsonElement e, string n) => e.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out long x) ? x : null;
 
     /// <summary>The bar's settings (retained). The Island only reads the capture folder from them, so its gallery shows where WinMac saves.</summary>
-    public const string BarTopic = "config.bar", EditTopic = "capture.edit";
+    public const string BarTopic = "config.bar", EditTopic = "capture.edit", PeripheralsRefreshTopic = "periph.refresh";
+
+    /// <summary>La Isla abrió Inicio: pide a la barra una lectura fresca de periféricos (la barra respeta su mínimo entre lecturas y solo responde con el módulo activo).</summary>
+    public void RequestPeripheralsRefresh() => _link.Event(PeripheralsRefreshTopic, new { });
 
     /// <summary>The capture folder WinMac's bar saves to (null = Windows' default «Pictures\Screenshots»). Raised on a worker thread.</summary>
     public event Action<string?>? CaptureFolderReceived;
