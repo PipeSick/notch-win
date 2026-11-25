@@ -68,6 +68,21 @@ public sealed class CountdownTimer(Func<DateTimeOffset>? clock = null)
         IsRunning = false;
     }
 
+    /// <summary>V3: the countdown is «in play»: running, or paused with time left. Cancelled, reset or finished timers are not armed.</summary>
+    public bool IsArmed => IsRunning || (_pausedRemaining > TimeSpan.Zero && !_finished);
+
+    /// <summary>V3 «Reiniciar»: back to the full time and running again (unlike <see cref="Reset"/>, which discards the countdown).</summary>
+    public void Restart()
+    {
+        _finished = false;
+        _pausedRemaining = TimeSpan.Zero;
+        _endsAt = _clock() + Total;
+        IsRunning = true;
+    }
+
+    /// <summary>V3 «Cancelar»: stop and discard; the timer goes back to «ready» at the chosen time. Same effect as <see cref="Reset"/>, with the V3 name.</summary>
+    public void Cancel() => Reset();
+
     public void Reset()
     {
         _pausedRemaining = TimeSpan.Zero;

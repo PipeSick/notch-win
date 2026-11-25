@@ -42,23 +42,34 @@ public sealed class TimerViewTests
     public void The_phase_follows_the_real_timer_through_its_whole_life()
     {
         DateTimeOffset now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero); var t = new CountdownTimer(() => now); t.SetDuration(Total);
-        TimerPhase P() => TimerView.Phase(t.IsRunning, t.IsFinished, t.Remaining, t.Total);
-        Assert.Equal(TimerPhase.Ready, P());
-        t.Start(); Assert.Equal(TimerPhase.Running, P());
-        now = now.AddMinutes(10); t.Pause(); Assert.Equal(TimerPhase.Paused, P());
+        TimerPhase P() => TimerView.Phase(TimerStates.Of(t));
+        Assert.Equal(TimerPhase.Ready, P()); Assert.False(TimerView.ShowsInCapsule(P()));
+        t.Start(); Assert.Equal(TimerPhase.Running, P()); Assert.True(TimerView.ShowsInCapsule(P()));
+        now = now.AddMinutes(10); t.Pause(); Assert.Equal(TimerPhase.Paused, P()); Assert.True(TimerView.ShowsInCapsule(P()));
         t.Start(); now = now.AddMinutes(16); Assert.True(t.TryComplete()); Assert.Equal(TimerPhase.Finished, P());
-        t.Reset(); Assert.Equal(TimerPhase.Ready, P());
+        t.Cancel(); Assert.Equal(TimerPhase.Ready, P());
     }
 
     [Fact]
-    public void Buttons_depend_on_the_phase_with_no_duplicate_cancel_and_presets_are_locked_while_running()
+    public void Restart_goes_back_to_the_full_time_and_keeps_running_while_cancel_discards_it()
+    {
+        DateTimeOffset now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero); var t = new CountdownTimer(() => now); t.SetDuration(Total);
+        t.Start(); now = now.AddMinutes(20); Assert.Equal(TimeSpan.FromMinutes(5), t.Remaining);
+        t.Restart(); Assert.True(t.IsRunning); Assert.Equal(Total, t.Remaining);   // vuelve a 25:00 y sigue corriendo
+        now = now.AddMinutes(1); t.Pause(); t.Restart(); Assert.True(t.IsRunning); Assert.Equal(Total, t.Remaining);   // también desde la pausa
+        t.Cancel(); Assert.False(t.IsRunning); Assert.False(t.IsArmed); Assert.Equal(Total, t.Remaining); Assert.Equal(TimerPhase.Ready, TimerView.Phase(TimerStates.Of(t)));
+    }
+
+    [Fact]
+    public void Buttons_depend_on_the_phase_and_presets_are_locked_while_running()
     {
         Assert.Equal([TimerAction.Start], TimerView.Actions(TimerPhase.Ready));
-        Assert.Equal([TimerAction.Pause, TimerAction.Reset], TimerView.Actions(TimerPhase.Running));
-        Assert.Equal([TimerAction.Resume, TimerAction.Reset], TimerView.Actions(TimerPhase.Paused));
-        Assert.Equal([TimerAction.Start, TimerAction.Reset], TimerView.Actions(TimerPhase.Finished));
+        Assert.Equal([TimerAction.Pause, TimerAction.Restart, TimerAction.Cancel], TimerView.Actions(TimerPhase.Running));
+        Assert.Equal([TimerAction.Resume, TimerAction.Restart, TimerAction.Cancel], TimerView.Actions(TimerPhase.Paused));
+        Assert.Equal([TimerAction.Restart, TimerAction.Cancel], TimerView.Actions(TimerPhase.Finished));
         Assert.False(TimerView.PresetsEnabled(TimerPhase.Running)); Assert.True(TimerView.PresetsEnabled(TimerPhase.Paused));
-        Assert.Equal("Volver a empezar", TimerView.ActionLabel(TimerAction.Start, TimerPhase.Finished)); Assert.Equal("Iniciar", TimerView.ActionLabel(TimerAction.Start, TimerPhase.Ready));
+        Assert.Equal("Volver a empezar", TimerView.ActionLabel(TimerAction.Restart, TimerPhase.Finished)); Assert.Equal("Reiniciar", TimerView.ActionLabel(TimerAction.Restart, TimerPhase.Running));
+        Assert.Equal("Descartar", TimerView.ActionLabel(TimerAction.Cancel, TimerPhase.Finished)); Assert.Equal("Cancelar", TimerView.ActionLabel(TimerAction.Cancel, TimerPhase.Paused));
         Assert.Equal([5, 15, 25, 50, 90], TimerView.PresetMinutes);
     }
 }
