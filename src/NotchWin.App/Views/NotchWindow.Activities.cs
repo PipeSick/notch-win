@@ -343,6 +343,7 @@ public sealed partial class NotchWindow
                     var data = new Windows.ApplicationModel.DataTransfer.DataPackage();
                     data.SetBitmap(Windows.Storage.Streams.RandomAccessStreamReference.CreateFromFile(file));
                     Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(data);
+                    ShowCopied("Imagen copiada");
                     break;
                 case ActivityAction.Delete when a.Path is { } p && File.Exists(p):
                     var f = await Windows.Storage.StorageFile.GetFileFromPathAsync(p);

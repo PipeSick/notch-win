@@ -12,7 +12,7 @@ namespace NotchWin.App.Modules.Clipboard;
 /// </summary>
 public sealed class ClipboardWatcher(ClipboardHistory history, DispatcherQueue ui) : IDisposable
 {
-    private const int MaxImageBytes = 8 * 1024 * 1024;
+    private const int MaxImageBytes = 24 * 1024 * 1024;
 
     private bool _running;
 
@@ -56,23 +56,42 @@ public sealed class ClipboardWatcher(ClipboardHistory history, DispatcherQueue u
                 return;
             }
 
-            if (view.Contains(StandardDataFormats.Text))
+            // El texto gana a la imagen (copiar de una página ofrece ambos), salvo que el «texto» venga vacío: una captura o «Copiar imagen» suelen traer solo el mapa de bits.
+            string? text = null;
+            if (view.Contains(StandardDataFormats.Text)) { try { text = await view.GetTextAsync(); } catch (Exception) { } }
+            if (!string.IsNullOrWhiteSpace(text))
             {
-                history.AddText(await view.GetTextAsync(), DateTimeOffset.Now);
+                history.AddText(text, DateTimeOffset.Now);
             }
             else if (view.Contains(StandardDataFormats.Bitmap))
             {
                 var png = await ToPngAsync(await view.GetBitmapAsync());
-                if (png is { Length: > 0 and <= MaxImageBytes })
-                {
-                    history.AddImage(png, DateTimeOffset.Now);
-                }
+                if (png is { Length: > 0 and <= MaxImageBytes }) { history.AddImage(png, DateTimeOffset.Now); Log($"imagen guardada ({png.Length / 1024} KB)"); }
+                else Log(png is null ? "imagen: no se pudo convertir" : png.Length == 0 ? "imagen vacía" : $"imagen ignorada por tamaño ({png.Length / 1024} KB)");
             }
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException or InvalidOperationException)
         {
             // The clipboard is locked by the app that is still writing to it, or holds something unreadable.
+            Log("portapapeles ocupado o ilegible: " + ex.GetType().Name);
         }
+        catch (Exception ex)
+        {
+            Log("error al leer el portapapeles: " + ex.GetType().Name + " " + ex.Message);   // antes se perdía en silencio (p. ej. un formato de imagen que el decodificador no abre)
+        }
+    }
+
+    /// <summary>Diagnóstico local sin contenido (solo tipo y tamaño): %LOCALAPPDATA%\\NotchWin\\portapapeles.log.</summary>
+    private static void Log(string what)
+    {
+        try
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NotchWin"); Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "portapapeles.log");
+            if (File.Exists(path) && new FileInfo(path).Length > 64 * 1024) File.Delete(path);
+            File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {what}{Environment.NewLine}");
+        }
+        catch (Exception) { }
     }
 
     private static async Task<bool> IsZeroAsync(DataPackageView view, string format)

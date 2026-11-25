@@ -102,7 +102,23 @@ public sealed partial class NotchWindow
         var ago = CardUi.Text(NotificationView.Relative(n.At, DateTimeOffset.Now), 10.5, CardUi.Faint); ago.VerticalAlignment = VerticalAlignment.Top; Grid.SetColumn(ago, 2); row.Children.Add(ago);
         var card = V3Ui.Surface(row, 9, interactive: true);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(card, (isNew ? "Nueva. " : "") + n.Source + ": " + n.Title);
-        if (n.Key is { } key) card.Tapped += (_, e) => { if (e.OriginalSource is Button || (e.OriginalSource is FrameworkElement { Parent: Button })) return; _openNotif = _openNotif == key ? null : key; _viewModel.Inbox.MarkSeen([n]); RebuildNotificationsV3(); RelayoutIfExpanded(); };
+        // Un clic en la notificación abre la app que la envió (si Windows dio cuál); el texto completo se despliega con la flecha. Sin app conocida, el clic despliega como antes.
+        if (n.Key is { } key)
+        {
+            void Toggle() { _openNotif = _openNotif == key ? null : key; _viewModel.Inbox.MarkSeen([n]); RebuildNotificationsV3(); RelayoutIfExpanded(); }
+            bool canOpen = n.AppId is { Length: > 0 };
+            card.Tapped += (_, e) =>
+            {
+                if (e.OriginalSource is Button || (e.OriginalSource is FrameworkElement { Parent: Button })) return;
+                if (canOpen) { _viewModel.Inbox.MarkSeen([n]); _ = OpenNotificationApp(n.AppId!); RebuildNotificationsV3(); } else Toggle();
+            };
+            if (canOpen)
+            {
+                var more = V3Ui.ActionButton(open ? "\uE70E" : "\uE70D", open ? "Ocultar texto completo" : "Ver texto completo", Toggle, ActionStyle.Ghost, size: 24);
+                more.VerticalAlignment = VerticalAlignment.Bottom; Grid.SetColumn(more, 2); more.Margin = new Thickness(0, 22, 0, 0); row.Children.Add(more);
+            }
+        }
+
         return card;
     }
 }

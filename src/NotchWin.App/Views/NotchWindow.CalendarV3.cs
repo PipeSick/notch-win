@@ -85,6 +85,8 @@ public sealed partial class NotchWindow
         var addBtn = V3Ui.ActionButton("", "Crear un evento local", () => { _calAdding = true; _calNewTitle = ""; _calNewTime = DateTime.Now.AddHours(1).ToString("HH:00"); RebuildCalendarV3(); RelayoutIfExpanded(); KeyboardOn(); }, ActionStyle.Primary, size: 30);
         s.Children.Add(V3Ui.ModuleHeader("", char.ToUpperInvariant(title[0]) + title[1..], null, addBtn));
 
+        s.Children.Add(CalendarQuickAdd());
+
         var day = CalendarAgenda.On(entries, _calSelected);
         if (day.Count == 0)
         {
@@ -118,6 +120,36 @@ public sealed partial class NotchWindow
         }
         else { var tag = V3Ui.StatusBadge("Solo lectura", BadgeTone.Neutral); tag.VerticalAlignment = VerticalAlignment.Center; Grid.SetColumn(tag, 2); row.Children.Add(tag); }
         return V3Ui.Surface(row, 9);
+    }
+
+    // ───────────── nota o recordatorio rápido, en la misma agenda
+    private string _calQuick = "";
+    private UIElement CalendarQuickAdd()
+    {
+        var row = new Grid { ColumnSpacing = 6 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var box = new TextBox { PlaceholderText = "Agregar nota o recordatorio… (ej. 18:30 Llamar al dentista)", Text = _calQuick, MaxLength = LocalCalendarStore.MaxTitle + 6, CornerRadius = new CornerRadius(10), FontSize = 12.5 };
+        box.TextChanged += (_, _) => _calQuick = box.Text;
+        void Save() { if (AddQuickCalendarNote(_calQuick)) { _calQuick = ""; RebuildCalendarV3(); RelayoutIfExpanded(); } }
+        box.KeyDown += (_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) { e.Handled = true; Save(); } };
+        box.GotFocus += (_, _) => KeyboardOn();
+        row.Children.Add(box);
+        var add = V3Ui.ActionButton("\uE710", "Agregar", Save, ActionStyle.Primary, size: 34); Grid.SetColumn(add, 1); row.Children.Add(add);
+        return row;
+    }
+
+    /// <summary>«HH:mm texto» crea un recordatorio de 1 h a esa hora; sin hora, una nota de todo el día. Siempre en el calendario local (solo en este equipo).</summary>
+    private bool AddQuickCalendarNote(string raw)
+    {
+        var text = (raw ?? "").Trim(); if (text.Length == 0 || _viewModel.LocalCalendar is not { } store) return false;
+        bool allDay = true; TimeOnly t = default;
+        var m = System.Text.RegularExpressions.Regex.Match(text, @"^(\d{1,2}):(\d{2})\s+(.+)$");
+        if (m.Success && TimeOnly.TryParse(m.Groups[1].Value + ":" + m.Groups[2].Value, out t)) { allDay = false; text = m.Groups[3].Value.Trim(); }
+        if (text.Length > LocalCalendarStore.MaxTitle) text = text[..LocalCalendarStore.MaxTitle];
+        var start = new DateTimeOffset(_calSelected.ToDateTime(allDay ? TimeOnly.MinValue : t), DateTimeOffset.Now.Offset);
+        var end = allDay ? start.AddDays(1) : start.AddHours(1);
+        return store.Add(text, start, end, allDay, CalendarColors.Palette[Math.Clamp(_calNewColor, 0, CalendarColors.Palette.Count - 1)]) is not null;
     }
 
     // ───────────── crear evento local

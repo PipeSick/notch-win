@@ -221,6 +221,7 @@ public sealed partial class NotchWindow
             }
 
             Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+            ShowCopied();
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
         {

@@ -55,6 +55,9 @@ public sealed partial class NotchWindow
             default: stack.Children.Add(V3Ui.EmptyState("", "Nada en marcha", "Cuando suene música, haya una descarga o un temporizador, aparece aquí.")); break;
         }
 
+        // Con música o una descarga como principal el temporizador no se queda en un chip: sigue visible y con sus botones (pausar / reiniciar / cancelar).
+        bool timerCard = primary != HomePrimary.Timer && SectionOn(NotchSections.Timer) && TimerView.Phase(TimerStates.Of(_viewModel.Timer)) != TimerPhase.Ready;
+        if (timerCard) stack.Children.Add(HomeTimerCompact());
         if (HomeSecondaryRow(ctx, rows) is { } sec) stack.Children.Add(sec);
         if (HomeQuickRow() is { } quick) stack.Children.Add(quick);
         HomeGrid.Children.Add(stack);
@@ -138,6 +141,25 @@ public sealed partial class NotchWindow
         return card;
     }
 
+    /// <summary>Temporizador en marcha mientras otra cosa es lo principal (música, descarga): tiempo grande, estado y los mismos botones que la pestaña.</summary>
+    private UIElement HomeTimerCompact()
+    {
+        var t = _viewModel.Timer; var phase = TimerView.Phase(TimerStates.Of(t));
+        var row = new Grid { ColumnSpacing = 14 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var ring = V3Ui.Ring(t.FractionLeft, 64, "", null); Grid.SetColumn(ring, 0); row.Children.Add(ring);
+        var txt = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
+        txt.Children.Add(CardUi.Text(FormatCountdown(t.Remaining), 26, Pal.Fg, bold: true));
+        txt.Children.Add(CardUi.Text("Temporizador · " + TimerView.Label(phase), 11.5, CardUi.Dim));
+        Grid.SetColumn(txt, 1); row.Children.Add(txt);
+        var btns = TimerButtons(phase); btns.VerticalAlignment = VerticalAlignment.Center; Grid.SetColumn(btns, 2); row.Children.Add(btns);
+        var card = V3Ui.Surface(row, 12, interactive: true);
+        card.Tapped += (_, e) => { if (e.OriginalSource is FrameworkElement { Tag: "ctl" }) return; OpenSection(NotchSections.Timer); };
+        return card;
+    }
+
     /// <summary>Los botones salen de <see cref="TimerView.Actions"/>: lo que se puede hacer depende del estado REAL del temporizador, el mismo que ve la cápsula.</summary>
     private StackPanel TimerButtons(TimerPhase phase)
     {
@@ -189,7 +211,7 @@ public sealed partial class NotchWindow
             {
                 case HomeSecondary.Notifications when SectionOn(NotchSections.Notifications): chips.Add(HomeChip(SectionInfo[NotchSections.Notifications].Glyph, "Notificaciones", ctx.Notifications > 0 ? V3Ui.StatusBadge(ctx.Notifications.ToString(), BadgeTone.Danger) : null, NotchSections.Notifications)); break;
                 case HomeSecondary.Downloads when SectionOn(NotchSections.Downloads): { var r = rows.First(x => x.IsActive); chips.Add(HomeChip(SectionInfo[NotchSections.Downloads].Glyph, r.Name, V3Ui.Progress(r.Fraction, 3), NotchSections.Downloads)); break; }
-                case HomeSecondary.Timer when SectionOn(NotchSections.Timer): chips.Add(HomeChip(SectionInfo[NotchSections.Timer].Glyph, FormatCountdown(_viewModel.Timer.Remaining), null, NotchSections.Timer)); break;
+                case HomeSecondary.Timer when SectionOn(NotchSections.Timer) && TimerView.Phase(TimerStates.Of(_viewModel.Timer)) == TimerPhase.Ready: chips.Add(HomeChip(SectionInfo[NotchSections.Timer].Glyph, FormatCountdown(_viewModel.Timer.Remaining), null, NotchSections.Timer)); break;
                 case HomeSecondary.Music when SectionOn(NotchSections.Music) && _info is { } m: chips.Add(HomeChip(SectionInfo[NotchSections.Music].Glyph, m.Title, null, NotchSections.Music)); break;
             }
         }
