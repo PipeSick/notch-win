@@ -206,9 +206,11 @@ public sealed partial class NotchWindow
     /// </summary>
     private static void TabLook(Button b, bool selected)
     {
-        Color rest = selected ? Pal.C(255, 0x0A, 0x84, 0xFF) : Colors.Transparent;
-        Color over = selected ? Pal.C(255, 0x33, 0x95, 0xFF) : Pal.C(0x1F, 0xFF, 0xFF, 0xFF);
-        Color down = selected ? Pal.C(255, 0x08, 0x6D, 0xD6) : Pal.C(0x33, 0xFF, 0xFF, 0xFF);
+        // V3: la pestaña activa lleva el acento violeta del sistema visual (texto blanco, contraste ≥ 4,5 comprobado en V3PaletteTests)
+        var acc = V3.V3Ui.Accent;
+        Color rest = selected ? acc : Colors.Transparent;
+        Color over = selected ? Color.FromArgb(255, (byte)(acc.R + (255 - acc.R) * 0.14), (byte)(acc.G + (255 - acc.G) * 0.14), (byte)(acc.B + (255 - acc.B) * 0.14)) : Pal.C(0x1F, 0xFF, 0xFF, 0xFF);
+        Color down = selected ? Color.FromArgb(255, (byte)(acc.R * 0.86), (byte)(acc.G * 0.86), (byte)(acc.B * 0.86)) : Pal.C(0x33, 0xFF, 0xFF, 0xFF);
         b.Resources["ButtonBackground"] = new SolidColorBrush(rest);
         b.Resources["ButtonBackgroundPointerOver"] = new SolidColorBrush(over);
         b.Resources["ButtonBackgroundPressed"] = new SolidColorBrush(down);
