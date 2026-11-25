@@ -33,6 +33,9 @@ public sealed class CountdownTimer(Func<DateTimeOffset>? clock = null)
 
     private bool _finished;
 
+    /// <summary>The countdown reached zero and has not been started or reset since (V3: the «finished» state of the timer view).</summary>
+    public bool IsFinished => _finished;
+
     public void SetDuration(TimeSpan total)
     {
         Total = total;
