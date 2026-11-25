@@ -177,23 +177,38 @@ public sealed partial class NotchWindow : Window
     {
         if (!_expanded && _shownPill is { Kind: NotchWin.Core.Pill.PillKind.Notification } np)
         {
-            // A click on a notification opens the app that sent it (when Windows told us which: the AUMID of the matching entry in the notification list);
-            // without it, WM-025's behaviour: the Island opens on that notification in full.
-            var match = np.NotificationKey is { } key ? _viewModel.Notifications.Items.FirstOrDefault(n => n.Key == key) : null;
-            if (match?.AppId is { Length: > 0 } aumid)
-            {
-                if (OpenNotificationApp(aumid)) { return; }
-            }
-            else
-            {
-                AppActivator.LogMissing(np.NotificationKey is null ? "la notificación no trae clave: se abre la Isla" : match is null ? "la notificación no está en la lista de Windows todavía: se abre la Isla" : "Windows no indicó qué app la envió: se abre la Isla");
-            }
-
+            if (TryOpenPillNotificationApp(np)) { e.Handled = true; return; }
             OpenNotificationFromPill(np.NotificationKey);   // WM-025
         }
 
         SetExpanded(!_expanded);
         if (_expanded) KeyboardOn();   // opened by the user's click: the keyboard works in it until it closes
+    }
+
+    /// <summary>
+    /// A click on a notification (or its «Ver» button) opens the app that sent it (when Windows told us which: the AUMID of the matching entry in the notification list);
+    /// without it, WM-025's behaviour: the Island opens on that notification in full. True if the app was opened.
+    /// </summary>
+    private bool TryOpenPillNotificationApp(NotchWin.Core.Pill.PillItem np)
+    {
+        var match = np.NotificationKey is { } key ? _viewModel.Notifications.Items.FirstOrDefault(n => n.Key == key) : null;
+        if (match?.AppId is { Length: > 0 } aumid)
+        {
+            if (OpenNotificationApp(aumid)) { return true; }
+        }
+        else
+        {
+            AppActivator.LogMissing(np.NotificationKey is null ? "la notificación no trae clave: se abre la Isla" : match is null ? "la notificación no está en la lista de Windows todavía: se abre la Isla" : "Windows no dio el AUMID de esta notificación: se abre la Isla");
+        }
+
+        return false;
+    }
+
+    /// <summary>Botón «Ver» del banner de una notificación.</summary>
+    private void OnNotifOpenClicked(object sender, RoutedEventArgs e)
+    {
+        if (_shownPill is not { Kind: NotchWin.Core.Pill.PillKind.Notification } np) { return; }
+        if (!TryOpenPillNotificationApp(np)) { OpenNotificationFromPill(np.NotificationKey); SetExpanded(true); KeyboardOn(); }
     }
 
     private void UpdateOpenPlayerButton()
