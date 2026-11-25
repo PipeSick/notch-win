@@ -1,7 +1,7 @@
 # Hatsu Notch V3 — auditoría y plan técnico
 
 Rama de trabajo: `feat/notch-v3` (NotchWin), creada sobre `feat/hatsu-shelf-plus`. Las ramas estables no se tocan. Nada se sube, fusiona ni publica sin autorización explícita.
-Estado: **auditoría y plan** (este documento) + **fase 1** (lógica pura con pruebas). La interfaz WinUI de las fases 2 y 3 todavía NO existe.
+Estado: ver la sección «Estado de implementación» al final. La auditoría y el plan de abajo son los de la fase 0; **se corrigió el alcance**: las funciones de los mockups que faltaban en el backend NO se descartan, se construyen o se documentan como pendientes con su motivo técnico.
 
 ## 1. Auditoría
 
@@ -72,3 +72,37 @@ Reutilizar la firma de «no repintar si no cambió»; miniaturas con caché y de
 
 ## 5. Validación pendiente (Windows real)
 Todo lo visual y de interacción. Los criterios (17 puntos del encargo) quedan en `docs/NOTCH_V3_VALIDACION.md` al cerrar la fase 3; hasta entonces ninguna vista se da por validada.
+
+
+## 6. Estado de implementación (se actualiza por fase)
+Leyenda: ✅ hecho y probado en Linux; 🟦 escrito y **compila en Windows (CI)**, sin ver en Windows real; 🟨 escrito, pendiente de CI; ⏳ pendiente (con motivo).
+
+| Área | Función | Estado | Cómo / límite real |
+|---|---|---|---|
+| Sistema visual | Tokens violeta/lavanda con contraste en claro y oscuro | ✅ | `V3Palette` + `V3PaletteTests` |
+| Sistema visual | Componentes (superficie, cabecera, botones con 4 estados, segmentos, badge, progreso, estado vacío, anillo, acceso rápido) | 🟦 | `Views/V3/V3Ui.cs`; extienden `CardUi`/`Pal` |
+| Navegación | Pestaña activa violeta, «Más», tooltips | 🟦 | `TabLook` |
+| Inicio | Actividad principal contextual, secundarias, accesos rápidos | 🟦 | `HomeFocus` (probado) + `NotchWindow.Home.cs` |
+| Inicio | Accesos rápidos de Hatsu (Captura, Snap, Mission, Live Text, Gestures) | ✅ lógica / ⏳ ejecución | Rama Hatsu `feat/notch-v3-hatsu`: canal de lista cerrada sobre el registro de acciones; la ejecución real solo se ve en Windows |
+| Música | Carátula, origen, progreso, controles, letras sincronizadas, Info | 🟨 | conserva `UpdateLyricsCore` |
+| Música | **Aleatorio y Repetir reales** | 🟨 | GSMTC (`TryChangeShuffleActiveAsync`, `TryChangeAutoRepeatModeAsync`) con detección de capacidades por sesión |
+| Música | Cola de reproducción, «me gusta» | ⏳ | Windows no los expone. Arquitectura lista (`IMediaQueueSource`, `IMediaFavoriteSource`, `MediaFeatureResolver`); falta un proveedor. La única vía real es la API web de Spotify (inicio de sesión OAuth del usuario, Premium para algunas operaciones y app registrada; ver decisión pendiente) |
+| Temporizador | Anillo, presets 5–90, Iniciar/Pausar/Reanudar, **Reiniciar ≠ Cancelar**, estados | 🟨 | `TimerView` + motor existente (`Restart`, `Cancel`, `IsArmed`) |
+| Calendario | Mes interactivo, selección de día, agenda con colores, próximo evento | 🟨 | `CalendarMonth`, `CalendarAgenda` |
+| Calendario | **Crear eventos** | 🟨 | Calendario **local** editable (`LocalCalendarStore`, JSON en el equipo, nada se sincroniza). Un .ics (menos aún remoto) sigue de solo lectura |
+| Calendario | Cuentas externas (Google, Outlook…) | ⏳ | Requerirían credenciales/OAuth y un proveedor aparte; no se introduce sin tu autorización |
+| Notificaciones | Agrupación por app, filtros, historial de sesión, tiempo relativo, indicador de «nueva» | 🟨 | «Nueva» es estado **local** (Windows no informa lecturas); historial solo en memoria |
+| Notificaciones | Icono real | 🟨 | `AppInfo.GetFromAppUserModelId` (solo apps empaquetadas visibles); respaldo a la inicial |
+| Notificaciones | Responder | ⏳ | Windows no permite contestar un aviso desde otra app. Única vía: automatización de la interfaz del centro de notificaciones (frágil); no implementada |
+| Descargas | Progreso, tamaño total, velocidad, ETA, pausar, reanudar, cancelar | ✅ motor / 🟨 vista | **Descargas administradas por Hatsu** (`DownloadManager`: HTTP con reanudación por rango, 10 pruebas con servidor local) |
+| Descargas | Descargas del navegador | 🟨 | **Observadas**: bytes y velocidad, barra indeterminada; sin total ni control (el sistema de archivos no lo da) |
+| Descargas | Completadas, abrir archivo, abrir ubicación | 🟨 | Historial de actividades + administradas |
+| Portapapeles | Tarjetas por tipo (texto, enlace, código, ruta, imagen), buscar, copiar, fijar, editar, eliminar | 🟨 | `ClipClassifier` (probado) sobre lo ya guardado; sin captura nueva |
+| Portapapeles | Archivos copiados (CF_HDROP) | ⏳ | Ampliaría la captura (guardaría rutas de archivos): **requiere tu autorización** por privacidad |
+| Capturas | Miniaturas reales, orden, búsqueda, vista previa, abrir, copiar, editar, ubicación, eliminar | 🟨 | Reutiliza `CaptureLibrary` y `RunAction` |
+| Capturas | Compartir | ⏳ | Existe un mecanismo real (Share de Windows por `IDataTransferManagerInterop`); no se incluyó porque la Isla no se activa y el cuadro de compartir necesita una ventana activa: requiere prueba en Windows real |
+
+## 7. Decisiones que necesito
+1. **Spotify Web API** para cola y favoritos: cada usuario tendría que iniciar sesión en Spotify (OAuth) y, con las reglas actuales de Spotify, o bien cada uno registra su propia app de desarrollador (necesita Premium) o el proyecto usa una sola app limitada a muy pocos usuarios; no es viable como función general sin pasar la revisión de Spotify. Recomendación: no integrarla ahora.
+2. **Archivos en el portapapeles**: ¿autorizas guardar rutas de archivos copiados (apagado por defecto)?
+3. **Compartir capturas** y **responder avisos**: ¿se prueban en Windows real antes de invertir más?
