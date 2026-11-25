@@ -37,7 +37,8 @@ public static class PlaybackReconcile
     {
         if (published is null || actual is null) return published is null != (actual is null);
         return published.IsPlaying != actual.IsPlaying || published.Title != actual.Title || published.Artist != actual.Artist || published.SourceAppName != actual.SourceAppName
-            || published.Duration != actual.Duration;
+            || published.Duration != actual.Duration ||
+            !(published.Extras is null ? actual.Extras is null : published.Extras.SameAs(actual.Extras));   // V3: aleatorio / repetir cambiados desde el propio reproductor
     }
 
     /// <summary>Esperas (ms) para releer tras un comando de transporte: el reproductor tarda en cambiar su estado y algunos no avisan.</summary>

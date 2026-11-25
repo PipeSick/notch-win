@@ -9,7 +9,8 @@ public sealed record NowPlayingInfo(
     TimeSpan? Duration,
     string SourceAppName,
     byte[]? AlbumArt,
-    string? Album = null);   // optional and last: nothing that already builds or compares this record (lyrics included) changes
+    string? Album = null,   // optional and last: nothing that already builds or compares this record (lyrics included) changes
+    MediaExtras? Extras = null);   // V3: what the source really exposes beyond the basics (shuffle, repeat, track number…); null = nothing known
 
 /// <summary>Implemented per-platform (WinUI app uses GSMTC); Core only knows about the shape of the data.</summary>
 public interface INowPlayingSource

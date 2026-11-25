@@ -179,3 +179,73 @@ public sealed class NotificationViewTests
         Assert.Equal("Ayer", NotificationView.Relative(Now.AddDays(-1).AddHours(-2), Now)); Assert.Equal("Hace 3 d", NotificationView.Relative(Now.AddDays(-3), Now)); Assert.Equal("10-11-2026", NotificationView.Relative(new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero), Now));
     }
 }
+
+public sealed class MediaCapabilityTests
+{
+    private sealed class Q(string app) : NotchWin.Core.Music.IMediaQueueSource { public string ProviderName => "Q"; public bool Handles(string a) => a.Contains(app, StringComparison.OrdinalIgnoreCase); public Task<IReadOnlyList<NotchWin.Core.Music.QueueItem>> GetQueueAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<NotchWin.Core.Music.QueueItem>>([]); }
+
+    [Fact]
+    public void Queue_and_favorites_only_appear_when_a_provider_recognizes_the_source_app()
+    {
+        var session = NotchWin.Core.Music.MediaCapabilities.PlayPause | NotchWin.Core.Music.MediaCapabilities.Next | NotchWin.Core.Music.MediaCapabilities.Shuffle;
+        Assert.Equal(session, NotchWin.Core.Music.MediaFeatureResolver.Effective(session, "Spotify.exe", null, null));   // sin proveedor: nada inventado
+        var withQueue = NotchWin.Core.Music.MediaFeatureResolver.Effective(session, "Spotify.exe", [new Q("spotify")], null);
+        Assert.True(withQueue.HasFlag(NotchWin.Core.Music.MediaCapabilities.Queue)); Assert.False(withQueue.HasFlag(NotchWin.Core.Music.MediaCapabilities.Favorite));
+        Assert.False(NotchWin.Core.Music.MediaFeatureResolver.Effective(session, "chrome.exe", [new Q("spotify")], null).HasFlag(NotchWin.Core.Music.MediaCapabilities.Queue));   // otra app: sin cola
+    }
+
+    [Fact]
+    public void Repeat_cycles_off_list_track_and_back_and_the_source_gets_a_readable_name()
+    {
+        var m = NotchWin.Core.Music.RepeatMode.Off; var seen = new List<NotchWin.Core.Music.RepeatMode>();
+        for (int i = 0; i < 4; i++) { m = NotchWin.Core.Music.MediaFeatureResolver.NextRepeat(m); seen.Add(m); }
+        Assert.Equal([NotchWin.Core.Music.RepeatMode.List, NotchWin.Core.Music.RepeatMode.Track, NotchWin.Core.Music.RepeatMode.Off, NotchWin.Core.Music.RepeatMode.List], seen);
+        Assert.Equal("Spotify", NotchWin.Core.Music.MediaFeatureResolver.SourceName("Spotify.exe")); Assert.Equal("Edge", NotchWin.Core.Music.MediaFeatureResolver.SourceName("MSEdge")); Assert.Equal("", NotchWin.Core.Music.MediaFeatureResolver.SourceName(null));
+        Assert.Equal("Repetir canción", NotchWin.Core.Music.MediaFeatureResolver.RepeatLabel(NotchWin.Core.Music.RepeatMode.Track));
+    }
+
+    [Fact]
+    public void A_shuffle_or_repeat_change_made_in_the_player_counts_as_a_difference_to_repaint()
+    {
+        NotchWin.Core.Music.NowPlayingInfo I(bool? shuffle, NotchWin.Core.Music.RepeatMode? rep) => new("t", "a", true, TimeSpan.Zero, TimeSpan.FromMinutes(3), "Spotify", null, null, new NotchWin.Core.Music.MediaExtras(NotchWin.Core.Music.MediaCapabilities.Shuffle, shuffle, rep, Genres: ["pop"]));
+        Assert.False(NotchWin.Core.Music.PlaybackReconcile.Differs(I(false, NotchWin.Core.Music.RepeatMode.Off), I(false, NotchWin.Core.Music.RepeatMode.Off)));   // listas de géneros iguales por valor
+        Assert.True(NotchWin.Core.Music.PlaybackReconcile.Differs(I(false, NotchWin.Core.Music.RepeatMode.Off), I(true, NotchWin.Core.Music.RepeatMode.Off)));
+        Assert.True(NotchWin.Core.Music.PlaybackReconcile.Differs(I(false, NotchWin.Core.Music.RepeatMode.Off), I(false, NotchWin.Core.Music.RepeatMode.Track)));
+    }
+}
+
+public sealed class NotificationInboxTests
+{
+    private static readonly DateTimeOffset T = new(2026, 11, 24, 12, 0, 0, TimeSpan.Zero);
+    private static NotchNotification N(string app, string key, int minAgo, string? aumid = null) => new(app, "título", "mensaje", T.AddMinutes(-minAgo), key, aumid);
+
+    [Fact]
+    public void New_is_only_a_local_seen_state_and_marking_seen_never_touches_the_items()
+    {
+        var inbox = new NotificationInbox(); var a = N("Teams", "win:1", 5); var b = N("WhatsApp", "win:2", 1); var list = new[] { a, b };
+        Assert.Equal(2, inbox.NewCount(list)); Assert.True(inbox.IsNew(a));
+        inbox.MarkSeen([a]); Assert.False(inbox.IsNew(a)); Assert.True(inbox.IsNew(b)); Assert.Equal(1, inbox.NewCount(list));
+        inbox.MarkSeen(list); Assert.Equal(0, inbox.NewCount(list));
+    }
+
+    [Fact]
+    public void What_disappears_from_the_windows_list_goes_to_the_session_history_newest_first_and_is_bounded()
+    {
+        var inbox = new NotificationInbox(); var a = N("Teams", "win:1", 5); var b = N("WhatsApp", "win:2", 1);
+        inbox.Observe([a, b]); Assert.Empty(inbox.History);
+        inbox.Observe([b]); Assert.Equal([a], inbox.History);
+        inbox.Observe([]); Assert.Equal([b, a], inbox.History);
+        var many = Enumerable.Range(0, 150).Select(i => N("App", "win:x" + i, i)).ToList(); inbox.Observe(many); inbox.Observe([]);
+        Assert.Equal(NotificationInbox.MaxHistory, inbox.History.Count); inbox.ClearHistory(); Assert.Empty(inbox.History);
+    }
+
+    [Fact]
+    public void Groups_by_app_with_the_most_recent_group_first_and_per_group_new_counts()
+    {
+        var inbox = new NotificationInbox(); var items = new[] { N("Teams", "win:1", 30, "MSTeams!App"), N("WhatsApp", "win:2", 1), N("Teams", "win:3", 10), N("whatsapp", "win:4", 20) };
+        inbox.MarkSeen([items[3]]);
+        var g = inbox.GroupByApp(items);
+        Assert.Equal(["WhatsApp", "Teams"], g.Select(x => x.App)); Assert.Equal(2, g[0].Items.Count); Assert.Equal(1, g[0].NewCount); Assert.Equal(2, g[1].Items.Count); Assert.Equal("MSTeams!App", g[1].AppId);
+        Assert.Equal("win:2", g[0].Items[0].Key);   // dentro del grupo, lo más reciente primero
+    }
+}
