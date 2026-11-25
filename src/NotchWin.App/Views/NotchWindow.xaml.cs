@@ -358,7 +358,7 @@ public sealed partial class NotchWindow : Window
             var (pw, ph) = PillSize();
             width = pw > 0 ? pw
                 : _pillLyrics ? _pillWidth
-                : _hasTrack || _viewModel.Timer.IsRunning || MiniActivity.Visibility == Visibility.Visible ? CollapsedTrackWidth : CollapsedIdleWidth;
+                : _hasTrack || _viewModel.Timer.IsArmed || MiniActivity.Visibility == Visibility.Visible ? CollapsedTrackWidth : CollapsedIdleWidth;
             height = ph > 0 ? ph : CollapsedHeight;
         }
 

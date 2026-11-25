@@ -2,6 +2,7 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using NotchWin.Core.Notch.V3;
 using NotchWin.Core.Notifications;
 using NotchWin.Core.Settings;
 using Windows.UI;
@@ -320,51 +321,21 @@ public sealed partial class NotchWindow
     private void UpdateTimerUi()
     {
         var timer = _viewModel.Timer;
-        var text = FormatCountdown(timer.Remaining);
+        TimerText.Text = FormatCountdown(timer.Remaining);
+        // V3: la cápsula muestra el temporizador mientras esté en juego (corriendo o en pausa), con las mismas reglas que Inicio y la pestaña
+        var phase = TimerView.Phase(TimerStates.Of(timer));
+        TimerText.Visibility = phase is TimerPhase.Running or TimerPhase.Paused ? Visibility.Visible : Visibility.Collapsed;
+        UpdateTimerV3(phase);
 
-        TimerBig.Text = text;
-        TimerText.Text = text;
-        TimerRing.Value = timer.FractionLeft * 100;
-        TimerStartButton.Content = timer.IsRunning ? "Pausar" : timer.Remaining <= TimeSpan.Zero ? "Otra vez" : "Iniciar";
-        TimerText.Visibility = timer.IsRunning ? Visibility.Visible : Visibility.Collapsed;
-
-        if (_timerWasRunning != timer.IsRunning)
+        var shown = phase is TimerPhase.Running or TimerPhase.Paused;
+        if (_timerWasRunning != shown)
         {
-            _timerWasRunning = timer.IsRunning;
+            _timerWasRunning = shown;
             if (!_expanded)
             {
                 ApplyLayout(animate: true);
             }
         }
-    }
-
-    private void OnPresetClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: string minutes } && int.TryParse(minutes, out var m))
-        {
-            _viewModel.Timer.SetDuration(TimeSpan.FromMinutes(m));
-            UpdateTimerUi();
-        }
-    }
-
-    private void OnTimerStartClicked(object sender, RoutedEventArgs e)
-    {
-        if (_viewModel.Timer.IsRunning)
-        {
-            _viewModel.Timer.Pause();
-        }
-        else
-        {
-            _viewModel.Timer.Start();
-        }
-
-        UpdateTimerUi();
-    }
-
-    private void OnTimerResetClicked(object sender, RoutedEventArgs e)
-    {
-        _viewModel.Timer.Reset();
-        UpdateTimerUi();
     }
 
     // ---------- lists ----------

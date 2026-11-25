@@ -377,26 +377,8 @@
                     </ScrollViewer>
                 </StackPanel>
 
-                <!-- Timer -->
-                <StackPanel x:Name="TimerPane" Spacing="10" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top">
-                    <Grid Width="112" Height="112" HorizontalAlignment="Center">
-                        <ProgressRing x:Name="TimerRing" Width="112" Height="112" IsIndeterminate="False" Minimum="0" Maximum="100"
-                                      Value="100" Foreground="{ThemeResource NW_FFFFD60A}" Background="{ThemeResource NW_FF3A3A3C}" />
-                        <TextBlock x:Name="TimerBig" Foreground="{ThemeResource NW_FFFFFFFF}" FontSize="26" FontWeight="SemiBold"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" Text="25:00" />
-                    </Grid>
-                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                        <Button Content="5 min" Tag="5" Click="OnPresetClicked" CornerRadius="14" Padding="12,5" />
-                        <Button Content="15 min" Tag="15" Click="OnPresetClicked" CornerRadius="14" Padding="12,5" />
-                        <Button Content="25 min" Tag="25" Click="OnPresetClicked" CornerRadius="14" Padding="12,5" />
-                        <Button Content="50 min" Tag="50" Click="OnPresetClicked" CornerRadius="14" Padding="12,5" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                        <Button x:Name="TimerStartButton" Content="Iniciar" Click="OnTimerStartClicked" Background="{ThemeResource NW_FFFFD60A}"
-                                Foreground="{ThemeResource NW_OnYellow}" CornerRadius="14" Padding="18,5" />
-                        <Button Content="Reiniciar" Click="OnTimerResetClicked" CornerRadius="14" Padding="14,5" />
-                    </StackPanel>
-                </StackPanel>
+                <!-- Timer (V3): lo arma NotchWindow.TimerV3 (anillo, presets y botones según el estado real) -->
+                <StackPanel x:Name="TimerPane" Spacing="12" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Top" />
 
                 <!-- Calendar -->
                 <StackPanel x:Name="CalendarPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
