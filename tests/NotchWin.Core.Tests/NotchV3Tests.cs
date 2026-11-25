@@ -249,3 +249,25 @@ public sealed class NotificationInboxTests
         Assert.Equal("win:2", g[0].Items[0].Key);   // dentro del grupo, lo más reciente primero
     }
 }
+
+public sealed class V3PaletteTests
+{
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Every_text_pair_of_the_visual_system_is_readable_in_both_themes(bool light)
+    {
+        var c = NotchWin.Core.Notch.V3.V3Palette.For(light); var glass = NotchWin.Core.Notch.IslandPalette.GlassFallback(light, false);
+        Assert.True(NotchWin.Core.Notch.IslandPalette.Contrast(c.OnAccent, c.Accent) >= 4.5, "texto sobre el relleno de acento");
+        Assert.True(NotchWin.Core.Notch.IslandPalette.Contrast(c.AccentText, glass) >= 4.5, "texto de acento sobre el cristal");
+        Assert.True(NotchWin.Core.Notch.IslandPalette.Contrast(NotchWin.Core.Notch.IslandPalette.Fg(light), glass) >= 7, "texto principal");
+        foreach (var status in new[] { c.Success, c.Warning, c.Danger }) Assert.True(NotchWin.Core.Notch.IslandPalette.Contrast(status, glass) >= 3, "los estados además van con texto o icono, no solo color (3:1 para elementos gráficos)");
+    }
+
+    [Fact]
+    public void The_accent_is_violet_the_surface_is_translucent_and_the_radii_are_one_system()
+    {
+        var d = NotchWin.Core.Notch.V3.V3Palette.For(false); Assert.True(d.Accent.B > d.Accent.R && d.Accent.R > d.Accent.G); Assert.True(d.Surface.A < 0x40);
+        Assert.True(NotchWin.Core.Notch.V3.V3Palette.RadiusCard > NotchWin.Core.Notch.V3.V3Palette.RadiusControl);
+    }
+}
