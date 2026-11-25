@@ -383,13 +383,8 @@
                 <!-- Calendar (V3): mes + agenda; lo arma NotchWindow.CalendarV3 -->
                 <StackPanel x:Name="CalendarPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top" />
 
-                <!-- Downloads -->
-                <StackPanel x:Name="DownloadsPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
-                    <TextBlock Text="DESCARGAS" Foreground="{ThemeResource NW_FF636366}" FontSize="10" FontWeight="SemiBold" CharacterSpacing="80" />
-                    <TextBlock x:Name="DownloadsEmpty" Foreground="{ThemeResource NW_FF636366}" FontSize="12" HorizontalAlignment="Center"
-                               Margin="0,38,0,0" Text="Sin descargas en curso" />
-                    <StackPanel x:Name="DownloadsList" Spacing="8" />
-                </StackPanel>
+                <!-- Downloads (V3): activas y completadas, con descargas administradas por Hatsu; las arma NotchWindow.DownloadsV3 -->
+                <StackPanel x:Name="DownloadsPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top" />
 
                 <!-- Notifications (V3): agrupadas por app, con filtros e historial de la sesión; las arma NotchWindow.NotificationsV3 -->
                 <StackPanel x:Name="NotificationsPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top" />

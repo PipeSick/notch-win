@@ -351,32 +351,7 @@ public sealed partial class NotchWindow
 
     private void RebuildCalendar() => RebuildCalendarV3();
 
-    private void RebuildDownloads()
-    {
-        DownloadsList.Children.Clear();
-        DownloadsEmpty.Visibility = _viewModel.Downloads.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-
-        foreach (var d in _viewModel.Downloads)
-        {
-            var card = new StackPanel { Background = new SolidColorBrush(Card), Padding = new Thickness(12, 10, 12, 10), Spacing = 6 };
-            card.CornerRadius = new CornerRadius(12);
-
-            var head = new Grid { ColumnSpacing = 8 };
-            head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            head.Children.Add(Label(d.FileName, 12, Pal.Fg, bold: true, trim: true));
-            var size = Label(FormatBytes(d.Bytes) + (d.BytesPerSecond is { } bps ? " · " + (bps > 0 ? NotchWin.Core.Downloads.DownloadTracker.FormatRate(bps) : "sin avance") : ""), 12, Dim);   // measured speed; no ETA (total unknown)
-            Grid.SetColumn(size, 1);
-            head.Children.Add(size);
-
-            card.Children.Add(head);
-            card.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 4, Foreground = new SolidColorBrush(Pal.C(255, 0x0A, 0x84, 0xFF)) });
-            DownloadsList.Children.Add(card);
-        }
-    }
-
-    /// <summary>WM-025: the notification shown in full (expanded row); set by a click on its row or on the notification pill.</summary>
-    private string? _openNotif;
+    private void RebuildDownloads() => RebuildDownloadsV3();
 
     private void RebuildNotifications() => RebuildNotificationsV3();
 
