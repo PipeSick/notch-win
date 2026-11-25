@@ -67,36 +67,33 @@ public sealed partial class NotchWindow
 
     private UIElement BuildClipboardCard(ClipboardEntry item)
     {
-        var body = new StackPanel { Spacing = 8 };
-        var content = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-        content.Content = BuildClipboardContent(item);
-        body.Children.Add(content);
+        // V3: la tarjeta se presenta según el TIPO de contenido (se deduce del texto ya guardado; no se captura ni se guarda nada más)
+        var kind = NotchWin.Core.Notch.V3.ClipClassifier.Classify(item.Text, item.Kind == ClipboardItemKind.Image);
+        var grid = new Grid { ColumnSpacing = 10 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var tile = V3.V3Ui.Tile(V3.V3Ui.ClipGlyph(kind), 38); tile.VerticalAlignment = VerticalAlignment.Top; grid.Children.Add(tile);
 
-        var footer = CardUi.Columns(GridLength.Auto, new GridLength(1, GridUnitType.Star), GridLength.Auto);
-        var stamp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        stamp.Children.Add(CardUi.Icon(item.Kind == ClipboardItemKind.Image ? "" : "", 12, CardUi.Faint));
-        stamp.Children.Add(CardUi.Text(item.At.ToLocalTime().ToString("d MMM, h:mm tt", CultureInfo.CurrentCulture), 11, CardUi.Faint));
-        footer.Children.Add(stamp);
+        var mid = new StackPanel { Spacing = 4 };
+        var meta = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        meta.Children.Add(V3.V3Ui.StatusBadge(NotchWin.Core.Notch.V3.ClipClassifier.KindLabel(kind), item.Pinned ? V3.BadgeTone.Warning : V3.BadgeTone.Neutral));
+        if (item.Pinned) meta.Children.Add(CardUi.Text("Fijado", 10.5, Pal.C(255, 0xFF, 0xD6, 0x0A), bold: true));
+        meta.Children.Add(CardUi.Text(NotchWin.Core.Notch.V3.NotificationView.Relative(item.At, DateTimeOffset.Now), 10.5, CardUi.Faint));
+        mid.Children.Add(meta);
+        var content = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch, Content = BuildClipboardContent(item) };
+        mid.Children.Add(content);
+        Grid.SetColumn(mid, 1); grid.Children.Add(mid);
 
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
-        if (item.Kind == ClipboardItemKind.Text)
-        {
-            actions.Children.Add(ActionButton("", "Editar", () => BeginEdit(item, content)));
-        }
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Top };
+        if (item.Kind == ClipboardItemKind.Text) actions.Children.Add(ActionButton("\uE70F", "Editar", () => BeginEdit(item, content)));
+        actions.Children.Add(ActionButton("\uE8C8", "Copiar", () => _ = CopyBackAsync(item)));
+        actions.Children.Add(ActionButton(item.Pinned ? "\uE77A" : "\uE718", item.Pinned ? "Quitar fijado" : "Fijar", () => _viewModel.Clipboard.TogglePin(item.Id), item.Pinned ? Pal.C(255, 0xFF, 0xD6, 0x0A) : CardUi.Dim));
+        actions.Children.Add(ActionButton("\uE74D", "Eliminar", () => _viewModel.Clipboard.Remove(item.Id)));
+        Grid.SetColumn(actions, 2); grid.Children.Add(actions);
 
-        actions.Children.Add(ActionButton("", "Copiar", () => _ = CopyBackAsync(item)));
-        actions.Children.Add(ActionButton(item.Pinned ? "" : "", item.Pinned ? "Quitar fijado" : "Fijar",
-            () => _viewModel.Clipboard.TogglePin(item.Id), item.Pinned ? Pal.C(255, 0xFF, 0xD6, 0x0A) : CardUi.Dim));
-        actions.Children.Add(ActionButton("", "Eliminar", () => _viewModel.Clipboard.Remove(item.Id)));
-        footer.Children.Add(CardUi.At(actions, 2));
-        body.Children.Add(footer);
-
-        var card = CardUi.Card(body, 10);
-        if (item.Pinned)
-        {
-            card.BorderBrush = CardUi.Brush(Pal.C(0x66, 0xFF, 0xD6, 0x0A));
-        }
-
+        var card = V3.V3Ui.Surface(grid, 10, interactive: true);
+        if (item.Pinned) card.BorderBrush = CardUi.Brush(Pal.C(0x66, 0xFF, 0xD6, 0x0A));
         return card;
     }
 
@@ -109,15 +106,30 @@ public sealed partial class NotchWindow
             return image;
         }
 
-        return new TextBlock
+        var text = item.Text ?? string.Empty; var kind = NotchWin.Core.Notch.V3.ClipClassifier.Classify(text);
+        switch (kind)
         {
-            Text = item.Text ?? string.Empty,
-            Foreground = CardUi.Brush(Pal.Fg),
-            FontSize = 13,
-            TextWrapping = TextWrapping.Wrap,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            MaxLines = 3,
-        };
+            case NotchWin.Core.Notch.V3.ClipKind.Link:
+            {
+                var s = new StackPanel { Spacing = 1 };
+                if (NotchWin.Core.Notch.V3.ClipClassifier.LinkHost(text) is { } host) s.Children.Add(CardUi.Text(host, 13, Pal.Fg, bold: true, trim: true));
+                s.Children.Add(CardUi.Text(text.Trim(), 11.5, CardUi.Dim, trim: true));
+                return s;
+            }
+
+            case NotchWin.Core.Notch.V3.ClipKind.Code:
+                return new TextBlock { Text = NotchWin.Core.Notch.V3.ClipClassifier.Preview(text, kind, 160), FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 12, Foreground = CardUi.Brush(Pal.Fg), TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 3 };
+            case NotchWin.Core.Notch.V3.ClipKind.Path:
+            {
+                var s = new StackPanel { Spacing = 1 };
+                s.Children.Add(CardUi.Text(System.IO.Path.GetFileName(text.Trim().TrimEnd('\\')) is { Length: > 0 } n ? n : text.Trim(), 13, Pal.Fg, bold: true, trim: true));
+                s.Children.Add(CardUi.Text(text.Trim(), 11.5, CardUi.Dim, trim: true));
+                return s;
+            }
+
+            default:
+                return new TextBlock { Text = text, Foreground = CardUi.Brush(Pal.Fg), FontSize = 13, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 3 };
+        }
     }
 
     private static async Task SetImageAsync(Image target, byte[] png)
