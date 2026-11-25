@@ -271,3 +271,41 @@ public sealed class V3PaletteTests
         Assert.True(NotchWin.Core.Notch.V3.V3Palette.RadiusCard > NotchWin.Core.Notch.V3.V3Palette.RadiusControl);
     }
 }
+
+public sealed class DownloadRowsAndQuickTests
+{
+    private static System.Text.Json.JsonElement J(string s) => System.Text.Json.JsonDocument.Parse(s).RootElement.Clone();
+
+    [Fact]
+    public void Observed_rows_are_indeterminate_and_read_only_while_managed_rows_have_real_total_eta_and_controls()
+    {
+        var obs = new[] { new NotchWin.Core.Downloads.ActiveDownload("viejo.zip", 5_000_000, 1_000_000) };
+        var http = new HttpClient(); var mgr = new NotchWin.Core.Downloads.DownloadManager(http, Path.GetTempPath());
+        var rows = DownloadView.Rows(obs, []);
+        var o = rows.Single(); Assert.False(o.IsManaged); Assert.Null(o.Fraction); Assert.Null(o.TotalBytes); Assert.False(o.CanPause); Assert.False(o.CanCancel); Assert.False(o.CanResume);   // no se promete control sobre lo ajeno
+        Assert.Equal("4.8 MB", DownloadView.SizeText(o).Replace(',', '.'));   // solo bytes: no hay total
+        var m = new DownloadView.Row("m:1", "a.msix", FileKind.Installer, 328L * 1048576, 512L * 1048576, 12_400_000, TimeSpan.FromSeconds(45), NotchWin.Core.Downloads.ManagedState.Downloading, "dl1", null, null);
+        Assert.Equal(0.640625, m.Fraction); Assert.True(m.CanPause && m.CanCancel && !m.CanResume); Assert.Equal("328 MB / 512 MB", DownloadView.SizeText(m)); Assert.Equal("~00:45", DownloadView.EtaText(m.Remaining));
+        Assert.Equal("~1 h 05 min", DownloadView.EtaText(TimeSpan.FromMinutes(65))); Assert.Null(DownloadView.EtaText(null));
+        var paused = m with { State = NotchWin.Core.Downloads.ManagedState.Paused }; Assert.True(paused.CanResume && paused.CanCancel && !paused.CanPause);
+        var done = m with { State = NotchWin.Core.Downloads.ManagedState.Completed, Path = @"C:\d\a.msix" }; Assert.True(done.CanOpen && !done.CanCancel); Assert.Equal("Completada", DownloadView.StateLabel(done.State));
+        _ = mgr; http.Dispose();
+    }
+
+    [Fact]
+    public void Quick_actions_are_a_closed_list_and_hatsu_ones_need_the_bar_to_say_they_are_available()
+    {
+        Assert.Equal(["capture", "clipboard", "snap", "mission", "livetext", "gestures"], QuickActions.All.Select(a => a.Id));
+        Assert.Equal(["clipboard"], QuickActions.Visible(null, clipboardTabOn: true).Select(a => a.Id));   // sin Hatsu: solo lo propio
+        Assert.Empty(QuickActions.Visible(null, clipboardTabOn: false));
+        Assert.Equal(["capture", "clipboard", "mission"], QuickActions.Visible(["mission", "capture", "inventado"], true).Select(a => a.Id));
+        Assert.Null(QuickActions.ById("rm -rf")); Assert.Equal("Captura", QuickActions.ById("capture")!.Label);
+    }
+
+    [Fact]
+    public void The_availability_notice_ignores_unknown_ids_the_local_one_duplicates_and_other_kinds()
+    {
+        Assert.Equal(["capture", "snap"], QuickActions.ParseAvailable(J("""{"kind":"quick","available":["capture","snap","capture","hackear","clipboard",5]}""")));
+        Assert.Empty(QuickActions.ParseAvailable(J("""{"kind":"quick"}"""))!); Assert.Null(QuickActions.ParseAvailable(J("""{"kind":"volume"}"""))); Assert.Null(QuickActions.ParseAvailable(J("[]")));
+    }
+}

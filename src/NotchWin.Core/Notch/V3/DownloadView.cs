@@ -1,4 +1,5 @@
 using NotchWin.Core.Activities;
+using NotchWin.Core.Downloads;
 
 namespace NotchWin.Core.Notch.V3;
 
@@ -40,4 +41,44 @@ public static class DownloadView
         var downloads = activities.Where(a => a.Kind == ActivityKind.Download).OrderByDescending(a => a.CreatedUtc).ToList();
         return (downloads.Where(a => a.State is ActivityState.Active or ActivityState.Paused).ToList(), downloads.Where(a => a.State is not (ActivityState.Active or ActivityState.Paused)).ToList());
     }
+
+    // ───────────── filas unificadas (observadas + administradas)
+
+    /// <summary>Una fila de la pestaña Descargas. <see cref="ManagedId"/> != null = la administra Hatsu (se puede pausar, reanudar y cancelar de verdad); null = solo observada.</summary>
+    public sealed record Row(string Key, string Name, FileKind Kind, long ReceivedBytes, long? TotalBytes, double? BytesPerSecond, TimeSpan? Remaining, ManagedState State, string? ManagedId, string? Path, string? Error)
+    {
+        public double? Fraction => TotalBytes is > 0 ? Math.Clamp((double)ReceivedBytes / TotalBytes.Value, 0, 1) : null;
+        public bool IsManaged => ManagedId is not null;
+        public bool IsActive => State is ManagedState.Queued or ManagedState.Downloading or ManagedState.Paused;
+        public bool CanPause => IsManaged && State == ManagedState.Downloading;
+        public bool CanResume => IsManaged && State is ManagedState.Paused or ManagedState.Failed;
+        public bool CanCancel => IsManaged && IsActive;
+        public bool CanOpen => State == ManagedState.Completed && Path is not null;
+    }
+
+    /// <summary>
+    /// Filas para la interfaz: las administradas (con total, ETA y control real) y las observadas en la carpeta de descargas (solo bytes y velocidad: barra indeterminada, sin pausar ni cancelar).
+    /// </summary>
+    public static IReadOnlyList<Row> Rows(IEnumerable<NotchWin.Core.Downloads.ActiveDownload> observed, IEnumerable<ManagedDownload> managed)
+    {
+        var rows = new List<Row>();
+        foreach (var m in managed) rows.Add(new Row("m:" + m.Id, m.FileName, Classify(m.FileName), m.ReceivedBytes, m.TotalBytes, m.BytesPerSecond, m.Remaining, m.State, m.Id, m.State == ManagedState.Completed ? m.TargetPath : null, m.Error));
+        foreach (var o in observed) rows.Add(new Row("o:" + o.FileName, o.FileName, Classify(o.FileName), o.Bytes, null, o.BytesPerSecond, null, ManagedState.Downloading, null, null, null));
+        return rows;
+    }
+
+    /// <summary>«328 MB / 512 MB» si hay total; «328 MB» si no.</summary>
+    public static string SizeText(Row r) => r.TotalBytes is { } t ? $"{Bytes(r.ReceivedBytes)} / {Bytes(t)}" : Bytes(r.ReceivedBytes);
+
+    public static string Bytes(long b) => b switch { < 1024 => $"{b} B", < 1024 * 1024 => $"{b / 1024.0:0} KB", < 1024L * 1024 * 1024 => $"{b / 1048576.0:0.#} MB", _ => $"{b / 1073741824.0:0.##} GB" };
+
+    /// <summary>«~00:45» (mm:ss) o «~1 h 05 min»; null si no se puede estimar.</summary>
+    public static string? EtaText(TimeSpan? remaining) => remaining switch
+    {
+        null => null,
+        { TotalHours: >= 1 } t => $"~{(int)t.TotalHours} h {t.Minutes:00} min",
+        { } t => $"~{(int)t.TotalMinutes:00}:{t.Seconds:00}",
+    };
+
+    public static string StateLabel(ManagedState s) => s switch { ManagedState.Queued => "En cola", ManagedState.Downloading => "Descargando", ManagedState.Paused => "Pausada", ManagedState.Completed => "Completada", ManagedState.Failed => "Fallida", _ => "Cancelada" };
 }
