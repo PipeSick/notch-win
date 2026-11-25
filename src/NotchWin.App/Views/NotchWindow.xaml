@@ -391,20 +391,8 @@
                     <StackPanel x:Name="DownloadsList" Spacing="8" />
                 </StackPanel>
 
-                <!-- Notifications -->
-                <StackPanel x:Name="NotificationsPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
-                    <Grid>
-                        <TextBlock Text="NOTIFICACIONES" Foreground="{ThemeResource NW_FF636366}" FontSize="10" FontWeight="SemiBold"
-                                   CharacterSpacing="80" VerticalAlignment="Center" />
-                        <Button Content="Limpiar" Click="OnClearNotificationsClicked" HorizontalAlignment="Right"
-                                CornerRadius="12" Padding="10,3" FontSize="11" />
-                    </Grid>
-                    <TextBlock x:Name="NotificationsEmpty" Foreground="{ThemeResource NW_FF636366}" FontSize="12" HorizontalAlignment="Center"
-                               Margin="0,38,0,0" Text="Sin notificaciones" />
-                    <ScrollViewer MaxHeight="184" VerticalScrollBarVisibility="Hidden">
-                        <StackPanel x:Name="NotificationsList" Spacing="8" />
-                    </ScrollViewer>
-                </StackPanel>
+                <!-- Notifications (V3): agrupadas por app, con filtros e historial de la sesión; las arma NotchWindow.NotificationsV3 -->
+                <StackPanel x:Name="NotificationsPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top" />
 
                 <!-- Shelf: drop files in, drag them back out into another app -->
                 <StackPanel x:Name="ShelfPane" Spacing="8" Visibility="Collapsed" VerticalAlignment="Top">
