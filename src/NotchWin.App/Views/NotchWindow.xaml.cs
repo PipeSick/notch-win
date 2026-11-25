@@ -460,6 +460,7 @@ public sealed partial class NotchWindow : Window
         SetArt(MiniArt, art, null);
         SetArt(ToastArt, art, null);
         await UpdateTintAsync(info?.AlbumArt is { Length: > 0 } tintBytes ? tintBytes : null);   // propuesta A: borde y barras con el color de la carátula
+        UpdateMusicV3();   // V3: aleatorio/repetir/origen/segmentos con lo que la sesión realmente permite
 
         if (trackChanged && !_expanded)
         {

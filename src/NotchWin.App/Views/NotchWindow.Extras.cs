@@ -495,6 +495,12 @@ public sealed partial class NotchWindow
 
     private void UpdateLyrics()
     {
+        UpdateLyricsCore();
+        if (!_lyricsSegmentOn) LyricsBox.Visibility = Visibility.Collapsed;   // V3: con el segmento «Info» elegido la letra no se muestra
+    }
+
+    private void UpdateLyricsCore()
+    {
         if (_lyrics is not { Count: > 0 } lines || _info is null)
         {
             var message = _viewModel.Lyrics is null || !_hasTrack

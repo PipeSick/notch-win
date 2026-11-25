@@ -285,15 +285,16 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <Border x:Name="ArtBorder" Width="64" Height="64" CornerRadius="14" Background="{ThemeResource NW_FF1C1C1E}" VerticalAlignment="Center">
+                        <Border x:Name="ArtBorder" Width="112" Height="112" CornerRadius="20" Background="{ThemeResource NW_FF1C1C1E}" VerticalAlignment="Center">
                             <FontIcon x:Name="ArtPlaceholder" Glyph="&#xE8D6;" FontSize="26" Foreground="{ThemeResource NW_FF48484A}" />
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                            <TextBlock x:Name="TitleText" Foreground="{ThemeResource NW_FFFFFFFF}" FontSize="17" FontWeight="SemiBold"
+                            <TextBlock x:Name="TitleText" Foreground="{ThemeResource NW_FFFFFFFF}" FontSize="21" FontWeight="SemiBold"
                                        TextTrimming="CharacterEllipsis" MaxLines="1" Text="Nada en reproducción" />
                             <TextBlock x:Name="ArtistText" Foreground="{ThemeResource NW_FF98989D}" FontSize="13"
                                        TextTrimming="CharacterEllipsis" MaxLines="1" />
+                            <StackPanel x:Name="MusicSourceHost" Orientation="Horizontal" Margin="0,4,0,0" />
                             <Button x:Name="OpenPlayerButton" Click="OnOpenPlayerClicked" Content="Abrir Spotify"
                                     HorizontalAlignment="Left" Margin="0,6,0,0" Padding="14,5" CornerRadius="14"
                                     Visibility="Collapsed" />
@@ -322,14 +323,18 @@
                                 <ColumnDefinition x:Name="ProgressRest" Width="1*" />
                             </Grid.ColumnDefinitions>
                             <Border Grid.ColumnSpan="2" Height="4" VerticalAlignment="Center" IsHitTestVisible="False" Background="{ThemeResource NW_FF3A3A3C}" CornerRadius="2" />
-                            <Border Height="4" VerticalAlignment="Center" IsHitTestVisible="False" Background="{ThemeResource NW_FFFFFFFF}" CornerRadius="2" />
+                            <Border x:Name="ProgressFillBar" Height="4" VerticalAlignment="Center" IsHitTestVisible="False" Background="{ThemeResource NW_FFFFFFFF}" CornerRadius="2" />
                         </Grid>
                         <TextBlock x:Name="DurationText" Grid.Column="2" Foreground="{ThemeResource NW_FF8E8E93}" FontSize="10"
                                    VerticalAlignment="Center" Text="0:00" />
                     </Grid>
 
-                    <StackPanel x:Name="ControlsRow" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="22"
+                    <StackPanel x:Name="ControlsRow" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16"
                                 Visibility="Collapsed">
+                        <!-- V3: aleatorio y repetir solo se muestran si la sesión de Windows los habilita (MediaCapabilities); su estado es el REAL del reproductor. -->
+                        <Button x:Name="ShuffleButton" Click="OnShuffleClicked" Background="Transparent" BorderThickness="0" Padding="9" CornerRadius="18" Visibility="Collapsed" ToolTipService.ToolTip="Aleatorio">
+                            <FontIcon x:Name="ShuffleIcon" Glyph="&#xE8B1;" FontSize="15" Foreground="{ThemeResource NW_FFFFFFFF}" />
+                        </Button>
                         <Button Click="OnPreviousClicked" Background="Transparent" BorderThickness="0" Padding="10" CornerRadius="20">
                             <Viewbox Width="16" Height="16"><Path Data="M2.5,2.5 L4.3,2.5 L4.3,13.5 L2.5,13.5 Z M14,2.5 L5.5,8 L14,13.5 Z" Fill="{ThemeResource NW_FFFFFFFF}" /></Viewbox>
                         </Button>
@@ -340,8 +345,15 @@
                         <Button Click="OnNextClicked" Background="Transparent" BorderThickness="0" Padding="10" CornerRadius="20">
                             <Viewbox Width="16" Height="16"><Path Data="M13.5,2.5 L11.7,2.5 L11.7,13.5 L13.5,13.5 Z M2,2.5 L10.5,8 L2,13.5 Z" Fill="{ThemeResource NW_FFFFFFFF}" /></Viewbox>
                         </Button>
+                        <Button x:Name="RepeatButton" Click="OnRepeatClicked" Background="Transparent" BorderThickness="0" Padding="9" CornerRadius="18" Visibility="Collapsed" ToolTipService.ToolTip="Repetir">
+                            <FontIcon x:Name="RepeatIcon" Glyph="&#xE8EE;" FontSize="15" Foreground="{ThemeResource NW_FFFFFFFF}" />
+                        </Button>
                     </StackPanel>
                 </Grid>
+
+                <!-- V3: segmentos Letras · Info (· Cola solo con un proveedor que la tenga) y el panel de Información; los arma NotchWindow.MusicV3 -->
+                <Border x:Name="MusicSegmentsHost" Visibility="Collapsed" />
+                <StackPanel x:Name="MusicExtraHost" Spacing="6" Visibility="Collapsed" />
 
                 <!-- Synced lyrics (opt-in in Settings) -->
                 <StackPanel x:Name="LyricsBox" Background="{ThemeResource NW_12FFFFFF}" BorderBrush="{ThemeResource NW_1AFFFFFF}" BorderThickness="1" CornerRadius="12" Padding="14,10" Spacing="4"
