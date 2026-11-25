@@ -67,6 +67,9 @@ public sealed partial class NotchWindow
         head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var tile = new Border { Width = 26, Height = 26, CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(ColorForSource(g.App)), Child = new TextBlock { Text = g.App.Length > 0 ? g.App[..1].ToUpperInvariant() : "?", FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Colors.Black), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
+        // icono real de la app si Windows deja consultarlo (apps empaquetadas); si no, la inicial sobre el color de siempre
+        if (AppIcons.Peek(g.AppId) is { } icon) { tile.Child = null; tile.Background = new ImageBrush { ImageSource = icon, Stretch = Stretch.UniformToFill }; }
+        else _ = AppIcons.EnsureAsync(g.AppId, () => DispatcherQueue.TryEnqueue(() => { if (!_closed && NotificationsPane.Visibility == Visibility.Visible) RebuildNotificationsV3(); }));
         head.Children.Add(tile);
         var name = CardUi.Text(g.App + (g.Items.Count > 1 ? $"  ·  {g.Items.Count}" : ""), 12.5, Pal.Fg, bold: true, trim: true); Grid.SetColumn(name, 1); head.Children.Add(name);
         var right = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
