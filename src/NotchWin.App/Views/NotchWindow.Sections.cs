@@ -24,6 +24,7 @@ public sealed partial class NotchWindow
 
     private static readonly Dictionary<string, (string Name, string Glyph)> SectionInfo = new()
     {
+        [NotchSections.Home] = ("Inicio", "\uE80F"),
         [NotchSections.Music] = ("Música", ""),
         [NotchSections.Agents] = ("Agentes de IA", ""),
         [NotchSections.Timer] = ("Temporizador", ""),
