@@ -262,7 +262,7 @@ public sealed partial class NotchWindow
     }
 
     /// <summary>Copies a text or image item to the Windows clipboard (the Island's clipboard history picks it up like any other copy: no second history).</summary>
-    private static async void CopyShelfItem(NotchWin.Core.Shelf.ShelfItem item)
+    private async void CopyShelfItem(NotchWin.Core.Shelf.ShelfItem item)
     {
         try
         {
