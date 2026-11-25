@@ -187,10 +187,10 @@ public sealed partial class NotchWindow
         {
             switch (s)
             {
-                case HomeSecondary.Notifications when SectionOn(NotchSections.Notifications): chips.Add(HomeChip("", "Notificaciones", ctx.Notifications > 0 ? V3Ui.StatusBadge(ctx.Notifications.ToString(), BadgeTone.Danger) : null, NotchSections.Notifications)); break;
-                case HomeSecondary.Downloads when SectionOn(NotchSections.Downloads): { var r = rows.First(x => x.IsActive); chips.Add(HomeChip("", r.Name, V3Ui.Progress(r.Fraction, 3), NotchSections.Downloads)); break; }
-                case HomeSecondary.Timer when SectionOn(NotchSections.Timer): chips.Add(HomeChip("", FormatCountdown(_viewModel.Timer.Remaining), null, NotchSections.Timer)); break;
-                case HomeSecondary.Music when SectionOn(NotchSections.Music) && _info is { } m: chips.Add(HomeChip("", m.Title, null, NotchSections.Music)); break;
+                case HomeSecondary.Notifications when SectionOn(NotchSections.Notifications): chips.Add(HomeChip(SectionInfo[NotchSections.Notifications].Glyph, "Notificaciones", ctx.Notifications > 0 ? V3Ui.StatusBadge(ctx.Notifications.ToString(), BadgeTone.Danger) : null, NotchSections.Notifications)); break;
+                case HomeSecondary.Downloads when SectionOn(NotchSections.Downloads): { var r = rows.First(x => x.IsActive); chips.Add(HomeChip(SectionInfo[NotchSections.Downloads].Glyph, r.Name, V3Ui.Progress(r.Fraction, 3), NotchSections.Downloads)); break; }
+                case HomeSecondary.Timer when SectionOn(NotchSections.Timer): chips.Add(HomeChip(SectionInfo[NotchSections.Timer].Glyph, FormatCountdown(_viewModel.Timer.Remaining), null, NotchSections.Timer)); break;
+                case HomeSecondary.Music when SectionOn(NotchSections.Music) && _info is { } m: chips.Add(HomeChip(SectionInfo[NotchSections.Music].Glyph, m.Title, null, NotchSections.Music)); break;
             }
         }
 
