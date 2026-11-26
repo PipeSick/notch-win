@@ -29,6 +29,7 @@ public sealed partial class NotchWindow
         [NotchSections.Agents] = ("Agentes de IA", ""),
         [NotchSections.Timer] = ("Temporizador", ""),
         [NotchSections.Calendar] = ("Calendario", ""),
+        [NotchSections.Notes] = ("Notas", "\uE70F"),
         [NotchSections.Downloads] = ("Descargas", ""),
         [NotchSections.Shelf] = ("Estantería", ""),
         [NotchSections.Camera] = ("Cámara", ""),
