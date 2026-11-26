@@ -562,6 +562,13 @@ public partial class App : Application
             _viewModel.LocalCalendar = local;
         }
 
+        if (_viewModel.Notes is null && _uiQueue is not null)
+        {   // Notas fijables: texto solo en este equipo; las fijadas reabren su ventana al arrancar
+            var notes = new NotchWin.Core.Notes.NotesStore(Path.Combine(Path.GetDirectoryName(_settingsStore.FilePath) ?? Environment.CurrentDirectory, "notes.json"));
+            notes.Changed += () => _uiQueue?.TryEnqueue(() => _viewModel?.RaiseDataChanged());
+            _viewModel.Notes = notes; _viewModel.Sticky = new NotchWin.App.Views.StickyNotes(notes, _uiQueue); _viewModel.Sticky.Sync();
+        }
+
         _viewModel.RaiseDataChanged();
     }
 

@@ -383,6 +383,9 @@
                 <!-- Calendar (V3): mes + agenda; lo arma NotchWindow.CalendarV3 -->
                 <StackPanel x:Name="CalendarPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top" />
 
+                <!-- Notas (fijables): las arma NotchWindow.NotesV3 -->
+                <StackPanel x:Name="NotesPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top" />
+
                 <!-- Downloads (V3): activas y completadas, con descargas administradas por Hatsu; las arma NotchWindow.DownloadsV3 -->
                 <StackPanel x:Name="DownloadsPane" Spacing="10" Visibility="Collapsed" VerticalAlignment="Top" />
 

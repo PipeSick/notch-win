@@ -24,6 +24,8 @@ public static class NotchSections
     public const string Camera = "camera";
     public const string Resources = "system";
     public const string Clipboard = "clipboard";
+    /// <summary>Notas fijables (ventanitas delante de todo) y tarjeta de notas fijadas en Inicio.</summary>
+    public const string Notes = "notes";
     // WinMac 2.0 — Centro de actividades
     public const string Activity = "activity";
     public const string Captures = "captures";
@@ -32,7 +34,7 @@ public static class NotchSections
     /// <summary>Default order as in the approved WinMac 2.0 mockup (En curso · Capturas · Portapapeles · Descargas · Historial), then the rest. The music tab
     /// (with the synced lyrics) stays on. Someone with a saved order keeps it; new sections are appended (<see cref="Normalize"/>).</summary>
     public static IReadOnlyList<string> AllIds { get; } =
-        [Home, Activity, Captures, Clipboard, Downloads, History, Music, Timer, Calendar, Notifications, Shelf, Camera, Resources];
+        [Home, Activity, Captures, Clipboard, Downloads, History, Music, Timer, Calendar, Notes, Notifications, Shelf, Camera, Resources];
 
     /// <summary>The camera stays off until the user turns it on, since it opens the webcam.</summary>
     private static bool DefaultEnabled(string id) => id != Camera;

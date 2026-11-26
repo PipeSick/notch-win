@@ -40,7 +40,7 @@ public sealed partial class NotchWindow
         var rows = DownloadRows(); var ctx = BuildHomeContext(rows); var t = _viewModel.Timer;
         var pos = _info is { } i0 ? i0.Position + (i0.IsPlaying ? DateTime.UtcNow - _infoAtUtc : TimeSpan.Zero) : TimeSpan.Zero;
         var sig = string.Join("|", _info?.Title, _info?.Artist, _info?.IsPlaying, (int)(pos.TotalSeconds / 3), _info?.Extras?.Shuffle, _info?.Extras?.Repeat, TimerView.Phase(TimerStates.Of(t)), (int)t.Remaining.TotalSeconds,
-            string.Join(",", rows.Where(r => r.IsActive).Select(r => r.Key + r.State + r.ReceivedBytes / 524288)), ctx.Notifications, string.Join(",", _viewModel.QuickAvailable), string.Join(",", EnabledSections().Select(s => s.Id)), string.Join(",", _viewModel.Peripherals.Select(d => d.Name + d.Percent + d.Charging)), Pal.Light);
+            string.Join(",", rows.Where(r => r.IsActive).Select(r => r.Key + r.State + r.ReceivedBytes / 524288)), ctx.Notifications, string.Join(",", _viewModel.QuickAvailable), string.Join(",", EnabledSections().Select(s => s.Id)), string.Join(",", _viewModel.Peripherals.Select(d => d.Name + d.Percent + d.Charging)), string.Join(",", (_viewModel.Notes?.Pinned() ?? []).Select(n => n.Id + n.UpdatedUtc.Ticks + n.Color)), Pal.Light);
         if (!force && sig == _homeSignature) return;
         _homeSignature = sig;
 
@@ -59,6 +59,7 @@ public sealed partial class NotchWindow
         bool timerCard = primary != HomePrimary.Timer && SectionOn(NotchSections.Timer) && TimerView.Phase(TimerStates.Of(_viewModel.Timer)) != TimerPhase.Ready;
         if (timerCard) stack.Children.Add(HomeTimerCompact());
         if (HomeSecondaryRow(ctx, rows) is { } sec) stack.Children.Add(sec);
+        if (HomeNotesCard() is { } notes) stack.Children.Add(notes);
         if (HomePeripheralsCard() is { } periph) stack.Children.Add(periph);
         if (HomeQuickRow() is { } quick) stack.Children.Add(quick);
         HomeGrid.Children.Add(stack);

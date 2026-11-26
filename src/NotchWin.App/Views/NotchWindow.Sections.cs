@@ -230,6 +230,7 @@ public sealed partial class NotchWindow
         AgentsPane.Visibility = Show(!_customizing && _active == NotchSections.Agents && !empty);
         TimerPane.Visibility = Show(!_customizing && _active == NotchSections.Timer && !empty);
         CalendarPane.Visibility = Show(!_customizing && _active == NotchSections.Calendar && !empty);
+        NotesPane.Visibility = Show(!_customizing && _active == NotchSections.Notes && !empty);
         DownloadsPane.Visibility = Show(!_customizing && _active == NotchSections.Downloads && !empty);
         NotificationsPane.Visibility = Show(!_customizing && _active == NotchSections.Notifications && !empty);
         ShelfPane.Visibility = Show(!_customizing && _active == NotchSections.Shelf && !empty);
@@ -345,6 +346,7 @@ public sealed partial class NotchWindow
     {
         if (HomePane.Visibility == Visibility.Visible) RebuildHome();
         RebuildCalendar();
+        RebuildNotesV3();
         RebuildDownloads();
         RebuildNotifications();
         RebuildShelf();

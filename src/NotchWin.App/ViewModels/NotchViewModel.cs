@@ -65,6 +65,9 @@ public sealed class NotchViewModel : ObservableObject
 
     /// <summary>V3: calendario LOCAL de Hatsu (la única fuente editable); null hasta que App lo crea.</summary>
     public NotchWin.Core.Calendar.LocalCalendarStore? LocalCalendar { get; set; }
+    /// <summary>Notas (locales) y el gestor de sus ventanas fijadas.</summary>
+    public NotchWin.Core.Notes.NotesStore? Notes { get; set; }
+    public NotchWin.App.Views.StickyNotes? Sticky { get; set; }
 
     /// <summary>False until the user points Settings at an .ics file, so the tab can say how to set it up.</summary>
     public bool CalendarConfigured { get; set; }
