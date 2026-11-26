@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using NotchWin.App.Views.V3;
 using NotchWin.Core.Notes;
+using NotchWin.Core.Settings;
 using Windows.UI;
 
 namespace NotchWin.App.Views;
