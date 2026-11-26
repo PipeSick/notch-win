@@ -40,7 +40,7 @@ public sealed partial class NotchWindow
         var rows = DownloadRows(); var ctx = BuildHomeContext(rows); var t = _viewModel.Timer;
         var pos = _info is { } i0 ? i0.Position + (i0.IsPlaying ? DateTime.UtcNow - _infoAtUtc : TimeSpan.Zero) : TimeSpan.Zero;
         var sig = string.Join("|", _info?.Title, _info?.Artist, _info?.IsPlaying, (int)(pos.TotalSeconds / 3), _info?.Extras?.Shuffle, _info?.Extras?.Repeat, TimerView.Phase(TimerStates.Of(t)), (int)t.Remaining.TotalSeconds,
-            string.Join(",", rows.Where(r => r.IsActive).Select(r => r.Key + r.State + r.ReceivedBytes / 524288)), ctx.Notifications, string.Join(",", _viewModel.QuickAvailable), string.Join(",", EnabledSections().Select(s => s.Id)), Pal.Light);
+            string.Join(",", rows.Where(r => r.IsActive).Select(r => r.Key + r.State + r.ReceivedBytes / 524288)), ctx.Notifications, string.Join(",", _viewModel.QuickAvailable), string.Join(",", EnabledSections().Select(s => s.Id)), string.Join(",", _viewModel.Peripherals.Select(d => d.Name + d.Percent + d.Charging)), Pal.Light);
         if (!force && sig == _homeSignature) return;
         _homeSignature = sig;
 
@@ -59,6 +59,7 @@ public sealed partial class NotchWindow
         bool timerCard = primary != HomePrimary.Timer && SectionOn(NotchSections.Timer) && TimerView.Phase(TimerStates.Of(_viewModel.Timer)) != TimerPhase.Ready;
         if (timerCard) stack.Children.Add(HomeTimerCompact());
         if (HomeSecondaryRow(ctx, rows) is { } sec) stack.Children.Add(sec);
+        if (HomePeripheralsCard() is { } periph) stack.Children.Add(periph);
         if (HomeQuickRow() is { } quick) stack.Children.Add(quick);
         HomeGrid.Children.Add(stack);
         HomeEmpty.Visibility = Visibility.Collapsed;
@@ -220,6 +221,29 @@ public sealed partial class NotchWindow
         var g = new Grid { ColumnSpacing = 8 };
         for (int i = 0; i < chips.Count; i++) { g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); Grid.SetColumn((FrameworkElement)chips[i], i); g.Children.Add(chips[i]); }
         return g;
+    }
+
+    private static string DeviceGlyph(string type) => type switch { "mouse" => "\uE962", "keyboard" => "\uE765", "headset" => "\uE7F6", "gamepad" => "\uE7FC", _ => "\uE772" };
+
+    /// <summary>Batería de los periféricos que la Barra ya leyó (solo conectados y con porcentaje real). Sin datos (Periféricos apagado en la Barra o nada conectado) la tarjeta no se muestra.</summary>
+    private UIElement? HomePeripheralsCard()
+    {
+        if (_viewModel.Peripherals.Count == 0) return null;
+        var s = new StackPanel { Spacing = 6 };
+        s.Children.Add(new TextBlock { Text = "PERIFÉRICOS", FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, CharacterSpacing = 80, Foreground = new SolidColorBrush(CardUi.Dim) });
+        foreach (var d in _viewModel.Peripherals.Take(4))
+        {
+            var row = new Grid { ColumnSpacing = 8 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(CardUi.Icon(DeviceGlyph(d.Type), 13, V3Ui.AccentText));
+            var name = CardUi.Text(d.Name, 12, Pal.Fg, trim: true); Grid.SetColumn(name, 1); row.Children.Add(name);
+            var pct = CardUi.Text(d.Percent + " %" + (d.Charging ? " ⚡" : ""), 12, d.Percent <= 15 && !d.Charging ? V3Ui.Danger : Pal.Fg, bold: true); Grid.SetColumn(pct, 2); row.Children.Add(pct);
+            s.Children.Add(row);
+        }
+
+        return V3Ui.Surface(s, 10);
     }
 
     private UIElement HomeChip(string glyph, string text, UIElement? extra, string target)
